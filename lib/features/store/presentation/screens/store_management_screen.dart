@@ -87,7 +87,6 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               stream: FirebaseFirestore.instance
                   .collection('products')
                   .where('storeId', isEqualTo: storeId)
-                  .where('isActive', isEqualTo: true)
                   .orderBy('createdAt', descending: true)
                   .limit(20)
                   .snapshots(),
@@ -122,7 +121,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             pinned: true,
             floating: false,
             expandedHeight: 0,
-            backgroundColor: _isHeaderCollapsed ? Colors.white : Colors.transparent,
+            backgroundColor: Colors.white,
             elevation: _isHeaderCollapsed ? 1 : 0,
             title: _isHeaderCollapsed
                 ? Row(
@@ -153,46 +152,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                       ],
                     ],
                   )
-                : null,
-            actions: [
-              // Store active/inactive indicator
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: store.isActive
-                          ? Colors.green.withOpacity(0.12)
-                          : Colors.grey.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: store.isActive ? Colors.green : Colors.grey,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          store.isActive ? 'Open' : 'Closed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: store.isActive ? Colors.green : Colors.grey,
-                          ),
-                        ),
-                      ],
+                : const Text(
+                    'My Store',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                ),
-              ),
-            ],
           ),
 
           // Body content
@@ -203,8 +170,6 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 // ─── 1. Banner Header ───────────────────────────────
                 StoreBannerHeader(
                   store: store,
-                  onEditBanner: () => context.push('/edit-store'),
-                  onEditLogo: () => context.push('/edit-store'),
                 ),
                 const SizedBox(height: 20),
 
