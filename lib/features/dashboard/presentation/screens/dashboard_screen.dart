@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../products/presentation/screens/product_list_screen.dart';
 import '../../../orders/presentation/screens/orders_list_screen.dart';
 import '../../../store/presentation/screens/store_management_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 import 'home_dashboard_view.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     const ProductListScreen(),
     const OrdersListScreen(),
     const StoreManagementScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -70,6 +72,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icon(Icons.storefront_outlined),
             selectedIcon: Icon(Icons.storefront),
             label: 'Store',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

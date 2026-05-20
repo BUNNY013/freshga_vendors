@@ -16,6 +16,8 @@ class StoreModel {
   final List<String> categories;
   
   final int followers;
+  final int likesCount;
+  final int productsCount;
   final double rating;
   final int totalReviews;
   final int totalOrders;
@@ -42,6 +44,8 @@ class StoreModel {
     required this.facebookLink,
     required this.categories,
     required this.followers,
+    required this.likesCount,
+    required this.productsCount,
     required this.rating,
     required this.totalReviews,
     required this.totalOrders,
@@ -67,6 +71,8 @@ class StoreModel {
       facebookLink: json['facebookLink'] ?? '',
       categories: List<String>.from(json['categories'] ?? []),
       followers: json['followers'] ?? 0,
+      likesCount: json['likesCount'] ?? 0,
+      productsCount: json['productsCount'] ?? 0,
       rating: (json['rating'] ?? 0.0).toDouble(),
       totalReviews: json['totalReviews'] ?? 0,
       totalOrders: json['totalOrders'] ?? 0,
@@ -93,6 +99,8 @@ class StoreModel {
       'facebookLink': facebookLink,
       'categories': categories,
       'followers': followers,
+      'likesCount': likesCount,
+      'productsCount': productsCount,
       'rating': rating,
       'totalReviews': totalReviews,
       'totalOrders': totalOrders,
@@ -118,6 +126,8 @@ class StoreModel {
     String? facebookLink,
     List<String>? categories,
     int? followers,
+    int? likesCount,
+    int? productsCount,
     double? rating,
     int? totalReviews,
     int? totalOrders,
@@ -141,6 +151,8 @@ class StoreModel {
       facebookLink: facebookLink ?? this.facebookLink,
       categories: categories ?? this.categories,
       followers: followers ?? this.followers,
+      likesCount: likesCount ?? this.likesCount,
+      productsCount: productsCount ?? this.productsCount,
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,
       totalOrders: totalOrders ?? this.totalOrders,

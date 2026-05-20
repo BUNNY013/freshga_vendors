@@ -139,8 +139,8 @@ class StoreManagementScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildStatItem("Followers", store.followers.toString()),
-        _buildStatItem("Rating", "${store.rating} (${store.totalReviews})"),
-        _buildStatItem("Orders", store.totalOrders.toString()),
+        _buildStatItem("Likes", store.likesCount.toString()),
+        _buildStatItem("Products", store.productsCount.toString()),
       ],
     );
   }

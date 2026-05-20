@@ -58,14 +58,15 @@ class ProductProvider extends ChangeNotifier {
       final user = _auth.currentUser;
       if (user == null) throw Exception("Not authenticated");
 
-      // Get storeId from user
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userModel = UserModel.fromJson(userDoc.data()!);
       if (userModel.storeId.isEmpty) throw Exception("Store not set up");
+      
+      final storeDoc = await _firestore.collection('stores').doc(userModel.storeId).get();
+      final storeName = storeDoc.exists ? (storeDoc.data()?['storeName'] ?? '') : '';
 
       final productId = _firestore.collection('products').doc().id;
       
-      // Upload images
       List<String> imageUrls = [];
       for (int i = 0; i < _selectedImages.length; i++) {
         final file = _selectedImages[i];
@@ -78,6 +79,7 @@ class ProductProvider extends ChangeNotifier {
       final finalProduct = product.copyWith(
         productId: productId,
         storeId: userModel.storeId,
+        storeName: storeName,
         images: imageUrls,
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
@@ -85,6 +87,8 @@ class ProductProvider extends ChangeNotifier {
 
       await _firestore.collection('products').doc(productId).set(finalProduct.toJson());
 
+      // Update store products count or any other required field
+      
       _isLoading = false;
       _selectedImages.clear();
       notifyListeners();
@@ -97,10 +101,10 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleProductVisibility(String productId, bool isVisible) async {
+  Future<void> toggleProductVisibility(String productId, bool isActive) async {
     try {
       await _firestore.collection('products').doc(productId).update({
-        'status': isVisible ? 'Published' : 'Hidden',
+        'isActive': isActive,
         'updatedAt': DateTime.now().toIso8601String(),
       });
     } catch (e) {

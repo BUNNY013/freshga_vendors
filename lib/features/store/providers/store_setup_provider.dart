@@ -17,9 +17,16 @@ class StoreSetupProvider extends ChangeNotifier {
   File? get bannerFile => _bannerFile;
 
   String _storeName = '';
+  String get storeName => _storeName;
+
   String _brandStory = '';
+  String get brandStory => _brandStory;
+
   String _instagramLink = '';
+  String get instagramLink => _instagramLink;
+
   String _dispatchTime = '24 hours';
+  String get dispatchTime => _dispatchTime;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -28,7 +35,7 @@ class StoreSetupProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   void nextStep() {
-    if (_currentStep < 5) {
+    if (_currentStep < 6) {
       _currentStep++;
       notifyListeners();
     }
@@ -118,6 +125,8 @@ class StoreSetupProvider extends ChangeNotifier {
         facebookLink: '',
         categories: [],
         followers: 0,
+        likesCount: 0,
+        productsCount: 0,
         rating: 0,
         totalReviews: 0,
         totalOrders: 0,

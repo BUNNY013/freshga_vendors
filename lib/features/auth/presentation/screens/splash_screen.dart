@@ -38,14 +38,18 @@ class _SplashScreenState extends State<SplashScreen> {
     if (auth.state == AuthState.unauthenticated) {
       context.go('/login');
     } else if (auth.state == AuthState.authenticated) {
-      if (auth.userModel?.isVerified == true) {
-        context.go('/dashboard');
+      final isApproved = auth.userModel?.isVerified == true || auth.applicationModel?.status == 'approved';
+      
+      if (isApproved) {
+        if (auth.userModel?.storeId == null || auth.userModel!.storeId.isEmpty) {
+          context.go('/store-setup');
+        } else {
+          context.go('/dashboard');
+        }
       } else if (auth.applicationModel == null) {
         context.go('/welcome');
       } else if (auth.applicationModel!.status == 'pending') {
         context.go('/pending');
-      } else if (auth.applicationModel!.status == 'approved') {
-        context.go('/dashboard');
       } else if (auth.applicationModel!.status == 'rejected') {
         context.go('/rejected');
       } else {

@@ -16,6 +16,15 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate starting price
+    double startingPrice = 0;
+    if (product.variants.isNotEmpty) {
+      startingPrice = product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
+    }
+    
+    // Total stock
+    int totalStock = product.variants.fold(0, (sum, v) => sum + v.stock);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -52,13 +61,13 @@ class ProductCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: product.status == 'Published'
+                      color: product.isActive
                           ? Colors.green.withOpacity(0.9)
                           : AppColors.grey500.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      product.status,
+                      product.isActive ? 'Active' : 'Hidden',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -85,7 +94,7 @@ class ProductCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "₹${product.price}",
+                  startingPrice > 0 ? "From ₹${startingPrice.toStringAsFixed(0)}" : "Price TBA",
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -98,20 +107,46 @@ class ProductCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.grey600),
+                        const Icon(Icons.style_outlined, size: 14, color: AppColors.grey600),
                         const SizedBox(width: 4),
                         Text(
-                          "${product.stock} in stock",
+                          "${product.variants.length} Variants",
                           style: const TextStyle(fontSize: 12, color: AppColors.grey600),
                         ),
                       ],
                     ),
                     Row(
                       children: [
+                        const Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.grey600),
+                        const SizedBox(width: 4),
+                        Text(
+                          "$totalStock left",
+                          style: const TextStyle(fontSize: 12, color: AppColors.grey600),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
                         const Icon(Icons.favorite, size: 14, color: Colors.redAccent),
                         const SizedBox(width: 4),
                         Text(
-                          "${product.likesCount}",
+                          "${product.likes}",
+                          style: const TextStyle(fontSize: 12, color: AppColors.grey600),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${product.totalOrders}",
                           style: const TextStyle(fontSize: 12, color: AppColors.grey600),
                         ),
                       ],
@@ -138,17 +173,17 @@ class ProductCard extends StatelessWidget {
                     Container(width: 1, height: 20, color: AppColors.grey200),
                     Expanded(
                       child: TextButton.icon(
-                        onPressed: () => onToggleVisibility(product.status != 'Published'),
+                        onPressed: () => onToggleVisibility(!product.isActive),
                         icon: Icon(
-                          product.status == 'Published' ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          product.isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                           size: 16,
                         ),
                         label: Text(
-                          product.status == 'Published' ? "Hide" : "Publish",
+                          product.isActive ? "Hide" : "Publish",
                           style: const TextStyle(fontSize: 12),
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: product.status == 'Published' ? AppColors.grey600 : AppColors.primary,
+                          foregroundColor: product.isActive ? AppColors.grey600 : AppColors.primary,
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(50, 30),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,

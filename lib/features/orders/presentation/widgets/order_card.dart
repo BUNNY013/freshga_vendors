@@ -64,6 +64,21 @@ class OrderCard extends StatelessWidget {
               Text("₹${order.totalAmount}", style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Payment Status", style: TextStyle(color: AppColors.grey600, fontSize: 12)),
+              Text(
+                order.paymentStatus,
+                style: TextStyle(
+                  color: order.paymentStatus == 'Paid' ? Colors.green : Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           
           _buildActionButtons(),

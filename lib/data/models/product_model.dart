@@ -1,51 +1,64 @@
+import 'product_variant_model.dart';
+
 class ProductModel {
   final String productId;
   final String storeId;
-  
+  final String storeName;
+
   final String name;
-  final String shortDescription;
+  final String slug;
+
   final String description;
-  
-  final double price;
-  final double discountPrice;
-  
-  final String weight;
-  final String shelfLife;
-  final List<String> ingredients;
-  
-  final String category;
-  final String subCategory;
-  final List<String> tags;
-  
-  final int stock;
+  final String shortDescription;
+
+  final String categoryId;
+  final String subCategoryId;
+
   final List<String> images;
-  
-  // Status: Draft, Published, Out of Stock, Hidden
-  final String status;
-  
-  final int likesCount;
-  
+  final List<ProductVariantModel> variants;
+
+  final List<String> ingredients;
+  final List<String> tags;
+
+  final double rating;
+  final int totalReviews;
+  final int totalOrders;
+
+  final int likes;
+  final int wishlistCount;
+
+  final bool isFeatured;
+  final bool isTrending;
+  final bool isActive;
+
+  final List<String> searchKeywords;
+
   final String createdAt;
   final String updatedAt;
 
   ProductModel({
     required this.productId,
     required this.storeId,
+    required this.storeName,
     required this.name,
-    required this.shortDescription,
+    required this.slug,
     required this.description,
-    required this.price,
-    required this.discountPrice,
-    required this.weight,
-    required this.shelfLife,
-    required this.ingredients,
-    required this.category,
-    required this.subCategory,
-    required this.tags,
-    required this.stock,
+    required this.shortDescription,
+    required this.categoryId,
+    required this.subCategoryId,
     required this.images,
-    required this.status,
-    required this.likesCount,
+    required this.variants,
+    required this.ingredients,
+    required this.tags,
+    required this.rating,
+    required this.totalReviews,
+    required this.totalOrders,
+    required this.likes,
+    required this.wishlistCount,
+    required this.isFeatured,
+    required this.isTrending,
+    required this.isActive,
+    required this.searchKeywords,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,21 +67,29 @@ class ProductModel {
     return ProductModel(
       productId: json['productId'] ?? '',
       storeId: json['storeId'] ?? '',
+      storeName: json['storeName'] ?? '',
       name: json['name'] ?? '',
-      shortDescription: json['shortDescription'] ?? '',
+      slug: json['slug'] ?? '',
       description: json['description'] ?? '',
-      price: (json['price'] ?? 0.0).toDouble(),
-      discountPrice: (json['discountPrice'] ?? 0.0).toDouble(),
-      weight: json['weight'] ?? '',
-      shelfLife: json['shelfLife'] ?? '',
-      ingredients: List<String>.from(json['ingredients'] ?? []),
-      category: json['category'] ?? '',
-      subCategory: json['subCategory'] ?? '',
-      tags: List<String>.from(json['tags'] ?? []),
-      stock: json['stock'] ?? 0,
+      shortDescription: json['shortDescription'] ?? '',
+      categoryId: json['categoryId'] ?? '',
+      subCategoryId: json['subCategoryId'] ?? '',
       images: List<String>.from(json['images'] ?? []),
-      status: json['status'] ?? 'Draft',
-      likesCount: json['likesCount'] ?? 0,
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      ingredients: List<String>.from(json['ingredients'] ?? []),
+      tags: List<String>.from(json['tags'] ?? []),
+      rating: (json['rating'] ?? 0.0).toDouble(),
+      totalReviews: json['totalReviews'] ?? 0,
+      totalOrders: json['totalOrders'] ?? 0,
+      likes: json['likes'] ?? 0,
+      wishlistCount: json['wishlistCount'] ?? 0,
+      isFeatured: json['isFeatured'] ?? false,
+      isTrending: json['isTrending'] ?? false,
+      isActive: json['isActive'] ?? true,
+      searchKeywords: List<String>.from(json['searchKeywords'] ?? []),
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
     );
@@ -78,21 +99,26 @@ class ProductModel {
     return {
       'productId': productId,
       'storeId': storeId,
+      'storeName': storeName,
       'name': name,
-      'shortDescription': shortDescription,
+      'slug': slug,
       'description': description,
-      'price': price,
-      'discountPrice': discountPrice,
-      'weight': weight,
-      'shelfLife': shelfLife,
-      'ingredients': ingredients,
-      'category': category,
-      'subCategory': subCategory,
-      'tags': tags,
-      'stock': stock,
+      'shortDescription': shortDescription,
+      'categoryId': categoryId,
+      'subCategoryId': subCategoryId,
       'images': images,
-      'status': status,
-      'likesCount': likesCount,
+      'variants': variants.map((v) => v.toJson()).toList(),
+      'ingredients': ingredients,
+      'tags': tags,
+      'rating': rating,
+      'totalReviews': totalReviews,
+      'totalOrders': totalOrders,
+      'likes': likes,
+      'wishlistCount': wishlistCount,
+      'isFeatured': isFeatured,
+      'isTrending': isTrending,
+      'isActive': isActive,
+      'searchKeywords': searchKeywords,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -101,42 +127,52 @@ class ProductModel {
   ProductModel copyWith({
     String? productId,
     String? storeId,
+    String? storeName,
     String? name,
-    String? shortDescription,
+    String? slug,
     String? description,
-    double? price,
-    double? discountPrice,
-    String? weight,
-    String? shelfLife,
-    List<String>? ingredients,
-    String? category,
-    String? subCategory,
-    List<String>? tags,
-    int? stock,
+    String? shortDescription,
+    String? categoryId,
+    String? subCategoryId,
     List<String>? images,
-    String? status,
-    int? likesCount,
+    List<ProductVariantModel>? variants,
+    List<String>? ingredients,
+    List<String>? tags,
+    double? rating,
+    int? totalReviews,
+    int? totalOrders,
+    int? likes,
+    int? wishlistCount,
+    bool? isFeatured,
+    bool? isTrending,
+    bool? isActive,
+    List<String>? searchKeywords,
     String? createdAt,
     String? updatedAt,
   }) {
     return ProductModel(
       productId: productId ?? this.productId,
       storeId: storeId ?? this.storeId,
+      storeName: storeName ?? this.storeName,
       name: name ?? this.name,
-      shortDescription: shortDescription ?? this.shortDescription,
+      slug: slug ?? this.slug,
       description: description ?? this.description,
-      price: price ?? this.price,
-      discountPrice: discountPrice ?? this.discountPrice,
-      weight: weight ?? this.weight,
-      shelfLife: shelfLife ?? this.shelfLife,
-      ingredients: ingredients ?? this.ingredients,
-      category: category ?? this.category,
-      subCategory: subCategory ?? this.subCategory,
-      tags: tags ?? this.tags,
-      stock: stock ?? this.stock,
+      shortDescription: shortDescription ?? this.shortDescription,
+      categoryId: categoryId ?? this.categoryId,
+      subCategoryId: subCategoryId ?? this.subCategoryId,
       images: images ?? this.images,
-      status: status ?? this.status,
-      likesCount: likesCount ?? this.likesCount,
+      variants: variants ?? this.variants,
+      ingredients: ingredients ?? this.ingredients,
+      tags: tags ?? this.tags,
+      rating: rating ?? this.rating,
+      totalReviews: totalReviews ?? this.totalReviews,
+      totalOrders: totalOrders ?? this.totalOrders,
+      likes: likes ?? this.likes,
+      wishlistCount: wishlistCount ?? this.wishlistCount,
+      isFeatured: isFeatured ?? this.isFeatured,
+      isTrending: isTrending ?? this.isTrending,
+      isActive: isActive ?? this.isActive,
+      searchKeywords: searchKeywords ?? this.searchKeywords,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

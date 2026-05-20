@@ -44,6 +44,22 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // Store assets (logos and banners)
+    match /store_assets/{folder}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() 
+                   && isFileSizeValid() 
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Product images
+    match /product_images/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() 
+                   && isFileSizeValid() 
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     // Default deny for all other paths
     match /{allPaths=**} {
       allow read, write: if false;
