@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Users can only read, create, and update their own user document.
+      allow read, write: if isOwner(userId);
+    }
+
+    // Rules for the 'supplierApplications' collection
+    match /supplierApplications/{applicationId} {
+      // Users can read their own applications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can create an application if the userId in the document matches their uid
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their application, but cannot change the userId
+      allow update: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid 
+                    && request.resource.data.userId == request.auth.uid;
+                    
+      // Users generally shouldn't delete their applications, but you can adjust this if needed
+      allow delete: if false; 
+    }
+    
+    // Default deny for all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

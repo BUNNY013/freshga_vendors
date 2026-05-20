@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the user is accessing their own path
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check file size (e.g., max 5MB)
+    function isFileSizeValid() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Helper function to check file type (images and pdfs)
+    function isFileTypeValid() {
+      return request.resource.contentType.matches('image/.*') || 
+             request.resource.contentType.matches('application/pdf');
+    }
+
+    // Vendor documents folder
+    match /vendor_documents/{userId}/{fileName} {
+      // Vendors can read their own documents
+      allow read: if isOwner(userId);
+      
+      // Vendors can upload/update their own documents if they meet size and type restrictions
+      allow write: if isOwner(userId) && isFileSizeValid() && isFileTypeValid();
+    }
+    
+    // Vendor profile images
+    match /vendor_profiles/{userId}/{fileName} {
+      // Anyone can view profile images (if public) or restrict to authenticated users
+      allow read: if isAuthenticated();
+      
+      // Vendors can upload/update their own profile images
+      allow write: if isOwner(userId) 
+                   && isFileSizeValid() 
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny for all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
