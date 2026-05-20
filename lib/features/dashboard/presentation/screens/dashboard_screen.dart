@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
-import '../../../auth/providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../products/presentation/screens/product_list_screen.dart';
 import '../../../orders/presentation/screens/orders_list_screen.dart';
@@ -31,19 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Vendor Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () {
-              context.read<AuthProvider>().signOut();
-              context.go('/login');
-            },
-          ),
-        ],
-      ),
-      body: _views[_currentIndex],
+      body: SafeArea(child: _views[_currentIndex]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {

@@ -16,6 +16,18 @@ class ProductListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ProductProvider(),
+      child: const _ProductListContent(),
+    );
+  }
+}
+
+class _ProductListContent extends StatelessWidget {
+  const _ProductListContent();
+
+  @override
+  Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid ?? '';
 

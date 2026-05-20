@@ -157,32 +157,35 @@ class StoreManagementScreen extends StatelessWidget {
 
   Widget _buildActions(BuildContext context, StoreModel store) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        OutlinedButton.icon(
-          onPressed: () {
-            context.push('/edit-store');
-          },
-          icon: const Icon(Icons.edit, size: 18),
-          label: const Text("Edit Store"),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.textPrimary,
-            side: const BorderSide(color: AppColors.grey300),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              context.push('/edit-store');
+            },
+            icon: const Icon(Icons.edit, size: 18),
+            label: const Text("Edit Store"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: const BorderSide(color: AppColors.grey300),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ),
         const SizedBox(width: 16),
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Share Store
-          },
-          icon: const Icon(Icons.share, size: 18),
-          label: const Text("Share"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Share Store
+            },
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text("Share"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ),
       ],
