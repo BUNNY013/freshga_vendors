@@ -112,6 +112,49 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteProduct(String productId) async {
+    try {
+      // Delete product images from storage
+      try {
+        final listResult = await _storage.ref().child('product_images/$productId').listAll();
+        for (final item in listResult.items) {
+          await item.delete();
+        }
+      } catch (_) {
+        // Images may not exist, continue
+      }
+
+      // Delete product document
+      await _firestore.collection('products').doc(productId).delete();
+      return true;
+    } catch (e) {
+      debugPrint("Delete product failed: $e");
+      return false;
+    }
+  }
+
+  Future<bool> updateProduct(ProductModel product) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = product.copyWith(
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+      await _firestore.collection('products').doc(product.productId).update(updated.toJson());
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Stream<List<ProductModel>> streamProducts(String storeId) {
     return _firestore
         .collection('products')

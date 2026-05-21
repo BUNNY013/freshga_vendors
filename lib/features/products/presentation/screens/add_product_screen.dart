@@ -10,14 +10,28 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../widgets/variant_card.dart';
 
-class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+class AddProductScreen extends StatelessWidget {
+  final ProductModel? product;
+  const AddProductScreen({super.key, this.product});
 
   @override
-  State<AddProductScreen> createState() => _AddProductScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ProductProvider(),
+      child: _AddProductContent(product: product),
+    );
+  }
 }
 
-class _AddProductScreenState extends State<AddProductScreen> {
+class _AddProductContent extends StatefulWidget {
+  final ProductModel? product;
+  const _AddProductContent({this.product});
+
+  @override
+  State<_AddProductContent> createState() => _AddProductContentState();
+}
+
+class _AddProductContentState extends State<_AddProductContent> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final int _totalPages = 5;
@@ -36,14 +50,51 @@ class _AddProductScreenState extends State<AddProductScreen> {
   List<ProductVariantModel> _variants = [];
 
   // Ingredients & Tags
-  String _ingredientsText = '';
-  String _tagsText = '';
+  final List<String> _ingredientsList = [];
+  final List<String> _tagsList = [];
+  final TextEditingController _ingredientCtrl = TextEditingController();
+  final TextEditingController _tagCtrl = TextEditingController();
+
+  final Map<String, String> _categories = {
+    'cat_1': 'Pickles',
+    'cat_2': 'Cookies',
+    'cat_3': 'Sweets',
+    'cat_4': 'Snacks',
+  };
+  
+  final Map<String, String> _subCategories = {
+    'sub_1': 'Mango Pickles',
+    'sub_2': 'Lemon Pickles',
+    'sub_3': 'Chocolate Cookies',
+    'sub_4': 'Millet Cookies',
+  };
+
+  @override
+  void dispose() {
+    _ingredientCtrl.dispose();
+    _tagCtrl.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    // Start with one default variant
-    _addEmptyVariant();
+    if (widget.product != null) {
+      final p = widget.product!;
+      _name = p.name;
+      _shortDescription = p.shortDescription;
+      _description = p.description;
+      _categoryId = p.categoryId;
+      _subCategoryId = p.subCategoryId;
+      _variants = List.from(p.variants);
+      _ingredientsList.addAll(p.ingredients);
+      _tagsList.addAll(p.tags);
+      // Images are handled differently, skipping for now in basic edit unless provider handles URL loading
+    } else {
+      // Start with one default variant
+      _addEmptyVariant();
+    }
   }
 
   void _addEmptyVariant() {
@@ -91,44 +142,43 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _submit() async {
     final provider = context.read<ProductProvider>();
     
-    // Convert text to lists
-    final ingredients = _ingredientsText.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    final tags = _tagsText.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    
     // Slug generation
     final slug = _name.toLowerCase().replaceAll(' ', '-');
 
     final product = ProductModel(
-      productId: '', // assigned in provider
-      storeId: '', // assigned in provider
-      storeName: '', // assigned in provider
+      productId: widget.product?.productId ?? '',
+      storeId: widget.product?.storeId ?? '',
+      storeName: widget.product?.storeName ?? '',
       name: _name,
       slug: slug,
       shortDescription: _shortDescription,
       description: _description,
       categoryId: _categoryId,
       subCategoryId: _subCategoryId,
-      images: [], // handled in provider
+      images: widget.product?.images ?? [], // Existing images, new images logic should be merged in provider ideally
       variants: _variants,
-      ingredients: ingredients,
-      tags: tags,
-      rating: 0.0,
-      totalReviews: 0,
-      totalOrders: 0,
-      likes: 0,
-      wishlistCount: 0,
-      isFeatured: false,
-      isTrending: false,
-      isActive: true,
+      ingredients: _ingredientsList,
+      tags: _tagsList,
+      rating: widget.product?.rating ?? 0.0,
+      totalReviews: widget.product?.totalReviews ?? 0,
+      totalOrders: widget.product?.totalOrders ?? 0,
+      likes: widget.product?.likes ?? 0,
+      wishlistCount: widget.product?.wishlistCount ?? 0,
+      isFeatured: widget.product?.isFeatured ?? false,
+      isTrending: widget.product?.isTrending ?? false,
+      isActive: widget.product?.isActive ?? true,
       searchKeywords: _name.toLowerCase().split(' '),
-      createdAt: '',
+      createdAt: widget.product?.createdAt ?? '',
       updatedAt: '',
     );
 
-    final success = await provider.addProduct(product);
+    final success = widget.product != null 
+        ? await provider.updateProduct(product)
+        : await provider.addProduct(product);
+        
     if (success && mounted) {
       context.pop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product published successfully!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.product != null ? 'Product updated successfully!' : 'Product published successfully!')));
     }
   }
 
@@ -270,27 +320,56 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
             const SizedBox(height: 24),
             
-            // For now, static dropdowns for categories
-            DropdownButtonFormField<String>(
-              value: _categoryId,
-              decoration: _inputDecoration("Category"),
-              items: const [
-                DropdownMenuItem(value: 'cat_1', child: Text("Pickles")),
-                DropdownMenuItem(value: 'cat_2', child: Text("Cookies")),
-                DropdownMenuItem(value: 'cat_3', child: Text("Sweets")),
-              ],
-              onChanged: (val) => setState(() => _categoryId = val!),
+            GestureDetector(
+              onTap: () => _showCategorySheet(true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grey300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Category", style: TextStyle(color: AppColors.grey600, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text(_categories[_categoryId] ?? 'Select Category', style: const TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: AppColors.grey600),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _subCategoryId,
-              decoration: _inputDecoration("Sub Category"),
-              items: const [
-                DropdownMenuItem(value: 'sub_1', child: Text("Mango Pickles")),
-                DropdownMenuItem(value: 'sub_2', child: Text("Lemon Pickles")),
-                DropdownMenuItem(value: 'sub_3', child: Text("Chocolate Cookies")),
-              ],
-              onChanged: (val) => setState(() => _subCategoryId = val!),
+            GestureDetector(
+              onTap: () => _showCategorySheet(false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grey300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Sub Category", style: TextStyle(color: AppColors.grey600, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text(_subCategories[_subCategoryId] ?? 'Select Sub Category', style: const TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: AppColors.grey600),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -312,62 +391,74 @@ class _AddProductScreenState extends State<AddProductScreen> {
               const SizedBox(height: 24),
               
               if (provider.selectedImages.isNotEmpty)
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: provider.selectedImages.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == provider.selectedImages.length) {
-                      return GestureDetector(
-                        onTap: provider.pickImages,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.primary.withOpacity(0.5), style: BorderStyle.solid),
-                          ),
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_a_photo, color: AppColors.primary, size: 32),
-                              SizedBox(height: 8),
-                              Text("Add More", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            provider.selectedImages[index],
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
+                SizedBox(
+                  height: 160,
+                  child: ReorderableListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: provider.selectedImages.length + 1,
+                    onReorder: (oldIndex, newIndex) {
+                      if (oldIndex < provider.selectedImages.length && newIndex < provider.selectedImages.length) {
+                        provider.reorderImages(oldIndex, newIndex);
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      if (index == provider.selectedImages.length) {
+                        return Container(
+                          key: const ValueKey('add_btn'),
+                          width: 120,
+                          margin: const EdgeInsets.only(right: 16),
                           child: GestureDetector(
-                            onTap: () => provider.removeImage(index),
+                            onTap: provider.pickImages,
                             child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                              child: const Icon(Icons.close, size: 16, color: Colors.white),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.primary.withOpacity(0.5), style: BorderStyle.solid),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo, color: AppColors.primary, size: 32),
+                                  SizedBox(height: 8),
+                                  Text("Add More", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
                             ),
                           ),
+                        );
+                      }
+                      
+                      return Container(
+                        key: ValueKey(provider.selectedImages[index].path),
+                        width: 120,
+                        margin: const EdgeInsets.only(right: 16),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.file(
+                                provider.selectedImages[index],
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () => provider.removeImage(index),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    );
-                  },
+                      );
+                    },
+                  ),
                 )
               else
                 GestureDetector(
@@ -415,24 +506,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _variants.length,
             itemBuilder: (context, index) {
-              return VariantCard(
-                variant: _variants[index],
-                onEdit: () => _editVariantDialog(index),
-                onDuplicate: () {
-                  setState(() {
-                    _variants.add(_variants[index].copyWith(variantId: const Uuid().v4()));
-                  });
-                },
-                onDelete: () {
+              return Dismissible(
+                key: ValueKey(_variants[index].variantId),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20.0),
+                  color: Colors.red,
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (direction) {
                   setState(() {
                     _variants.removeAt(index);
                   });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Variant deleted')),
+                  );
                 },
-                onAvailabilityToggle: (val) {
-                  setState(() {
-                    _variants[index] = _variants[index].copyWith(isAvailable: val);
-                  });
-                },
+                child: VariantCard(
+                  variant: _variants[index],
+                  onEdit: () => _editVariantDialog(index),
+                  onDuplicate: () {
+                    setState(() {
+                      _variants.add(_variants[index].copyWith(variantId: const Uuid().v4()));
+                    });
+                  },
+                  onDelete: () {
+                    setState(() {
+                      _variants.removeAt(index);
+                    });
+                  },
+                  onAvailabilityToggle: (val) {
+                    setState(() {
+                      _variants[index] = _variants[index].copyWith(isAvailable: val);
+                    });
+                  },
+                ),
               );
             },
           ),
@@ -541,20 +650,34 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const Text("Help customers find and understand your product.", style: AppTextStyles.bodyText),
             const SizedBox(height: 24),
             
-            _buildTextField(
-              label: "Ingredients (Comma separated)",
+            _buildChipInput(
+              label: "Ingredients",
               hint: "e.g., Raw Mango, Mustard Oil, Spices",
-              maxLines: 3,
-              initialValue: _ingredientsText,
-              onSaved: (val) => _ingredientsText = val ?? '',
+              controller: _ingredientCtrl,
+              items: _ingredientsList,
+              onAdd: (val) {
+                if (val.isNotEmpty && !_ingredientsList.contains(val)) {
+                  setState(() => _ingredientsList.add(val));
+                }
+              },
+              onRemove: (val) {
+                setState(() => _ingredientsList.remove(val));
+              },
             ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: "Tags (Comma separated)",
-              hint: "e.g., Spicy, Homemade, No Preservatives",
-              maxLines: 3,
-              initialValue: _tagsText,
-              onSaved: (val) => _tagsText = val ?? '',
+            const SizedBox(height: 24),
+            _buildChipInput(
+              label: "Tags",
+              hint: "e.g., Spicy, Homemade",
+              controller: _tagCtrl,
+              items: _tagsList,
+              onAdd: (val) {
+                if (val.isNotEmpty && !_tagsList.contains(val)) {
+                  setState(() => _tagsList.add(val));
+                }
+              },
+              onRemove: (val) {
+                setState(() => _tagsList.remove(val));
+              },
             ),
             const SizedBox(height: 24),
             Container(
@@ -675,6 +798,106 @@ class _AddProductScreenState extends State<AddProductScreen> {
       decoration: _inputDecoration(label).copyWith(hintText: hint),
       onSaved: onSaved,
       validator: validator,
+    );
+  }
+
+  Widget _buildChipInput({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required List<String> items,
+    required Function(String) onAdd,
+    required Function(String) onRemove,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          decoration: _inputDecoration(label).copyWith(
+            hintText: hint,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.add_circle, color: AppColors.primary),
+              onPressed: () {
+                onAdd(controller.text.trim());
+                controller.clear();
+              },
+            ),
+          ),
+          onFieldSubmitted: (val) {
+            onAdd(val.trim());
+            controller.clear();
+          },
+        ),
+        if (items.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: items.map((item) => Chip(
+              label: Text(item, style: const TextStyle(fontSize: 12)),
+              deleteIcon: const Icon(Icons.cancel, size: 16),
+              onDeleted: () => onRemove(item),
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              side: BorderSide.none,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            )).toList(),
+          ),
+        ]
+      ],
+    );
+  }
+
+  void _showCategorySheet(bool isCategory) {
+    final items = isCategory ? _categories : _subCategories;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(isCategory ? "Select Category" : "Select Sub Category", style: AppTextStyles.h2),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: _inputDecoration("Search...").copyWith(
+                prefixIcon: const Icon(Icons.search),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 300,
+              child: ListView.separated(
+                itemCount: items.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final entry = items.entries.elementAt(index);
+                  return ListTile(
+                    title: Text(entry.value),
+                    onTap: () {
+                      setState(() {
+                        if (isCategory) {
+                          _categoryId = entry.key;
+                        } else {
+                          _subCategoryId = entry.key;
+                        }
+                      });
+                      context.pop();
+                    },
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.grey400),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 

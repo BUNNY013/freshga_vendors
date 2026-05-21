@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
@@ -15,8 +17,47 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final TextEditingController _otpController = TextEditingController();
+  int _secondsRemaining = 30;
+  Timer? _timer;
 
-  void _verifyOtp(String otp) async {
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() {
+      _secondsRemaining = 30;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() {
+          _secondsRemaining--;
+        });
+      } else {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _verifyOtp() async {
+    final otp = _otpController.text;
+    if (otp.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid 6-digit OTP')),
+      );
+      return;
+    }
+    
     final authProvider = context.read<AuthProvider>();
     await authProvider.verifyOTP(otp);
     
@@ -28,6 +69,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthProvider>().state;
+    final isLoading = authState == AuthState.loading;
 
     final defaultPinTheme = PinTheme(
       width: 56,
@@ -57,12 +99,12 @@ class _OtpScreenState extends State<OtpScreen> {
               const SizedBox(height: 24),
               Text(
                 'Verify Your Number',
-                style: Theme.of(context).textTheme.headlineLarge,
+                style: AppTextStyles.h1,
               ),
               const SizedBox(height: 12),
               RichText(
                 text: TextSpan(
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, height: 1.5),
                   children: [
                     const TextSpan(text: 'We\'ve sent a code to\n'),
                     TextSpan(
@@ -82,14 +124,14 @@ class _OtpScreenState extends State<OtpScreen> {
                   focusedPinTheme: defaultPinTheme.copyDecorationWith(
                     border: Border.all(color: AppColors.primary, width: 2),
                   ),
-                  onCompleted: (pin) => _verifyOtp(pin),
+                  onCompleted: (pin) => _verifyOtp(),
                 ),
               ),
               
               const SizedBox(height: 32),
               
-              if (authState == AuthState.loading)
-                const Center(child: CircularProgressIndicator()),
+              if (isLoading)
+                const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 
               if (context.watch<AuthProvider>().errorMessage != null)
                 Padding(
@@ -104,14 +146,46 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
                 
               const Spacer(),
+              
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _verifyOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Confirm OTP',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    context.read<AuthProvider>().verifyPhone(widget.phone);
-                  },
-                  child: const Text(
-                    'Resend Code',
-                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  onPressed: _secondsRemaining > 0 || isLoading
+                      ? null
+                      : () {
+                          context.read<AuthProvider>().verifyPhone(widget.phone);
+                          _startTimer();
+                        },
+                  child: Text(
+                    _secondsRemaining > 0
+                        ? 'Resend Code in $_secondsRemaining s'
+                        : 'Resend Code',
+                    style: TextStyle(
+                      color: _secondsRemaining > 0 ? AppColors.grey500 : AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -123,3 +197,4 @@ class _OtpScreenState extends State<OtpScreen> {
     );
   }
 }
+

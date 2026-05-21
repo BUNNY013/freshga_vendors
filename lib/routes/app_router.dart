@@ -9,6 +9,7 @@ import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/store/presentation/screens/store_setup_screen.dart';
 import '../features/products/presentation/screens/add_product_screen.dart';
 import '../features/store/presentation/screens/edit_store_screen.dart';
+import '../data/models/product_model.dart';
 
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
@@ -82,7 +83,10 @@ class AppRouter {
       ),
       GoRoute(
         path: '/add-product',
-        builder: (context, state) => const AddProductScreen(),
+        builder: (context, state) {
+          final product = state.extra as ProductModel?;
+          return AddProductScreen(product: product);
+        },
       ),
       GoRoute(
         path: '/edit-store',

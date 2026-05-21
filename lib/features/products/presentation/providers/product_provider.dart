@@ -58,14 +58,15 @@ class ProductProvider extends ChangeNotifier {
       final user = _auth.currentUser;
       if (user == null) throw Exception("Not authenticated");
 
-      // Get storeId from user
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userModel = UserModel.fromJson(userDoc.data()!);
       if (userModel.storeId.isEmpty) throw Exception("Store not set up");
+      
+      final storeDoc = await _firestore.collection('stores').doc(userModel.storeId).get();
+      final storeName = storeDoc.exists ? (storeDoc.data()?['storeName'] ?? '') : '';
 
       final productId = _firestore.collection('products').doc().id;
       
-      // Upload images
       List<String> imageUrls = [];
       for (int i = 0; i < _selectedImages.length; i++) {
         final file = _selectedImages[i];
@@ -78,6 +79,7 @@ class ProductProvider extends ChangeNotifier {
       final finalProduct = product.copyWith(
         productId: productId,
         storeId: userModel.storeId,
+        storeName: storeName,
         images: imageUrls,
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
@@ -97,14 +99,57 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleProductVisibility(String productId, bool isVisible) async {
+  Future<void> toggleProductVisibility(String productId, bool isActive) async {
     try {
       await _firestore.collection('products').doc(productId).update({
-        'status': isVisible ? 'Published' : 'Hidden',
+        'isActive': isActive,
         'updatedAt': DateTime.now().toIso8601String(),
       });
     } catch (e) {
       debugPrint("Toggle visibility failed: $e");
+    }
+  }
+
+  Future<bool> deleteProduct(String productId) async {
+    try {
+      // Delete product images from storage
+      try {
+        final listResult = await _storage.ref().child('product_images/$productId').listAll();
+        for (final item in listResult.items) {
+          await item.delete();
+        }
+      } catch (_) {
+        // Images may not exist, continue
+      }
+
+      // Delete product document
+      await _firestore.collection('products').doc(productId).delete();
+      return true;
+    } catch (e) {
+      debugPrint("Delete product failed: $e");
+      return false;
+    }
+  }
+
+  Future<bool> updateProduct(ProductModel product) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = product.copyWith(
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+      await _firestore.collection('products').doc(product.productId).update(updated.toJson());
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 

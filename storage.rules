@@ -53,7 +53,7 @@ service firebase.storage {
     }
 
     // Product images
-    match /product_images/{fileName} {
+    match /product_images/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated() 
                    && isFileSizeValid() 
