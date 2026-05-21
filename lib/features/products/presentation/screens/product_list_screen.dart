@@ -34,15 +34,29 @@ class _ProductListContent extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Products', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Products',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: AppColors.primary),
-            onPressed: () => context.push('/add-product'),
+        surfaceTintColor: Colors.transparent,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/add-product'),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          "Add Product",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-        ],
+        ),
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
@@ -53,7 +67,7 @@ class _ProductListContent extends StatelessWidget {
           final storeId = userModel.storeId;
           
           if (storeId.isEmpty) {
-            return Center(child: Text("Store not set up."));
+            return const Center(child: Text("Store not set up."));
           }
 
           return StreamBuilder<List<ProductModel>>(
@@ -74,7 +88,7 @@ class _ProductListContent extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: EmptyStateWidget(
-                      icon: Icons.restaurant_menu,
+                      icon: Icons.fastfood_rounded,
                       title: "Your food journey starts here 🚀",
                       message: "Add your first homemade product and start building your brand.",
                       buttonText: "Add First Product",
@@ -84,31 +98,81 @@ class _ProductListContent extends StatelessWidget {
                 );
               }
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.75, // Adjust based on your ProductCard dimensions
-                ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return ProductCard(
-                    product: product,
-                    onEdit: () {
-                      // TODO: Implement Edit
-                    },
-                    onToggleVisibility: (publish) {
-                      context.read<ProductProvider>().toggleProductVisibility(product.productId, publish);
-                    },
-                  );
-                },
+              return Column(
+                children: [
+                  // Filter Chips
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: AppColors.grey200)),
+                    ),
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        _buildFilterChip("All", true),
+                        _buildFilterChip("Active", false),
+                        _buildFilterChip("Out of Stock", false),
+                        _buildFilterChip("Drafts", false),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.65, // Adjust for new product card layout
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return ProductCard(
+                          product: product,
+                          onEdit: () {
+                            // TODO: Implement Edit
+                          },
+                          onToggleVisibility: (publish) {
+                            context.read<ProductProvider>().toggleProductVisibility(product.productId, publish);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           );
         }
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0, top: 8, bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.grey100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.grey200,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -90,68 +90,69 @@ class OrderCard extends StatelessWidget {
   Widget _buildStatusBadge() {
     Color color;
     switch (order.orderStatus) {
-      case 'New': color = Colors.orange; break;
-      case 'Accepted': color = Colors.blue; break;
-      case 'Packed': color = Colors.purple; break;
-      case 'Shipped': color = Colors.amber; break;
-      case 'Delivered': color = Colors.green; break;
+      case 'New': color = const Color(0xFF4A90D9); break;
+      case 'Accepted': color = const Color(0xFFE67E22); break;
+      case 'Packed': color = const Color(0xFF9B59B6); break;
+      case 'Shipped': color = const Color(0xFFF39C12); break;
+      case 'Delivered': color = const Color(0xFF2ECC71); break;
       default: color = AppColors.grey500;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        order.orderStatus,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            order.orderStatus,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildActionButtons() {
     if (order.orderStatus == 'New') {
-      return Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => onStatusUpdate('Accepted'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text("Accept Order", style: TextStyle(color: Colors.white)),
-            ),
-          ),
-        ],
-      );
+      return _buildSingleAction("Accept Order", 'Accepted', const Color(0xFF4A90D9));
     } else if (order.orderStatus == 'Accepted') {
-      return _buildSingleAction("Mark as Packed", 'Packed', Colors.purple);
+      return _buildSingleAction("Prepare & Pack", 'Packed', const Color(0xFFE67E22));
     } else if (order.orderStatus == 'Packed') {
-      return _buildSingleAction("Mark as Shipped", 'Shipped', Colors.amber);
+      return _buildSingleAction("Ship Order", 'Shipped', const Color(0xFF9B59B6));
     } else if (order.orderStatus == 'Shipped') {
-      return _buildSingleAction("Mark as Delivered", 'Delivered', Colors.green);
+      return _buildSingleAction("Mark Delivered", 'Delivered', const Color(0xFFF39C12));
     }
     
     return const SizedBox.shrink(); // No actions for delivered
   }
 
   Widget _buildSingleAction(String label, String newStatus, Color color) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => onStatusUpdate(newStatus),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(label, style: const TextStyle(color: Colors.white)),
-          ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => onStatusUpdate(newStatus),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-      ],
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
     );
   }
 }

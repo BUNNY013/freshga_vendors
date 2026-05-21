@@ -18,8 +18,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _views = [
     const HomeDashboardView(),
-    const ProductListScreen(),
     const OrdersListScreen(),
+    const ProductListScreen(),
     const StoreManagementScreen(),
     const ProfileScreen(),
   ];
@@ -44,14 +44,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Products',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Orders',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: 'Products',
           ),
           NavigationDestination(
             icon: Icon(Icons.storefront_outlined),

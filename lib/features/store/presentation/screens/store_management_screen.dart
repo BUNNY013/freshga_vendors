@@ -153,11 +153,12 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                     ],
                   )
                 : const Text(
-                    'My Store',
+                    'Store',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                   ),
           ),
@@ -171,7 +172,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 StoreBannerHeader(
                   store: store,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
                 // ─── 2. Stats ───────────────────────────────────────
                 StoreStatChips(
@@ -223,16 +224,12 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         ],
       ),
 
-      // FAB — quick add product
-      floatingActionButton: FloatingActionButton.extended(
+      // FAB — quick add product (Minimal Style)
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/add-product'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'Add Product',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        child: const Icon(Icons.add),
         elevation: 4,
       ),
     );
