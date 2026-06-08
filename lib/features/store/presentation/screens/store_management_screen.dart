@@ -492,8 +492,10 @@ class _StorePreviewSheet extends StatelessWidget {
                           ),
                         const SizedBox(height: 16),
                         // Follow + message buttons (customer view mock)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.center,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
@@ -510,7 +512,6 @@ class _StorePreviewSheet extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                               decoration: BoxDecoration(

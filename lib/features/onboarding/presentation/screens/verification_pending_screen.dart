@@ -18,6 +18,23 @@ class VerificationPendingScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await context.read<AuthProvider>().signOut();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+            label: const Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
         builder: (context, userSnapshot) {

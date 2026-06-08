@@ -122,12 +122,16 @@ class ProductCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 6),
-                  Text(
-                    product.variants.length > 1 ? 'Starting $_priceLabel' : _priceLabel,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      product.variants.length > 1 ? 'Starting $_priceLabel' : _priceLabel,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
 
@@ -255,12 +259,16 @@ class ProductCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    product.variants.length > 1 ? 'Starting $_priceLabel' : _priceLabel,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      product.variants.length > 1 ? 'Starting $_priceLabel' : _priceLabel,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -490,30 +498,33 @@ class ProductCard extends StatelessWidget {
 
   /// Section 5 — Engagement Row
   Widget _buildEngagementRow() {
-    return Row(
-      children: [
-        _buildMiniStat(Icons.favorite_rounded, '${product.likes}', color: const Color(0xFFE57373)),
-        const SizedBox(width: 12),
-        _buildMiniStat(Icons.shopping_bag_rounded, '${product.totalOrders}', color: AppColors.primary),
-        const Spacer(),
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: _statusColor,
-            shape: BoxShape.circle,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        children: [
+          _buildMiniStat(Icons.favorite_rounded, '${product.likes}', color: const Color(0xFFE57373)),
+          const SizedBox(width: 12),
+          _buildMiniStat(Icons.shopping_bag_rounded, '${product.totalOrders}', color: AppColors.primary),
+          const SizedBox(width: 12),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: _statusColor,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          _statusLabel,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: _statusColor,
+          const SizedBox(width: 4),
+          Text(
+            _statusLabel,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: _statusColor,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

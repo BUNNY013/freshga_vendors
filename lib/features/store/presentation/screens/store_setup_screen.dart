@@ -115,36 +115,39 @@ class _StoreSetupContent extends StatelessWidget {
   }
 
   Widget _buildIntroStep() {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('intro'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.storefront, size: 80, color: AppColors.primary),
-        const SizedBox(height: 32),
-        const Text(
-          "Your food journey starts here 🚀",
-          style: AppTextStyles.h1,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          "Let's set up your store profile so customers can start discovering your homemade brand.",
-          style: AppTextStyles.bodyText,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.storefront, size: 80, color: AppColors.primary),
+          const SizedBox(height: 32),
+          const Text(
+            "Your food journey starts here 🚀",
+            style: AppTextStyles.h1,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "Let's set up your store profile so customers can start discovering your homemade brand.",
+            style: AppTextStyles.bodyText,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildLogoStep(StoreSetupProvider provider) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('logo'),
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text("Store Logo", style: AppTextStyles.h2),
-        const SizedBox(height: 8),
-        const Text("Upload a profile picture for your brand.", style: AppTextStyles.bodyText),
-        const SizedBox(height: 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text("Store Logo", style: AppTextStyles.h2),
+          const SizedBox(height: 8),
+          const Text("Upload a profile picture for your brand.", style: AppTextStyles.bodyText),
+          const SizedBox(height: 48),
         GestureDetector(
           onTap: provider.pickLogo,
           child: Container(
@@ -173,19 +176,21 @@ class _StoreSetupContent extends StatelessWidget {
                 : null,
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildBannerStep(StoreSetupProvider provider) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('banner'),
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text("Store Banner", style: AppTextStyles.h2),
-        const SizedBox(height: 8),
-        const Text("Upload a beautiful banner for your profile top.", style: AppTextStyles.bodyText),
-        const SizedBox(height: 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text("Store Banner", style: AppTextStyles.h2),
+          const SizedBox(height: 8),
+          const Text("Upload a beautiful banner for your profile top.", style: AppTextStyles.bodyText),
+          const SizedBox(height: 48),
         GestureDetector(
           onTap: provider.pickBanner,
           child: Container(
@@ -216,7 +221,8 @@ class _StoreSetupContent extends StatelessWidget {
                 : null,
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -264,14 +270,15 @@ class _StoreSetupContent extends StatelessWidget {
   }
 
   Widget _buildSocialSettingsStep(StoreSetupProvider provider) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('social'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Social Links", style: AppTextStyles.h2),
-        const SizedBox(height: 8),
-        const Text("Connect your audience.", style: AppTextStyles.bodyText),
-        const SizedBox(height: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Social Links", style: AppTextStyles.h2),
+          const SizedBox(height: 8),
+          const Text("Connect your audience.", style: AppTextStyles.bodyText),
+          const SizedBox(height: 32),
         
         const Text("Instagram Profile (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
@@ -287,18 +294,20 @@ class _StoreSetupContent extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 
   Widget _buildDispatchSettingsStep(StoreSetupProvider provider) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('dispatch'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Dispatch Settings", style: AppTextStyles.h2),
-        const SizedBox(height: 8),
-        const Text("How quickly do you usually prepare and dispatch orders?", style: AppTextStyles.bodyText),
-        const SizedBox(height: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Dispatch Settings", style: AppTextStyles.h2),
+          const SizedBox(height: 8),
+          const Text("How quickly do you usually prepare and dispatch orders?", style: AppTextStyles.bodyText),
+          const SizedBox(height: 32),
         
         DropdownButtonFormField<String>(
           value: provider.dispatchTime,
@@ -318,6 +327,7 @@ class _StoreSetupContent extends StatelessWidget {
           },
         ),
       ],
+      ),
     );
   }
 

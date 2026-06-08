@@ -378,8 +378,10 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
 
   Widget _buildPriceSection(ProductVariantModel variant) {
     final hasDiscount = variant.discountPrice > 0 && variant.discountPrice < variant.price;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.end,
+      spacing: 8,
+      runSpacing: 4,
       children: [
         Text(
           '₹${hasDiscount ? variant.discountPrice.toStringAsFixed(0) : variant.price.toStringAsFixed(0)}',
@@ -391,7 +393,6 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
           ),
         ),
         if (hasDiscount) ...[
-          const SizedBox(width: 8),
           Text(
             '₹${variant.price.toStringAsFixed(0)}',
             style: const TextStyle(
@@ -401,7 +402,6 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
               decoration: TextDecoration.lineThrough,
             ),
           ),
-          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(

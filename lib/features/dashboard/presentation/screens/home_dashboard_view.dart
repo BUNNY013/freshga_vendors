@@ -234,11 +234,12 @@ class HomeDashboardView extends StatelessWidget {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildActionItem("Add Product", Icons.add, () => context.push('/add-product')),
-            _buildActionItem("View Orders", Icons.receipt_long_rounded, () {}),
-            _buildActionItem("Edit Store", Icons.storefront_rounded, () => context.push('/edit-store')),
-            _buildActionItem("Share Store", Icons.ios_share_rounded, () {}),
+            Expanded(child: _buildActionItem("Add Product", Icons.add, () => context.push('/add-product'))),
+            Expanded(child: _buildActionItem("View Orders", Icons.receipt_long_rounded, () {})),
+            Expanded(child: _buildActionItem("Edit Store", Icons.storefront_rounded, () => context.push('/edit-store'))),
+            Expanded(child: _buildActionItem("Share Store", Icons.ios_share_rounded, () {})),
           ],
         ),
       ],
@@ -269,6 +270,7 @@ class HomeDashboardView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 11,
               color: AppColors.textPrimary,
@@ -408,13 +410,17 @@ class HomeDashboardView extends StatelessWidget {
             child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: color,
-              letterSpacing: -0.8,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: color,
+                letterSpacing: -0.8,
+              ),
             ),
           ),
           const SizedBox(height: 3),
@@ -501,14 +507,19 @@ class HomeDashboardView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '💰 Earnings & Payout',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
+                  const Expanded(
+                    child: Text(
+                      '💰 Earnings & Payout',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -585,13 +596,16 @@ class HomeDashboardView extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -749,27 +763,35 @@ class HomeDashboardView extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: items.map((item) => Column(
-              children: [
-                Text(
-                  item.value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: accentColor,
-                    letterSpacing: -0.5,
+            children: items.map((item) => Expanded(
+              child: Column(
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.value,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: accentColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: accentColor.withOpacity(0.7),
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: 3),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: accentColor.withOpacity(0.7),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             )).toList(),
           ),
         ],

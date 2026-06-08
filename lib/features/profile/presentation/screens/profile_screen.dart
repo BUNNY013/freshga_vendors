@@ -236,9 +236,11 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            onTap: () {
-              context.read<vendor_auth.AuthProvider>().signOut();
-              context.go('/login');
+            onTap: () async {
+              await context.read<vendor_auth.AuthProvider>().signOut();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
           ),
           _buildDivider(),

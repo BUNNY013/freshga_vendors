@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/services/auth_service.dart';
@@ -12,6 +13,9 @@ class AuthProvider extends ChangeNotifier {
   AuthState _state = AuthState.initial;
   AuthState get state => _state;
 
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -24,12 +28,17 @@ class AuthProvider extends ChangeNotifier {
   String? _verificationId;
   String? get verificationId => _verificationId;
 
+  int? _resendToken;
+  int? get resendToken => _resendToken;
+
+  StreamSubscription<User?>? _authSubscription;
+
   AuthProvider() {
     _init();
   }
 
   void _init() {
-    _authService.authStateChanges.listen((User? user) async {
+    _authSubscription = _authService.authStateChanges.listen((User? user) async {
       if (user == null) {
         _setUnauthenticated();
       } else {
@@ -38,9 +47,17 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  void _setLoading() {
-    _state = AuthState.loading;
-    _errorMessage = null;
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    if (loading) {
+      _errorMessage = null;
+    }
     notifyListeners();
   }
 
@@ -48,11 +65,14 @@ class AuthProvider extends ChangeNotifier {
     _state = AuthState.unauthenticated;
     _userModel = null;
     _applicationModel = null;
+    _isLoading = false;
     notifyListeners();
   }
 
   Future<void> _fetchUserData(String uid, String phone) async {
-    _setLoading();
+    _state = AuthState.loading;
+    notifyListeners();
+    
     try {
       _userModel = await _authService.getUserData(uid);
       if (_userModel == null) {
@@ -79,23 +99,25 @@ class AuthProvider extends ChangeNotifier {
       _state = AuthState.error;
       _errorMessage = e.toString();
     }
+    
+    _isLoading = false;
     notifyListeners();
   }
 
   Future<void> verifyPhone(String phone, {VoidCallback? codeSentCallback}) async {
-    _setLoading();
+    _setLoading(true);
     try {
       await _authService.verifyPhone(
         phoneNumber: phone,
         codeSent: (String verId, int? resendToken) {
           _verificationId = verId;
-          _state = AuthState.unauthenticated; // Reset loading
-          notifyListeners();
+          _resendToken = resendToken;
+          _setLoading(false);
           if (codeSentCallback != null) codeSentCallback();
         },
         verificationFailed: (FirebaseAuthException e) {
-          _state = AuthState.error;
-          _errorMessage = e.message;
+          _setLoading(false);
+          _errorMessage = _getFriendlyErrorMessage(e);
           notifyListeners();
         },
         verificationCompleted: (PhoneAuthCredential credential) async {
@@ -106,25 +128,63 @@ class AuthProvider extends ChangeNotifier {
         },
       );
     } catch (e) {
-      _state = AuthState.error;
+      _setLoading(false);
       _errorMessage = e.toString();
       notifyListeners();
     }
   }
 
-  Future<void> verifyOTP(String otp) async {
-    if (_verificationId == null) return;
-    _setLoading();
+  Future<void> resendOTP(String phone) async {
+    _setLoading(true);
+    try {
+      await _authService.verifyPhone(
+        phoneNumber: phone,
+        codeSent: (String verId, int? resendToken) {
+          _verificationId = verId;
+          _resendToken = resendToken;
+          _setLoading(false);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          _setLoading(false);
+          _errorMessage = _getFriendlyErrorMessage(e);
+          notifyListeners();
+        },
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _authService.signInWithCredential(credential);
+        },
+        codeAutoRetrievalTimeout: (String verId) {
+          _verificationId = verId;
+        },
+      );
+    } catch (e) {
+      _setLoading(false);
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<bool> verifyOTP(String otp) async {
+    if (_verificationId == null) {
+      _errorMessage = 'Session expired. Please request a new code.';
+      notifyListeners();
+      return false;
+    }
+    
+    _setLoading(true);
     try {
       final credential = PhoneAuthProvider.credential(
         verificationId: _verificationId!,
         smsCode: otp,
       );
       await _authService.signInWithCredential(credential);
+      // Wait a bit to allow the authState listener to trigger and fetch data
+      // which will change state to authenticated
+      return true; 
     } catch (e) {
-      _state = AuthState.error;
+      _setLoading(false);
       _errorMessage = 'Invalid OTP or expired. Please try again.';
       notifyListeners();
+      return false;
     }
   }
 
@@ -136,5 +196,22 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _authService.signOut();
+  }
+  
+  String _getFriendlyErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-phone-number':
+        return 'The phone number you entered is invalid.';
+      case 'too-many-requests':
+        return 'Too many requests. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      case 'quota-exceeded':
+        return 'Service quota exceeded. Please contact support.';
+      case 'session-expired':
+        return 'Your session has expired. Please try again.';
+      default:
+        return e.message ?? 'Authentication failed. Please try again.';
+    }
   }
 }

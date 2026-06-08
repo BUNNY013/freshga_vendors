@@ -12,50 +12,59 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  late AuthProvider _authProvider;
+  bool _isNavigating = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _authProvider = context.read<AuthProvider>();
+      _authProvider.addListener(_onAuthStateChanged);
       _checkAuthAndRoute();
     });
   }
 
-  void _checkAuthAndRoute() {
-    final auth = context.read<AuthProvider>();
-    
-    // We listen to the state changes to navigate appropriately
-    auth.addListener(() {
-      if (mounted) {
-        _navigateBasedOnState(auth);
-      }
-    });
-
-    // Initial check
-    _navigateBasedOnState(auth);
+  @override
+  void dispose() {
+    _authProvider.removeListener(_onAuthStateChanged);
+    super.dispose();
   }
 
-  void _navigateBasedOnState(AuthProvider auth) {
-    if (auth.state == AuthState.unauthenticated) {
+  void _onAuthStateChanged() {
+    if (!mounted || _isNavigating) return;
+    _checkAuthAndRoute();
+  }
+
+  void _checkAuthAndRoute() {
+    if (_isNavigating) return;
+
+    if (_authProvider.state == AuthState.unauthenticated) {
+      _isNavigating = true;
       context.go('/login');
-    } else if (auth.state == AuthState.authenticated) {
-      final isApproved = auth.userModel?.isVerified == true || auth.applicationModel?.status == 'approved';
+    } else if (_authProvider.state == AuthState.authenticated) {
+      _isNavigating = true;
+      
+      final isApproved = _authProvider.userModel?.isVerified == true || 
+                         _authProvider.applicationModel?.status == 'approved';
       
       if (isApproved) {
-        if (auth.userModel?.storeId == null || auth.userModel!.storeId.isEmpty) {
+        if (_authProvider.userModel?.storeId == null || _authProvider.userModel!.storeId.isEmpty) {
           context.go('/store-setup');
         } else {
           context.go('/dashboard');
         }
-      } else if (auth.applicationModel == null) {
+      } else if (_authProvider.applicationModel == null) {
         context.go('/welcome');
-      } else if (auth.applicationModel!.status == 'pending') {
+      } else if (_authProvider.applicationModel!.status == 'pending') {
         context.go('/pending');
-      } else if (auth.applicationModel!.status == 'rejected') {
+      } else if (_authProvider.applicationModel!.status == 'rejected') {
         context.go('/rejected');
       } else {
         context.go('/welcome');
       }
     }
+    // If state is loading or initial, stay on splash screen
   }
 
   @override
@@ -66,12 +75,15 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Minimal logo placeholder
-            Icon(Icons.storefront_rounded, size: 80, color: AppColors.primary),
+            Icon(Icons.stars_rounded, size: 80, color: AppColors.primary),
             SizedBox(height: 24),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              strokeWidth: 2,
+            SizedBox(
+              width: 30,
+              height: 30,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                strokeWidth: 2.5,
+              ),
             ),
           ],
         ),

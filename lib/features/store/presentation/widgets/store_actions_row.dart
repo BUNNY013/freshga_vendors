@@ -230,13 +230,12 @@ class _ShareBottomSheet extends StatelessWidget {
             style: TextStyle(fontSize: 13, color: AppColors.grey600, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
               _buildSocialChip(context, 'WhatsApp', Icons.chat, const Color(0xFF25D366), storeLink),
-              const SizedBox(width: 10),
               _buildSocialChip(context, 'Instagram', Icons.camera_alt, const Color(0xFFE1306C), storeLink),
-              const SizedBox(width: 10),
               _buildSocialChip(context, 'More', Icons.share, AppColors.textSecondary, storeLink),
             ],
           ),
