@@ -23,7 +23,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   void initState() {
     super.initState();
-    _product = widget.product;
+    _product = widget.product.applyDraftUpdates();
   }
 
   Future<void> _handleDelete() async {
@@ -142,15 +142,54 @@ class _EditProductScreenState extends State<EditProductScreen> {
     }
   }
 
+  Future<void> _handleSubmitReview() async {
+    if (_product.requiredFixes.isNotEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please address all required fixes before submitting.')));
+       return;
+    }
+
+    setState(() => _isSaving = true);
+    final provider = context.read<ProductProvider>();
+    final success = await provider.submitDraftForReview(widget.product);
+    
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product submitted for review!')));
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.errorMessage ?? 'Failed to submit')));
+      }
+    }
+  }
+
+  Future<void> _handleWithdraw() async {
+    setState(() => _isSaving = true);
+    final provider = context.read<ProductProvider>();
+    final success = await provider.withdrawSubmission(widget.product);
+    
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submission withdrawn. Moved to drafts.')));
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.errorMessage ?? 'Failed to withdraw')));
+      }
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Live':
         return const Color(0xFF4CAF50);
       case 'Draft':
+      case 'Live + Draft Changes':
         return Colors.grey;
       case 'Under Review':
       case 'Submitted':
       case 'Update Under Review':
+      case 'Live + Update Pending':
         return Colors.blue;
       case 'Changes Required':
         return Colors.red;
@@ -211,10 +250,52 @@ class _EditProductScreenState extends State<EditProductScreen> {
             _buildHelpCard(),
             const SizedBox(height: 32),
             _buildMoreActions(),
-            const SizedBox(height: 40),
+            const SizedBox(height: 100), // padding for bottom bar
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    final status = widget.product.status;
+    final isDraft = status == 'Draft' || status == 'Live + Draft Changes' || status == 'Changes Required';
+    final isPending = status == 'Under Review' || status == 'Live + Update Pending' || status == 'Update Under Review';
+
+    if (!isDraft && !isPending) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: isDraft 
+        ? ElevatedButton(
+            onPressed: _isSaving ? null : _handleSubmitReview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isSaving 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Submit for Review', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          )
+        : ElevatedButton(
+            onPressed: _isSaving ? null : _handleWithdraw,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _isSaving 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.error, strokeWidth: 2))
+                : const Text('Withdraw Submission', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ),
     );
   }
 
@@ -572,6 +653,38 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Widget _buildHelpCard() {
+    if (_product.requiredFixes.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.error.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.error.withOpacity(0.2)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.error_outline, color: AppColors.error, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Changes Required', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.error)),
+                  const SizedBox(height: 4),
+                  Text('Please fix the following sections before resubmitting:\n\n${_product.requiredFixes.join(', ')}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600, height: 1.4)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

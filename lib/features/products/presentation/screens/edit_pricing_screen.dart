@@ -40,7 +40,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     _basePriceCtrl = TextEditingController(text: _product.price > 0 ? _product.price.toStringAsFixed(0) : '');
     _baseOriginalPriceCtrl = TextEditingController(text: _product.originalPrice > 0 ? _product.originalPrice.toStringAsFixed(0) : '');
 
-    _variants = List.from(_product.variants);
+    _variants = List.from(_product.draftVersion?['variants']?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>)) ?? _product.variants);
     for (var v in _variants) {
       _variantLabelCtrls.add(TextEditingController(text: v.label));
       _variantPriceCtrls.add(TextEditingController(text: v.price > 0 ? v.price.toStringAsFixed(0) : ''));
@@ -142,12 +142,12 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
         updates['weight'] = baseWeight;
       }
 
-      await provider.updateProductPartial(_product.productId, updates);
+      await provider.updateOperationalFields(_product.productId, updates);
 
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pricing updated successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pricing updated instantly!')));
       }
     } catch (e) {
       setState(() => _isSaving = false);

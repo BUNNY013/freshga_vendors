@@ -227,32 +227,49 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateProductPartial(String productId, Map<String, dynamic> updates) async {
+  Future<bool> updateOperationalFields(String productId, Map<String, dynamic> updates) async {
     try {
       updates['updatedAt'] = DateTime.now().toIso8601String();
       await _firestore.collection('products').doc(productId).update(updates);
+      return true;
     } catch (e) {
-      debugPrint("Update partial failed: $e");
-      rethrow;
+      debugPrint("Update operational failed: $e");
+      return false;
     }
   }
 
-  Future<bool> withdrawSubmission(ProductModel product) async {
+  Future<bool> updateDraftContent(ProductModel currentProduct, Map<String, dynamic> draftUpdates, {String? clearRequiredFix}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      String newStatus = 'Draft';
-      
-      // If it's an update to an existing product, revert to Live (or Hidden)
-      if (product.status == 'Update Under Review') {
-        newStatus = product.isActive ? 'Live' : 'Hidden';
+      List<String> newRequiredFixes = List.from(currentProduct.requiredFixes);
+      if (clearRequiredFix != null) {
+        newRequiredFixes.remove(clearRequiredFix);
+      }
+
+      Map<String, dynamic> firestoreUpdates = {
+        'requiredFixes': newRequiredFixes,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+
+      if (currentProduct.lastApprovedAt == null) {
+         // Product has NEVER been live. Update the flat fields directly.
+         firestoreUpdates.addAll(draftUpdates);
+      } else {
+         // Product is or was Live. Save changes to draftVersion.
+         final currentDraft = currentProduct.draftVersion ?? {};
+         final newDraft = Map<String, dynamic>.from(currentDraft)..addAll(draftUpdates);
+         
+         String newStatus = currentProduct.status;
+         if (currentProduct.status == 'Live') {
+           newStatus = 'Live + Draft Changes';
+         }
+         
+         firestoreUpdates['draftVersion'] = newDraft;
+         firestoreUpdates['status'] = newStatus;
       }
       
-      await _firestore.collection('products').doc(product.productId).update({
-        'status': newStatus,
-        // We do NOT clear pendingUpdate so they can continue editing it!
-        'updatedAt': DateTime.now().toIso8601String(),
-      });
+      await _firestore.collection('products').doc(currentProduct.productId).update(firestoreUpdates);
       
       _isLoading = false;
       notifyListeners();
@@ -265,21 +282,58 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> resubmitProduct(String productId) async {
+  Future<bool> submitDraftForReview(ProductModel currentProduct) async {
     _isLoading = true;
     notifyListeners();
     try {
-      // Fetch current product to check if it has a pending update
-      final doc = await _firestore.collection('products').doc(productId).get();
-      if (!doc.exists) throw Exception("Product not found");
+      if (currentProduct.requiredFixes.isNotEmpty) {
+        throw Exception("Cannot submit: outstanding required fixes must be addressed.");
+      }
       
-      final data = doc.data()!;
-      final pendingUpdate = data['pendingUpdate'] as Map<String, dynamic>?;
-      final isUpdate = pendingUpdate != null && pendingUpdate.isNotEmpty;
+      final draft = currentProduct.draftVersion;
+      if (currentProduct.lastApprovedAt == null || draft == null || draft.isEmpty) {
+         // New product or no draft overrides
+         await _firestore.collection('products').doc(currentProduct.productId).update({
+           'status': 'Under Review',
+           'lastSubmittedAt': DateTime.now().toIso8601String(),
+           'updatedAt': DateTime.now().toIso8601String(),
+         });
+      } else {
+        // Has a draft version to submit
+        String newStatus = currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required' 
+            ? 'Live + Update Pending' 
+            : 'Under Review';
+        
+        await _firestore.collection('products').doc(currentProduct.productId).update({
+          'pendingReviewVersion': draft,
+          'status': newStatus,
+          'lastSubmittedAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+      }
       
-      final newStatus = isUpdate ? 'Update Under Review' : 'Under Review';
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> withdrawSubmission(ProductModel currentProduct) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      String newStatus = 'Draft';
+      if (currentProduct.status == 'Live + Update Pending') {
+         newStatus = 'Live + Draft Changes';
+      }
       
-      await _firestore.collection('products').doc(productId).update({
+      await _firestore.collection('products').doc(currentProduct.productId).update({
+        'pendingReviewVersion': FieldValue.delete(),
         'status': newStatus,
         'updatedAt': DateTime.now().toIso8601String(),
       });

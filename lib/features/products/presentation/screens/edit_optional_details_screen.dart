@@ -23,13 +23,12 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _product = widget.product;
-    final pending = _product.pendingUpdate ?? {};
+    _product = widget.product.applyDraftUpdates();
     
-    _storageCtrl = TextEditingController(text: pending['storageInstructions'] ?? _product.storageInstructions);
-    _ingredientsCtrl = TextEditingController(text: pending['ingredients'] != null ? (pending['ingredients'] as List).join(', ') : _product.ingredients.join(', '));
-    _dispatchTimeCtrl = TextEditingController(text: pending['dispatchTime'] ?? _product.dispatchTime);
-    _shelfLifeCtrl = TextEditingController(text: pending['shelfLife'] ?? _product.shelfLife);
+    _storageCtrl = TextEditingController(text: _product.storageInstructions);
+    _ingredientsCtrl = TextEditingController(text: _product.ingredients.join(', '));
+    _dispatchTimeCtrl = TextEditingController(text: _product.dispatchTime);
+    _shelfLifeCtrl = TextEditingController(text: _product.shelfLife);
   }
 
   @override
@@ -45,22 +44,20 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
     setState(() => _isSaving = true);
     try {
       final provider = context.read<ProductProvider>();
-      Map<String, dynamic> currentPending = _product.pendingUpdate != null ? Map.from(_product.pendingUpdate!) : {};
-      currentPending['storageInstructions'] = _storageCtrl.text.trim();
-      currentPending['ingredients'] = _ingredientsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      currentPending['dispatchTime'] = _dispatchTimeCtrl.text.trim();
-      currentPending['shelfLife'] = _shelfLifeCtrl.text.trim();
-      
-      Map<String, dynamic> updates = {
-        'pendingUpdate': currentPending,
-        'status': (_product.status == 'Live' || _product.status == 'Approved') ? 'Update Under Review' : _product.status,
-      };
-
-      await provider.updateProductPartial(_product.productId, updates);
+      await provider.updateDraftContent(
+        widget.product,
+        {
+          'storageInstructions': _storageCtrl.text.trim(),
+          'ingredients': _ingredientsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+          'dispatchTime': _dispatchTimeCtrl.text.trim(),
+          'shelfLife': _shelfLifeCtrl.text.trim(),
+        },
+        clearRequiredFix: 'others',
+      );
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Optional details submitted for review!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved to draft.')));
       }
     } catch (e) {
       if (mounted) {
@@ -228,7 +225,7 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
                     ),
                     child: _isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Submit Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        : const Text('Save to Draft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],

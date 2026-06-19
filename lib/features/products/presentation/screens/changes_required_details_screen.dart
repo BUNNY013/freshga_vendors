@@ -361,10 +361,14 @@ class ChangesRequiredDetailsScreen extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         final provider = context.read<ProductProvider>();
-                        await provider.resubmitProduct(product.productId);
+                        final success = await provider.submitDraftForReview(product);
                         if (context.mounted) {
-                          context.pop();
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product resubmitted for review!')));
+                          if (success) {
+                            context.pop();
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product resubmitted for review!')));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.errorMessage ?? 'Failed to resubmit.')));
+                          }
                         }
                       },
                       icon: const Icon(Icons.send_rounded, size: 18),

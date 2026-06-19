@@ -26,14 +26,11 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
   @override
   void initState() {
     super.initState();
-    _product = widget.product;
+    _product = widget.product.applyDraftUpdates();
     
-    // Check if there is an existing pending update for these fields
-    final pending = _product.pendingUpdate ?? {};
-    
-    _nameCtrl = TextEditingController(text: pending['name'] ?? _product.name);
-    _shortDescCtrl = TextEditingController(text: pending['shortDescription'] ?? _product.shortDescription);
-    _descCtrl = TextEditingController(text: pending['description'] ?? _product.description);
+    _nameCtrl = TextEditingController(text: _product.name);
+    _shortDescCtrl = TextEditingController(text: _product.shortDescription);
+    _descCtrl = TextEditingController(text: _product.description);
   }
 
   @override
@@ -59,27 +56,20 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
     try {
       final provider = context.read<ProductProvider>();
       
-      // If the fields are identical to live fields, we might not even need an update,
-      // but for simplicity, we'll package them up.
-      Map<String, dynamic> currentPending = _product.pendingUpdate != null ? Map.from(_product.pendingUpdate!) : {};
-      
-      currentPending['name'] = name;
-      currentPending['shortDescription'] = shortDesc;
-      currentPending['description'] = desc;
-
-      Map<String, dynamic> updates = {
-        'pendingUpdate': currentPending,
-        // If the product is Live, we change it to Update Under Review
-        // If it's already Draft, it stays Draft.
-        'status': (_product.status == 'Live' || _product.status == 'Approved') ? 'Update Under Review' : _product.status,
-      };
-
-      await provider.updateProductPartial(_product.productId, updates);
+      await provider.updateDraftContent(
+        widget.product,
+        {
+          'name': name,
+          'shortDescription': shortDesc,
+          'description': desc,
+        },
+        clearRequiredFix: 'information',
+      );
 
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product info submitted for review!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved to draft.')));
       }
     } catch (e) {
       if (mounted) {
@@ -95,10 +85,10 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
     final bool isNeedsFix = feedbackData?['status'] == 'needs_fix';
     final String feedbackMsg = feedbackData?['feedback'] ?? 'Please update the information as requested.';
 
-    final hasPending = _product.pendingUpdate != null && 
-        (_product.pendingUpdate!.containsKey('name') || 
-         _product.pendingUpdate!.containsKey('description') || 
-         _product.pendingUpdate!.containsKey('shortDescription'));
+    final hasPending = _product.draftVersion != null && 
+        (_product.draftVersion!.containsKey('name') || 
+         _product.draftVersion!.containsKey('description') || 
+         _product.draftVersion!.containsKey('shortDescription'));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),

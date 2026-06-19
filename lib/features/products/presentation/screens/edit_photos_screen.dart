@@ -22,28 +22,23 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
   @override
   void initState() {
     super.initState();
-    _product = widget.product;
-    final pending = _product.pendingUpdate ?? {};
-    _images = List<String>.from(pending['images'] ?? _product.images);
+    _product = widget.product.applyDraftUpdates();
+    _images = List<String>.from(_product.images);
   }
 
   Future<void> _handleSubmit() async {
     setState(() => _isSaving = true);
     try {
       final provider = context.read<ProductProvider>();
-      Map<String, dynamic> currentPending = _product.pendingUpdate != null ? Map.from(_product.pendingUpdate!) : {};
-      currentPending['images'] = _images;
-      
-      Map<String, dynamic> updates = {
-        'pendingUpdate': currentPending,
-        'status': (_product.status == 'Live' || _product.status == 'Approved') ? 'Update Under Review' : _product.status,
-      };
-
-      await provider.updateProductPartial(_product.productId, updates);
+      await provider.updateDraftContent(
+        widget.product,
+        {'images': _images},
+        clearRequiredFix: 'photos',
+      );
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photos submitted for review!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved to draft.')));
       }
     } catch (e) {
       if (mounted) {
@@ -183,7 +178,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
                     ),
                     child: _isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Submit Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        : const Text('Save to Draft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],

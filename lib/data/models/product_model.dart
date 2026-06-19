@@ -24,13 +24,21 @@ class ProductModel {
   final String storageInstructions;
   final bool showStockToCustomers;
   
-  final String status; // 'Draft', 'Submitted', 'Under Review', 'Approved', 'Live', 'Changes Required', 'Hidden', 'Update Under Review'
+  final String status; // 'Draft', 'Submitted', 'Under Review', 'Approved', 'Live', 'Live + Draft Changes', 'Live + Update Pending', 'Changes Required', 'Unavailable', 'Hidden'
   final String adminFeedback; // Rejection reason if Changes Required
   final bool isStoreVerified;
 
-  final Map<String, dynamic>? pendingUpdate; // Stores edited content awaiting review
-  final String? updateAdminFeedback; // Feedback specifically for a rejected content update
+  final Map<String, dynamic>? pendingUpdate; // Legacy field (keeping for compatibility)
+  final String? updateAdminFeedback; // Legacy field
   final Map<String, dynamic>? reviewFeedback;
+
+  // Lifecycle V2 fields
+  final Map<String, dynamic>? draftVersion;
+  final Map<String, dynamic>? pendingReviewVersion;
+  final List<String> requiredFixes;
+  final String? lastApprovedAt;
+  final String? lastSubmittedAt;
+  final int versionNumber;
 
   final List<String> images;
   final List<ProductVariantModel> variants;
@@ -78,6 +86,12 @@ class ProductModel {
     this.pendingUpdate,
     this.updateAdminFeedback,
     this.reviewFeedback,
+    this.draftVersion,
+    this.pendingReviewVersion,
+    this.requiredFixes = const [],
+    this.lastApprovedAt,
+    this.lastSubmittedAt,
+    this.versionNumber = 1,
     required this.images,
     required this.variants,
     required this.ingredients,
@@ -120,6 +134,12 @@ class ProductModel {
       pendingUpdate: json['pendingUpdate'] as Map<String, dynamic>?,
       updateAdminFeedback: json['updateAdminFeedback'] as String?,
       reviewFeedback: json['reviewFeedback'] as Map<String, dynamic>?,
+      draftVersion: json['draftVersion'] as Map<String, dynamic>?,
+      pendingReviewVersion: json['pendingReviewVersion'] as Map<String, dynamic>?,
+      requiredFixes: List<String>.from(json['requiredFixes'] ?? []),
+      lastApprovedAt: json['lastApprovedAt'] as String?,
+      lastSubmittedAt: json['lastSubmittedAt'] as String?,
+      versionNumber: json['versionNumber'] as int? ?? 1,
       images: (json['images'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
       variants: (json['variants'] as List<dynamic>?)
               ?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>))
@@ -166,6 +186,12 @@ class ProductModel {
       'pendingUpdate': pendingUpdate,
       'updateAdminFeedback': updateAdminFeedback,
       'reviewFeedback': reviewFeedback,
+      'draftVersion': draftVersion,
+      'pendingReviewVersion': pendingReviewVersion,
+      'requiredFixes': requiredFixes,
+      'lastApprovedAt': lastApprovedAt,
+      'lastSubmittedAt': lastSubmittedAt,
+      'versionNumber': versionNumber,
       'images': images,
       'variants': variants.map((v) => v.toJson()).toList(),
       'ingredients': ingredients,
@@ -208,6 +234,12 @@ class ProductModel {
     Map<String, dynamic>? pendingUpdate,
     String? updateAdminFeedback,
     Map<String, dynamic>? reviewFeedback,
+    Map<String, dynamic>? draftVersion,
+    Map<String, dynamic>? pendingReviewVersion,
+    List<String>? requiredFixes,
+    String? lastApprovedAt,
+    String? lastSubmittedAt,
+    int? versionNumber,
     List<String>? images,
     List<ProductVariantModel>? variants,
     List<String>? ingredients,
@@ -248,6 +280,12 @@ class ProductModel {
       pendingUpdate: pendingUpdate ?? this.pendingUpdate,
       updateAdminFeedback: updateAdminFeedback ?? this.updateAdminFeedback,
       reviewFeedback: reviewFeedback ?? this.reviewFeedback,
+      draftVersion: draftVersion ?? this.draftVersion,
+      pendingReviewVersion: pendingReviewVersion ?? this.pendingReviewVersion,
+      requiredFixes: requiredFixes ?? this.requiredFixes,
+      lastApprovedAt: lastApprovedAt ?? this.lastApprovedAt,
+      lastSubmittedAt: lastSubmittedAt ?? this.lastSubmittedAt,
+      versionNumber: versionNumber ?? this.versionNumber,
       images: images ?? this.images,
       variants: variants ?? this.variants,
       ingredients: ingredients ?? this.ingredients,
@@ -266,16 +304,24 @@ class ProductModel {
     );
   }
 
-  /// Returns a new ProductModel with all pendingUpdate fields merged into the main fields.
-  /// This is used when a vendor wants to edit their draft changes of an existing live product.
-  ProductModel applyPendingUpdates() {
-    if (pendingUpdate == null || pendingUpdate!.isEmpty) return this;
+  /// Merges draft fields into the product model for the UI editors.
+  ProductModel applyDraftUpdates() {
+    final Map<String, dynamic> sourceMap = draftVersion ?? pendingUpdate ?? {};
+    if (sourceMap.isEmpty) return this;
     
     final currentJson = toJson();
-    final updates = Map<String, dynamic>.from(pendingUpdate!);
+    currentJson.addAll(Map<String, dynamic>.from(sourceMap));
     
-    // Merge updates into current JSON
-    currentJson.addAll(updates);
+    return ProductModel.fromJson(currentJson);
+  }
+
+  /// Legacy support
+  ProductModel applyPendingUpdates() {
+    final Map<String, dynamic> sourceMap = pendingReviewVersion ?? pendingUpdate ?? {};
+    if (sourceMap.isEmpty) return this;
+    
+    final currentJson = toJson();
+    currentJson.addAll(Map<String, dynamic>.from(sourceMap));
     
     return ProductModel.fromJson(currentJson);
   }

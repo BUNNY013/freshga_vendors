@@ -20,8 +20,8 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
   @override
   void initState() {
     super.initState();
-    _product = widget.product;
-    _subCategoryIds = List.from(_product.pendingUpdate?['subCategoryIds'] ?? _product.subCategoryIds);
+    _product = widget.product.applyDraftUpdates();
+    _subCategoryIds = List.from(_product.subCategoryIds);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadSubCategories(_product.categoryId);
@@ -38,20 +38,16 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
     try {
       final provider = context.read<ProductProvider>();
       
-      Map<String, dynamic> currentPending = _product.pendingUpdate != null ? Map.from(_product.pendingUpdate!) : {};
-      currentPending['subCategoryIds'] = _subCategoryIds;
-      
-      Map<String, dynamic> updates = {
-        'pendingUpdate': currentPending,
-        'status': (_product.status == 'Live' || _product.status == 'Approved') ? 'Update Under Review' : _product.status,
-      };
-
-      await provider.updateProductPartial(_product.productId, updates);
+      await provider.updateDraftContent(
+        widget.product,
+        {'subCategoryIds': _subCategoryIds},
+        clearRequiredFix: 'categories',
+      );
 
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Collections submitted for review!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved to draft.')));
       }
     } catch (e) {
       if (mounted) {
@@ -125,17 +121,7 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Current Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F9F9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(_product.categoryName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                  ),
+                  _buildCategorySection(),
                   const SizedBox(height: 24),
                   const Text('Subcategories (Collections)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -216,7 +202,7 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
                     ),
                     child: _isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Submit Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        : const Text('Save to Draft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
@@ -239,6 +225,46 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    final isLocked = widget.product.lastApprovedAt != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('Current Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            if (isLocked) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.lock_outline, size: 14, color: AppColors.grey500),
+              const SizedBox(width: 4),
+              const Text('Locked', style: TextStyle(color: AppColors.grey500, fontSize: 12, fontWeight: FontWeight.w600)),
+            ]
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F9F9),
+            borderRadius: BorderRadius.circular(12),
+            border: isLocked ? Border.all(color: AppColors.grey300) : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_product.categoryName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isLocked ? AppColors.grey600 : AppColors.textPrimary)),
+              if (isLocked) ...[
+                const SizedBox(height: 4),
+                const Text('Root category cannot be changed after approval. Create a new product instead.', style: TextStyle(color: AppColors.grey500, fontSize: 11)),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
