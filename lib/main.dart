@@ -8,7 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'routes/app_router.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/onboarding/providers/onboarding_provider.dart';
-import 'features/products/providers/product_provider.dart';
+import 'features/products/presentation/providers/product_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

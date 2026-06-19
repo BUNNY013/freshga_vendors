@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Premium earthy & soft aesthetic
-  static const Color primary = Color(0xFFD66853); // Soft Terracotta
-  static const Color primaryLight = Color(0xFFF3E5E1);
+  // FreshGa Light Green Theme
+  static const Color primary = Color(0xFF43A047); // Fresh Green
+  static const Color primaryLight = Color(0xFFE8F5E9); // Very light green tint
   static const Color background = Color(0xFFFAFAFA); // Minimal white/grey
   static const Color surface = Colors.white;
   
@@ -25,4 +25,5 @@ class AppColors {
   static const Color grey400 = Color(0xFFBDBDBD);
   static const Color grey500 = Color(0xFF9E9E9E);
   static const Color grey600 = Color(0xFF757575);
+  static const Color grey700 = Color(0xFF616161);
 }

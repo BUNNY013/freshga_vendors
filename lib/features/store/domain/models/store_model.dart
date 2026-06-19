@@ -16,6 +16,10 @@ class StoreModel {
   final bool isFeatured;
   final bool isActive;
   final String dispatchTime;
+  final String city;
+  final String state;
+  final String country;
+  final String pincode;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -37,6 +41,10 @@ class StoreModel {
     this.isFeatured = false,
     this.isActive = true,
     required this.dispatchTime,
+    this.city = '',
+    this.state = '',
+    this.country = '',
+    this.pincode = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -60,6 +68,10 @@ class StoreModel {
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
       dispatchTime: json['dispatchTime'] ?? '24 hours',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      country: json['country'] ?? '',
+      pincode: json['pincode'] ?? '',
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
@@ -88,6 +100,10 @@ class StoreModel {
       'isFeatured': isFeatured,
       'isActive': isActive,
       'dispatchTime': dispatchTime,
+      'city': city,
+      'state': state,
+      'country': country,
+      'pincode': pincode,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -111,6 +127,10 @@ class StoreModel {
     bool? isFeatured,
     bool? isActive,
     String? dispatchTime,
+    String? city,
+    String? state,
+    String? country,
+    String? pincode,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -132,6 +152,10 @@ class StoreModel {
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
       dispatchTime: dispatchTime ?? this.dispatchTime,
+      city: city ?? this.city,
+      state: state ?? this.state,
+      country: country ?? this.country,
+      pincode: pincode ?? this.pincode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

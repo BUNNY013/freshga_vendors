@@ -209,7 +209,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 StoreProductGrid(
                   products: products,
                   onAddProduct: () => context.push('/add-product'),
-                  onProductTap: (product) => context.push('/add-product', extra: product),
+                  onProductTap: (product) => context.push('/edit-product', extra: product),
                 ),
                 const SizedBox(height: 40),
 

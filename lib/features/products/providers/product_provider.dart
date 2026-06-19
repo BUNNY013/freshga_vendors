@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../data/models/user_model.dart';
+import '../../../../data/models/category_model.dart';
+import '../../../../data/models/sub_category_model.dart';
 
 class ProductProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,6 +22,36 @@ class ProductProvider extends ChangeNotifier {
 
   List<File> _selectedImages = [];
   List<File> get selectedImages => _selectedImages;
+
+  List<CategoryModel> _categories = [];
+  List<CategoryModel> get categories => _categories;
+
+  List<SubCategoryModel> _subCategories = [];
+  List<SubCategoryModel> get subCategories => _subCategories;
+
+  Future<void> loadCategories() async {
+    try {
+      final snapshot = await _firestore.collection('categories').where('isActive', isEqualTo: true).orderBy('sortOrder').get();
+      _categories = snapshot.docs.map((doc) => CategoryModel.fromJson(doc.data()..['categoryId'] = doc.id)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Failed to load categories: $e");
+    }
+  }
+
+  Future<void> loadSubCategories(String categoryId) async {
+    try {
+      final snapshot = await _firestore.collection('sub_categories')
+          .where('categoryId', isEqualTo: categoryId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('sortOrder')
+          .get();
+      _subCategories = snapshot.docs.map((doc) => SubCategoryModel.fromJson(doc.data()..['subCategoryId'] = doc.id)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Failed to load subcategories: $e");
+    }
+  }
 
   Future<void> pickImages() async {
     final picker = ImagePicker();

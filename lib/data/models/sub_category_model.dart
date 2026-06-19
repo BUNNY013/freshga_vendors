@@ -2,6 +2,7 @@ class SubCategoryModel {
   final String subCategoryId;
   final String categoryId;
   final String name;
+  final String imageUrl;
   final bool isActive;
   final int sortOrder;
 
@@ -9,6 +10,7 @@ class SubCategoryModel {
     required this.subCategoryId,
     required this.categoryId,
     required this.name,
+    this.imageUrl = '',
     required this.isActive,
     required this.sortOrder,
   });
@@ -18,8 +20,9 @@ class SubCategoryModel {
       subCategoryId: json['subCategoryId'] ?? '',
       categoryId: json['categoryId'] ?? '',
       name: json['name'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
       isActive: json['isActive'] ?? true,
-      sortOrder: json['sortOrder'] ?? 0,
+      sortOrder: json['sortOrder'] is num ? (json['sortOrder'] as num).toInt() : 0,
     );
   }
 

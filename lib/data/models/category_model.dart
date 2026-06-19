@@ -19,7 +19,7 @@ class CategoryModel {
       name: json['name'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       isActive: json['isActive'] ?? true,
-      sortOrder: json['sortOrder'] ?? 0,
+      sortOrder: json['sortOrder'] is num ? (json['sortOrder'] as num).toInt() : 0,
     );
   }
 

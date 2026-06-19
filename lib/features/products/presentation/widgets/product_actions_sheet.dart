@@ -7,6 +7,8 @@ class ProductActionsSheet extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onPreview;
   final VoidCallback onToggleVisibility;
+  final VoidCallback onToggleAvailability;
+  final VoidCallback onDuplicate;
   final VoidCallback onDelete;
 
   const ProductActionsSheet({
@@ -15,6 +17,8 @@ class ProductActionsSheet extends StatelessWidget {
     required this.onEdit,
     required this.onPreview,
     required this.onToggleVisibility,
+    required this.onToggleAvailability,
+    required this.onDuplicate,
     required this.onDelete,
   });
 
@@ -24,6 +28,8 @@ class ProductActionsSheet extends StatelessWidget {
     required VoidCallback onEdit,
     required VoidCallback onPreview,
     required VoidCallback onToggleVisibility,
+    required VoidCallback onToggleAvailability,
+    required VoidCallback onDuplicate,
     required VoidCallback onDelete,
   }) {
     showModalBottomSheet(
@@ -37,6 +43,8 @@ class ProductActionsSheet extends StatelessWidget {
         onEdit: onEdit,
         onPreview: onPreview,
         onToggleVisibility: onToggleVisibility,
+        onToggleAvailability: onToggleAvailability,
+        onDuplicate: onDuplicate,
         onDelete: onDelete,
       ),
     );
@@ -83,7 +91,7 @@ class ProductActionsSheet extends StatelessWidget {
                       Text(
                         product.name,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.bold,
                           fontSize: 16,
                           letterSpacing: -0.3,
                         ),
@@ -97,26 +105,22 @@ class ProductActionsSheet extends StatelessWidget {
                             width: 7,
                             height: 7,
                             decoration: BoxDecoration(
-                              color: product.isActive
-                                  ? const Color(0xFF4CAF50)
-                                  : AppColors.grey500,
+                              color: _getStatusColor(),
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            product.isActive ? 'Live' : 'Hidden',
+                            product.status.isEmpty ? 'Draft' : product.status,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: product.isActive
-                                  ? const Color(0xFF4CAF50)
-                                  : AppColors.grey500,
+                              color: _getStatusColor(),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${product.variants.length} variants',
+                            '${product.variants.length} pack sizes',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.grey600,
@@ -147,28 +151,50 @@ class ProductActionsSheet extends StatelessWidget {
             ),
             _buildAction(
               icon: Icons.remove_red_eye_outlined,
-              label: 'Preview as Customer',
+              label: 'Preview Product',
               subtitle: 'See how your product looks to buyers',
-              color: AppColors.primary,
+              color: AppColors.textPrimary,
               onTap: () {
                 Navigator.pop(context);
                 onPreview();
               },
             ),
             _buildAction(
-              icon: product.isActive
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              label: product.isActive ? 'Hide Product' : 'Make Live',
-              subtitle: product.isActive
-                  ? 'Temporarily hide from customers'
-                  : 'Show product to customers again',
-              color: product.isActive
-                  ? AppColors.grey600
-                  : const Color(0xFF4CAF50),
+              icon: Icons.copy_outlined,
+              label: 'Duplicate Product',
+              subtitle: 'Create a copy of this product',
+              color: AppColors.textPrimary,
+              onTap: () {
+                Navigator.pop(context);
+                onDuplicate();
+              },
+            ),
+            _buildAction(
+              icon: product.status == 'Hidden'
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              label: product.status == 'Hidden' ? 'Make Live' : 'Hide Product',
+              subtitle: product.status == 'Hidden'
+                  ? 'Show product to customers again'
+                  : 'Temporarily hide from customers',
+              color: AppColors.textPrimary,
               onTap: () {
                 Navigator.pop(context);
                 onToggleVisibility();
+              },
+            ),
+            _buildAction(
+              icon: product.status == 'Unavailable'
+                  ? Icons.check_circle_outline
+                  : Icons.pause_circle_outline,
+              label: product.status == 'Unavailable' ? 'Mark Available' : 'Mark Unavailable',
+              subtitle: product.status == 'Unavailable'
+                  ? 'Make product orderable again'
+                  : 'Temporarily pause orders for this product',
+              color: AppColors.textPrimary,
+              onTap: () {
+                Navigator.pop(context);
+                onToggleAvailability();
               },
             ),
             const SizedBox(height: 4),
@@ -190,6 +216,18 @@ class ProductActionsSheet extends StatelessWidget {
     );
   }
 
+  Color _getStatusColor() {
+    switch (product.status) {
+      case 'Live': return const Color(0xFF4CAF50);
+      case 'Under Review': return const Color(0xFFFF9800);
+      case 'Changes Required': return const Color(0xFFF44336);
+      case 'Hidden': return const Color(0xFF9E9E9E);
+      case 'Draft': return const Color(0xFF9E9E9E);
+      case 'Unavailable': return const Color(0xFFE53935);
+      default: return AppColors.primary;
+    }
+  }
+
   Widget _buildAction({
     required IconData icon,
     required String label,
@@ -201,16 +239,16 @@ class ProductActionsSheet extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
+                color: color.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -236,7 +274,7 @@ class ProductActionsSheet extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: color.withOpacity(0.5), size: 20),
+            Icon(Icons.chevron_right, color: color.withOpacity(0.3), size: 18),
           ],
         ),
       ),

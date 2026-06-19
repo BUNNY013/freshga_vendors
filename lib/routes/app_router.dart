@@ -8,6 +8,14 @@ import '../features/onboarding/presentation/screens/rejection_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/store/presentation/screens/store_setup_screen.dart';
 import '../features/products/presentation/screens/add_product_screen.dart';
+import '../features/products/presentation/screens/edit_product_screen.dart';
+import '../features/products/presentation/screens/edit_pricing_screen.dart';
+import '../features/products/presentation/screens/edit_product_info_screen.dart';
+import '../features/products/presentation/screens/edit_photos_screen.dart';
+import '../features/products/presentation/screens/edit_collections_screen.dart';
+import '../features/products/presentation/screens/edit_optional_details_screen.dart';
+import '../features/products/presentation/screens/under_review_details_screen.dart';
+import '../features/products/presentation/screens/changes_required_details_screen.dart';
 import '../features/store/presentation/screens/edit_store_screen.dart';
 import '../data/models/product_model.dart';
 
@@ -86,6 +94,62 @@ class AppRouter {
         builder: (context, state) {
           final product = state.extra as ProductModel?;
           return AddProductScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-product',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditProductScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-pricing',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditPricingScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-photos',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditPhotosScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-collections',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditCollectionsScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-optional-details',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditOptionalDetailsScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/edit-product-info',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return EditProductInfoScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/under-review-details',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return UnderReviewDetailsScreen(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/changes-required-details',
+        builder: (context, state) {
+          final product = state.extra as ProductModel;
+          return ChangesRequiredDetailsScreen(product: product);
         },
       ),
       GoRoute(

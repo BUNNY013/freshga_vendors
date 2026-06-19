@@ -3,77 +3,148 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is authenticated
+    // =========================
+    // Helper Functions
+    // =========================
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper function to check if the user is accessing their own data
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Rules for the 'users' collection
+    // =========================
+    // Default Deny
+    // =========================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================
+    // USERS
+    // =========================
+
     match /users/{userId} {
-      // Users can only read, create, and update their own user document.
+      allow read, write: if isOwner(userId);
+      
+      match /followingStores/{storeId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // =========================
+    // CUSTOMERS
+    // =========================
+
+    match /customers/{userId} {
       allow read, write: if isOwner(userId);
     }
 
-    // Rules for the 'supplierApplications' collection
+    // =========================
+    // SUPPLIER APPLICATIONS
+    // =========================
+
     match /supplierApplications/{applicationId} {
-      // Users can read their own applications
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      
-      // Users can create an application if the userId in the document matches their uid
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      
-      // Users can update their application, but cannot change the userId
-      allow update: if isAuthenticated() 
-                    && resource.data.userId == request.auth.uid 
-                    && request.resource.data.userId == request.auth.uid;
-                    
-      // Users generally shouldn't delete their applications, but you can adjust this if needed
-      allow delete: if false; 
-    }
-    // Rules for the 'stores' collection
-    match /stores/{storeId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
       allow delete: if false;
     }
 
-    // Rules for the 'products' collection
+    // =========================
+    // SEEDER ALLOWED COLLECTIONS
+    // =========================
+    // WARNING: These collections are temporarily set to `allow write: if true;` 
+    // to allow the development seeder to work from the client app. 
+    // Revert these to secure rules before deploying to production!
+
+    match /stores/{storeId} {
+      allow read, write: if true; 
+      
+      match /followers/{userId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated();
+    }
+
     match /products/{productId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
-    // Rules for the 'orders' collection
+    match /categories/{document} {
+      allow read, write: if true;
+    }
+
+    match /subcategories/{document} {
+      allow read, write: if true;
+    }
+
+    match /sub_categories/{document} {
+      allow read, write: if true;
+    }
+
+    match /tags/{document} {
+      allow read, write: if true;
+    }
+
+    match /banners/{document} {
+      allow read, write: if true;
+    }
+
+    match /collections/{document} {
+      allow read, write: if true;
+    }
+
+    match /home_sections/{document} {
+      allow read, write: if true;
+    }
+
+    match /trust_features/{document} {
+      allow read, write: if true;
+    }
+
+    match /store_updates/{document} {
+      allow read, write: if true;
+    }
+
+    match /appConfig/{document} {
+      allow read, write: if true;
+    }
+
+    // =========================
+    // ORDERS
+    // =========================
+
     match /orders/{orderId} {
+      allow create: if isAuthenticated();
       allow read, update: if isAuthenticated();
-      allow create, delete: if isAuthenticated(); // In reality, customers create orders, vendors update them
+      allow delete: if false;
     }
 
-    // Rules for 'categories' and 'subCategories'
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if false; // Admin only
-    }
-    
-    match /subCategories/{subCategoryId} {
-      allow read: if true;
-      allow write: if false; // Admin only
-    }
+    // =========================
+    // FOLLOWERS
+    // =========================
 
-    // Rules for 'followers'
     match /followers/{followId} {
       allow read, write: if isAuthenticated();
     }
-    
-    // Default deny for all other collections
-    match /{document=**} {
-      allow read, write: if false;
+
+    // =========================
+    // TRANSACTIONS & PAYOUTS
+    // =========================
+
+    match /transactions/{transactionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /payouts/{payoutId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

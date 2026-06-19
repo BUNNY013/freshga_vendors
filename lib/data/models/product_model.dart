@@ -12,7 +12,24 @@ class ProductModel {
   final String shortDescription;
 
   final String categoryId;
-  final String subCategoryId;
+  final String categoryName;
+  final List<String> subCategoryIds;
+
+  final double price;
+  final double originalPrice;
+  final String weight;
+  
+  final String shelfLife;
+  final String dispatchTime;
+  final String storageInstructions;
+  final bool showStockToCustomers;
+  
+  final String status; // 'Draft', 'Submitted', 'Under Review', 'Approved', 'Live', 'Changes Required', 'Hidden', 'Update Under Review'
+  final String adminFeedback; // Rejection reason if Changes Required
+  final bool isStoreVerified;
+
+  final Map<String, dynamic>? pendingUpdate; // Stores edited content awaiting review
+  final String? updateAdminFeedback; // Feedback specifically for a rejected content update
 
   final List<String> images;
   final List<ProductVariantModel> variants;
@@ -45,7 +62,20 @@ class ProductModel {
     required this.description,
     required this.shortDescription,
     required this.categoryId,
-    required this.subCategoryId,
+    required this.categoryName,
+    required this.subCategoryIds,
+    required this.price,
+    required this.originalPrice,
+    required this.weight,
+    required this.shelfLife,
+    required this.dispatchTime,
+    required this.storageInstructions,
+    required this.showStockToCustomers,
+    required this.status,
+    required this.adminFeedback,
+    required this.isStoreVerified,
+    this.pendingUpdate,
+    this.updateAdminFeedback,
     required this.images,
     required this.variants,
     required this.ingredients,
@@ -73,7 +103,20 @@ class ProductModel {
       description: json['description'] ?? '',
       shortDescription: json['shortDescription'] ?? '',
       categoryId: json['categoryId'] ?? '',
-      subCategoryId: json['subCategoryId'] ?? '',
+      categoryName: json['categoryName'] ?? '',
+      subCategoryIds: List<String>.from(json['subCategoryIds'] ?? []),
+      price: (json['price'] ?? 0.0).toDouble(),
+      originalPrice: (json['originalPrice'] ?? 0.0).toDouble(),
+      weight: json['weight'] ?? '',
+      shelfLife: json['shelfLife'] ?? '',
+      dispatchTime: json['dispatchTime'] ?? '',
+      storageInstructions: json['storageInstructions'] ?? '',
+      showStockToCustomers: json['showStockToCustomers'] ?? false,
+      status: json['status'] ?? 'Draft',
+      adminFeedback: json['adminFeedback'] ?? '',
+      isStoreVerified: json['isStoreVerified'] ?? false,
+      pendingUpdate: json['pendingUpdate'] as Map<String, dynamic>?,
+      updateAdminFeedback: json['updateAdminFeedback'] as String?,
       images: List<String>.from(json['images'] ?? []),
       variants: (json['variants'] as List<dynamic>?)
               ?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>))
@@ -105,7 +148,20 @@ class ProductModel {
       'description': description,
       'shortDescription': shortDescription,
       'categoryId': categoryId,
-      'subCategoryId': subCategoryId,
+      'categoryName': categoryName,
+      'subCategoryIds': subCategoryIds,
+      'price': price,
+      'originalPrice': originalPrice,
+      'weight': weight,
+      'shelfLife': shelfLife,
+      'dispatchTime': dispatchTime,
+      'storageInstructions': storageInstructions,
+      'showStockToCustomers': showStockToCustomers,
+      'status': status,
+      'adminFeedback': adminFeedback,
+      'isStoreVerified': isStoreVerified,
+      'pendingUpdate': pendingUpdate,
+      'updateAdminFeedback': updateAdminFeedback,
       'images': images,
       'variants': variants.map((v) => v.toJson()).toList(),
       'ingredients': ingredients,
@@ -133,7 +189,20 @@ class ProductModel {
     String? description,
     String? shortDescription,
     String? categoryId,
-    String? subCategoryId,
+    String? categoryName,
+    List<String>? subCategoryIds,
+    double? price,
+    double? originalPrice,
+    String? weight,
+    String? shelfLife,
+    String? dispatchTime,
+    String? storageInstructions,
+    bool? showStockToCustomers,
+    String? status,
+    String? adminFeedback,
+    bool? isStoreVerified,
+    Map<String, dynamic>? pendingUpdate,
+    String? updateAdminFeedback,
     List<String>? images,
     List<ProductVariantModel>? variants,
     List<String>? ingredients,
@@ -159,7 +228,20 @@ class ProductModel {
       description: description ?? this.description,
       shortDescription: shortDescription ?? this.shortDescription,
       categoryId: categoryId ?? this.categoryId,
-      subCategoryId: subCategoryId ?? this.subCategoryId,
+      categoryName: categoryName ?? this.categoryName,
+      subCategoryIds: subCategoryIds ?? this.subCategoryIds,
+      price: price ?? this.price,
+      originalPrice: originalPrice ?? this.originalPrice,
+      weight: weight ?? this.weight,
+      shelfLife: shelfLife ?? this.shelfLife,
+      dispatchTime: dispatchTime ?? this.dispatchTime,
+      storageInstructions: storageInstructions ?? this.storageInstructions,
+      showStockToCustomers: showStockToCustomers ?? this.showStockToCustomers,
+      status: status ?? this.status,
+      adminFeedback: adminFeedback ?? this.adminFeedback,
+      isStoreVerified: isStoreVerified ?? this.isStoreVerified,
+      pendingUpdate: pendingUpdate ?? this.pendingUpdate,
+      updateAdminFeedback: updateAdminFeedback ?? this.updateAdminFeedback,
       images: images ?? this.images,
       variants: variants ?? this.variants,
       ingredients: ingredients ?? this.ingredients,
@@ -176,5 +258,19 @@ class ProductModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Returns a new ProductModel with all pendingUpdate fields merged into the main fields.
+  /// This is used when a vendor wants to edit their draft changes of an existing live product.
+  ProductModel applyPendingUpdates() {
+    if (pendingUpdate == null || pendingUpdate!.isEmpty) return this;
+    
+    final currentJson = toJson();
+    final updates = Map<String, dynamic>.from(pendingUpdate!);
+    
+    // Merge updates into current JSON
+    currentJson.addAll(updates);
+    
+    return ProductModel.fromJson(currentJson);
   }
 }
