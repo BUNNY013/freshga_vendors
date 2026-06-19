@@ -30,6 +30,7 @@ class ProductModel {
 
   final Map<String, dynamic>? pendingUpdate; // Stores edited content awaiting review
   final String? updateAdminFeedback; // Feedback specifically for a rejected content update
+  final Map<String, dynamic>? reviewFeedback;
 
   final List<String> images;
   final List<ProductVariantModel> variants;
@@ -76,6 +77,7 @@ class ProductModel {
     required this.isStoreVerified,
     this.pendingUpdate,
     this.updateAdminFeedback,
+    this.reviewFeedback,
     required this.images,
     required this.variants,
     required this.ingredients,
@@ -113,11 +115,12 @@ class ProductModel {
       storageInstructions: json['storageInstructions'] ?? '',
       showStockToCustomers: json['showStockToCustomers'] ?? false,
       status: json['status'] ?? 'Draft',
-      adminFeedback: json['adminFeedback'] ?? '',
-      isStoreVerified: json['isStoreVerified'] ?? false,
+      adminFeedback: json['adminFeedback'] as String? ?? '',
+      isStoreVerified: json['isStoreVerified'] as bool? ?? false,
       pendingUpdate: json['pendingUpdate'] as Map<String, dynamic>?,
       updateAdminFeedback: json['updateAdminFeedback'] as String?,
-      images: List<String>.from(json['images'] ?? []),
+      reviewFeedback: json['reviewFeedback'] as Map<String, dynamic>?,
+      images: (json['images'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
       variants: (json['variants'] as List<dynamic>?)
               ?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -130,11 +133,11 @@ class ProductModel {
       likes: json['likes'] ?? 0,
       wishlistCount: json['wishlistCount'] ?? 0,
       isFeatured: json['isFeatured'] ?? false,
-      isTrending: json['isTrending'] ?? false,
-      isActive: json['isActive'] ?? true,
-      searchKeywords: List<String>.from(json['searchKeywords'] ?? []),
-      createdAt: json['createdAt'] ?? '',
-      updatedAt: json['updatedAt'] ?? '',
+      isTrending: json['isTrending'] as bool? ?? false,
+      isActive: json['isActive'] as bool? ?? true,
+      searchKeywords: (json['searchKeywords'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      createdAt: json['createdAt'] as String? ?? DateTime.now().toIso8601String(),
+      updatedAt: json['updatedAt'] as String? ?? DateTime.now().toIso8601String(),
     );
   }
 
@@ -162,6 +165,7 @@ class ProductModel {
       'isStoreVerified': isStoreVerified,
       'pendingUpdate': pendingUpdate,
       'updateAdminFeedback': updateAdminFeedback,
+      'reviewFeedback': reviewFeedback,
       'images': images,
       'variants': variants.map((v) => v.toJson()).toList(),
       'ingredients': ingredients,
@@ -203,6 +207,7 @@ class ProductModel {
     bool? isStoreVerified,
     Map<String, dynamic>? pendingUpdate,
     String? updateAdminFeedback,
+    Map<String, dynamic>? reviewFeedback,
     List<String>? images,
     List<ProductVariantModel>? variants,
     List<String>? ingredients,
@@ -242,6 +247,7 @@ class ProductModel {
       isStoreVerified: isStoreVerified ?? this.isStoreVerified,
       pendingUpdate: pendingUpdate ?? this.pendingUpdate,
       updateAdminFeedback: updateAdminFeedback ?? this.updateAdminFeedback,
+      reviewFeedback: reviewFeedback ?? this.reviewFeedback,
       images: images ?? this.images,
       variants: variants ?? this.variants,
       ingredients: ingredients ?? this.ingredients,

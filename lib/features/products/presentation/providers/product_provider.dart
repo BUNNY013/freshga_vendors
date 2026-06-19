@@ -265,6 +265,36 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> resubmitProduct(String productId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      // Fetch current product to check if it has a pending update
+      final doc = await _firestore.collection('products').doc(productId).get();
+      if (!doc.exists) throw Exception("Product not found");
+      
+      final data = doc.data()!;
+      final pendingUpdate = data['pendingUpdate'] as Map<String, dynamic>?;
+      final isUpdate = pendingUpdate != null && pendingUpdate.isNotEmpty;
+      
+      final newStatus = isUpdate ? 'Update Under Review' : 'Under Review';
+      
+      await _firestore.collection('products').doc(productId).update({
+        'status': newStatus,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> duplicateProduct(ProductModel product) async {
     try {
       final newId = _firestore.collection('products').doc().id;
