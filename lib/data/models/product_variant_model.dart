@@ -5,6 +5,7 @@ class ProductVariantModel {
   final double discountPrice;
   final int stock;
   final bool isAvailable;
+  final bool isArchived;
 
   ProductVariantModel({
     required this.variantId,
@@ -13,6 +14,7 @@ class ProductVariantModel {
     required this.discountPrice,
     required this.stock,
     required this.isAvailable,
+    this.isArchived = false,
   });
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class ProductVariantModel {
       discountPrice: (json['discountPrice'] ?? 0.0).toDouble(),
       stock: json['stock'] ?? 0,
       isAvailable: json['isAvailable'] ?? true,
+      isArchived: json['isArchived'] ?? false,
     );
   }
 
@@ -34,6 +37,7 @@ class ProductVariantModel {
       'discountPrice': discountPrice,
       'stock': stock,
       'isAvailable': isAvailable,
+      'isArchived': isArchived,
     };
   }
 
@@ -44,6 +48,7 @@ class ProductVariantModel {
     double? discountPrice,
     int? stock,
     bool? isAvailable,
+    bool? isArchived,
   }) {
     return ProductVariantModel(
       variantId: variantId ?? this.variantId,
@@ -52,6 +57,7 @@ class ProductVariantModel {
       discountPrice: discountPrice ?? this.discountPrice,
       stock: stock ?? this.stock,
       isAvailable: isAvailable ?? this.isAvailable,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 }

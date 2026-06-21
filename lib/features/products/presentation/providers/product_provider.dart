@@ -113,7 +113,7 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addProduct(ProductModel product) async {
+  Future<ProductModel?> addProduct(ProductModel product) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -131,14 +131,13 @@ class ProductProvider extends ChangeNotifier {
 
       final productId = _firestore.collection('products').doc().id;
       
-      List<String> imageUrls = [];
+      List<Future<String>> uploadTasks = [];
       for (int i = 0; i < _selectedImages.length; i++) {
         final file = _selectedImages[i];
-        final ref = _storage.ref().child('product_images/$productId/image_$i.jpg');
-        await ref.putFile(file);
-        final url = await ref.getDownloadURL();
-        imageUrls.add(url);
+        final ref = _storage.ref().child('product_images/$productId/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+        uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
       }
+      List<String> imageUrls = await Future.wait(uploadTasks);
 
       final finalProduct = product.copyWith(
         productId: productId,
@@ -154,12 +153,12 @@ class ProductProvider extends ChangeNotifier {
       _isLoading = false;
       _selectedImages.clear();
       notifyListeners();
-      return true;
+      return finalProduct;
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 
@@ -175,14 +174,15 @@ class ProductProvider extends ChangeNotifier {
       // Handle newly selected images
       List<String> imageUrls = List.from(product.images);
       
-      // If there are new local images in _selectedImages, upload them
+      List<Future<String>> uploadTasks = [];
       for (int i = 0; i < _selectedImages.length; i++) {
         final file = _selectedImages[i];
         final ref = _storage.ref().child('product_images/${product.productId}/image_new_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-        await ref.putFile(file);
-        final url = await ref.getDownloadURL();
-        imageUrls.add(url);
+        uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
       }
+      
+      final newImageUrls = await Future.wait(uploadTasks);
+      imageUrls.addAll(newImageUrls);
 
       final finalProduct = product.copyWith(
         images: imageUrls,

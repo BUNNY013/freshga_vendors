@@ -11,6 +11,7 @@ import '../../../../data/models/product_model.dart';
 import '../../../../data/models/product_variant_model.dart';
 import '../providers/product_provider.dart';
 import '../widgets/vendor_product_preview.dart';
+import 'under_review_details_screen.dart';
 
 class AddProductScreen extends StatelessWidget {
   final ProductModel? product;
@@ -128,11 +129,15 @@ class _AddProductWizardState extends State<_AddProductWizard> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one sub category')));
         return;
       }
+      if (_formDetails.currentState != null) {
+        if (!_formDetails.currentState!.validate()) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields')));
+          return;
+        }
+        _formDetails.currentState!.save();
+      }
     } else if (_currentPage == 2) {
       // Final submission validation
-      if (!_formDetails.currentState!.validate()) return;
-      _formDetails.currentState!.save();
-      
       final provider = context.read<ProductProvider>();
       if (provider.selectedImages.isEmpty && (widget.product == null || widget.product!.images.isEmpty)) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add at least one photo')));
@@ -1403,8 +1408,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
 
   void _handleSubmission(String targetStatus) async {
     // Validate current page if we are on details
-    if (_currentPage == 2) {
-      if (!_formDetails.currentState!.validate()) return;
+    if (_currentPage == 1 && _formDetails.currentState != null) {
+      if (!_formDetails.currentState!.validate()) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields in Product Details')));
+        return;
+      }
       _formDetails.currentState!.save();
     }
     
@@ -1464,22 +1472,20 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       updatedAt: DateTime.now().toIso8601String(),
     );
 
-    bool success = false;
+    ProductModel? finalProduct;
     if (widget.product != null) {
-      // We don't have an updateProduct yet that accepts ProductModel, we'll need to create it! 
-      // But for now provider.addProduct handles replacing since it does .set() if we ensure we use same ID.
-      // Actually we'll need provider.updateFullProduct. We will add it next.
-      success = await provider.updateFullProduct(productModel);
+      bool updated = await provider.updateFullProduct(productModel);
+      if (updated) finalProduct = productModel;
     } else {
-      success = await provider.addProduct(productModel);
+      finalProduct = await provider.addProduct(productModel);
     }
 
     if (!mounted) return;
     context.pop(); // Close dialog
 
-    if (success) {
+    if (finalProduct != null) {
       if (targetStatus == 'Under Review') {
-        _showSuccessScreen();
+        _showSuccessScreen(finalProduct);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved as draft', style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF4CAF50)));
         context.pop(); // Go back to products list
@@ -1489,7 +1495,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     }
   }
 
-  void _showSuccessScreen() {
+  void _showSuccessScreen(ProductModel finalProduct) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -1569,7 +1575,10 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                             const SizedBox(height: 40),
                             
                             OutlinedButton(
-                              onPressed: () => context.pop(),
+                              onPressed: () {
+                                context.pop(); // dismiss success screen
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => UnderReviewDetailsScreen(product: finalProduct)));
+                              },
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 56),
                                 foregroundColor: Colors.black87,

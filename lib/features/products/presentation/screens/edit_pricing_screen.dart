@@ -83,13 +83,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
 
   void _removeVariant(int index) {
     setState(() {
-      _variants.removeAt(index);
-      _variantLabelCtrls[index].dispose();
-      _variantLabelCtrls.removeAt(index);
-      _variantPriceCtrls[index].dispose();
-      _variantPriceCtrls.removeAt(index);
-      _variantDiscountPriceCtrls[index].dispose();
-      _variantDiscountPriceCtrls.removeAt(index);
+      _variants[index] = _variants[index].copyWith(isArchived: true);
     });
   }
 
@@ -101,6 +95,11 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
 
     List<ProductVariantModel> updatedVariants = [];
     for (int i = 0; i < _variants.length; i++) {
+      if (_variants[i].isArchived) {
+        updatedVariants.add(_variants[i]);
+        continue;
+      }
+      
       String label = _variantLabelCtrls[i].text.trim();
       double p = double.tryParse(_variantPriceCtrls[i].text.trim()) ?? 0;
       double op = double.tryParse(_variantDiscountPriceCtrls[i].text.trim()) ?? 0;
@@ -112,6 +111,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
           discountPrice: op,
           stock: _variants[i].stock,
           isAvailable: _variants[i].isAvailable,
+          isArchived: false,
         ));
       }
     }
@@ -241,7 +241,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
             ),
             const SizedBox(height: 12),
 
-            if (_variants.isEmpty)
+            if (_variants.where((v) => !v.isArchived).isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -277,7 +277,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _variants.length,
-                separatorBuilder: (c, i) => const SizedBox(height: 16),
+                separatorBuilder: (c, i) => _variants[i].isArchived ? const SizedBox.shrink() : const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   return _buildVariantCard(index);
                 },
@@ -369,6 +369,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
   }
 
   Widget _buildVariantCard(int index) {
+    if (_variants[index].isArchived) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -63,6 +63,42 @@ class _EditProductScreenState extends State<EditProductScreen> {
     }
   }
 
+  Future<void> _handleArchive() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Archive Product'),
+        content: const Text('Are you sure you want to archive this product? It will be hidden from customers, but kept in your records.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textPrimary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade800),
+            child: const Text('Archive', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isSaving = true);
+      final provider = context.read<ProductProvider>();
+      await provider.updateProductStatus(_product.productId, 'Archived');
+      if (mounted) {
+        setState(() {
+          _product = _product.copyWith(status: 'Archived');
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product Archived')),
+        );
+      }
+    }
+  }
+
   Future<void> _confirmToggleAvailability(bool makeAvailable) async {
     final title = makeAvailable ? 'Make Product Available?' : 'Make Product Unavailable?';
     final content = makeAvailable 
@@ -196,6 +232,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
       case 'Unavailable':
       case 'Hidden':
         return const Color(0xFFF57F17);
+      case 'Archived':
+        return Colors.grey.shade800;
+      case 'Vendor Suspended':
+        return Colors.deepPurple;
       default:
         return AppColors.primary;
     }
@@ -752,6 +792,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
           children: [
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.archive_outlined, color: Colors.grey.shade800, size: 20),
+              ),
+              title: Text('Archive Product', style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w800, fontSize: 14)),
+              subtitle: Text('Hide from customers, keep in records', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+              contentPadding: EdgeInsets.zero,
+              onTap: _handleArchive,
+            ),
+            const Divider(height: 1, color: Color(0xFFF0F0F0)),
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
