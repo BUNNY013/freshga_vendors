@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -23,324 +22,523 @@ class ProductCard extends StatelessWidget {
     this.isListView = false,
   });
 
-  double get _startingPrice {
-    if (product.variants.isEmpty) return product.price;
-    return product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
+  String get _priceRange {
+    if (product.variants.isEmpty) return "₹${product.price.toStringAsFixed(0)}";
+    if (product.variants.length == 1) return "₹${product.variants.first.price.toStringAsFixed(0)}";
+    double minPrice = product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
+    double maxPrice = product.variants.map((v) => v.price).reduce((a, b) => a > b ? a : b);
+    if (minPrice == maxPrice) return "₹${minPrice.toStringAsFixed(0)}";
+    return "₹${minPrice.toStringAsFixed(0)} - ₹${maxPrice.toStringAsFixed(0)}";
   }
 
-  int get _totalStock => product.variants.fold(0, (sum, v) => sum + v.stock);
+  bool get _hasDraftChanges => product.draftVersion != null && product.draftVersion!.isNotEmpty;
+  bool get _isUpdatePending => product.status == 'Update Under Review' || product.pendingReviewVersion != null || product.pendingUpdate != null;
 
-  bool get _isOutOfStock => product.variants.isNotEmpty && _totalStock == 0;
+  VoidCallback get _cardAction {
+    if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Changes Required' || product.status == 'Draft' || product.status == 'Unavailable') {
+      return onTap;
+    }
+    return onEdit;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasMultipleVariants = product.variants.length > 1;
-    final bool hasDiscount = product.originalPrice > product.price;
-    final int discountPercentage = hasDiscount
-        ? (((product.originalPrice - product.price) / product.originalPrice) * 100).round()
-        : 0;
-        
-    final String sizeLabel = product.variants.isNotEmpty 
-        ? product.variants.first.label 
-        : product.weight;
-
-    final isLive = product.status == 'Live';
-    final isDraftOrReview = product.status == 'Draft' || product.status == 'Under Review' || product.status == 'Changes Required';
-    final bool switchValue = isLive;
-
     return GestureDetector(
-      onTap: onTap,
+      onTap: _cardAction,
       onLongPress: onLongPress,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
+        margin: const EdgeInsets.only(bottom: 12.0, left: 16.0, right: 16.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000), // ~0.04 opacity
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            )
+          ],
         ),
-        padding: const EdgeInsets.only(bottom: 16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            // Left Content: Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Veg/Non-Veg Tag & Rating
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: product.tags.contains('Vegan') || product.tags.contains('Vegetarian') || product.tags.contains('Veg')
-                                ? Colors.green 
-                                : Colors.red,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Icon(
-                          Icons.circle,
-                          size: 8,
-                          color: product.tags.contains('Vegan') || product.tags.contains('Vegetarian') || product.tags.contains('Veg')
-                              ? Colors.green 
-                              : Colors.red,
-                        ),
-                      ),
-                      if (product.tags.contains("Bestseller")) ...[
-                        const SizedBox(width: 8),
-                        const Text(
-                          "Bestseller",
-                          style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                      if (product.rating > 0) ...[
-                        const Spacer(),
-                        Row(
-                          children: [
-                            const Icon(Icons.star, size: 14, color: Colors.orange),
-                            const SizedBox(width: 4),
-                            Text(
-                              product.rating.toStringAsFixed(1),
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Name
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF111827),
-                      height: 1.2,
-                      letterSpacing: -0.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  
-                  // Quantity / Size
-                  Text(
-                    hasMultipleVariants 
-                        ? "Starts from ${product.variants.first.label}" 
-                        : sizeLabel,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Pricing Column
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "₹${_startingPrice.toStringAsFixed(0)}",
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      if (hasDiscount) ...[
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              "₹${product.originalPrice.toStringAsFixed(0)}",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF94A3B8), // Premium slate grey
-                                decoration: TextDecoration.lineThrough,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF0E5), // Soft pastel orange
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                "$discountPercentage% OFF",
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFF97316), // Premium vibrant orange
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                  
-                  if (isDraftOrReview) ...[
-                    const SizedBox(height: 12),
-                    _buildStatusBadge(),
-                  ]
-                ],
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildProductImage(),
+                const SizedBox(width: 16),
+                Expanded(child: _buildProductDetails()),
+              ],
             ),
-
-            const SizedBox(width: 16),
-
-            // Right Content: Image & Toggle
-            SizedBox(
-              width: 160,
-              height: 184,
-              child: Stack(
-                alignment: Alignment.topCenter,
-                clipBehavior: Clip.none,
-                children: [
-                  // Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: product.images.isNotEmpty
-                        ? Image.network(
-                            product.images.first,
-                            height: 160,
-                            width: 160,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                          )
-                        : _buildPlaceholder(),
-                  ),
-
-                  // Action Button (Overlapping)
-                  if (product.status != 'Under Review' && product.status != 'Update Under Review' && product.status != 'Submitted')
-                    Positioned(
-                      bottom: 6,
-                      child: Container(
-                        width: 110,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: product.status == 'Changes Required' 
-                                ? AppColors.error.withOpacity(0.3) 
-                                : AppColors.primary.withOpacity(0.3), 
-                            width: 1
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: product.status == 'Changes Required' ? onTap : onEdit,
-                            child: Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    product.status == 'Draft' ? "CONTINUE" : 
-                                    product.status == 'Changes Required' ? "REVIEW" : "MANAGE",
-                                    style: TextStyle(
-                                      color: product.status == 'Changes Required' 
-                                          ? AppColors.error 
-                                          : AppColors.primary,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            _buildActionArea(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      height: 160,
-      width: 160,
-      color: Colors.grey.shade100,
-      child: const Center(
-        child: Icon(Icons.fastfood_outlined, color: Colors.grey, size: 32),
+  Widget _buildProductImage() {
+    return SizedBox(
+      width: 96,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: product.images.isNotEmpty
+              ? Image.network(
+                  product.images.first,
+                  height: 96,
+                  width: 96,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                )
+              : _buildPlaceholder(),
+        ),
+        const SizedBox(height: 8),
+        _buildStatusBadge(),
+      ],
       ),
     );
   }
 
+  Widget _buildPlaceholder() {
+    return Container(
+      height: 96,
+      width: 96,
+      color: const Color(0xFFF1F5F9),
+      child: const Center(
+        child: Icon(Icons.fastfood_outlined, color: Color(0xFF64748B), size: 32),
+      ),
+    );
+  }
+
+  Widget _buildProductDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Top row: Name + Preview Icon
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                product.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600, // SemiBold
+                  color: Color(0xFF1F2937),
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onPreview,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 8.0),
+                child: Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF64748B)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        
+        // Category Path and Time
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                product.categoryName.isNotEmpty ? product.categoryName : 'Uncategorized',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (product.status != 'Live') ...[
+              const SizedBox(width: 8),
+              const Text('•', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+              const SizedBox(width: 8),
+              Text(
+                (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review') 
+                  ? 'Submitted ${_getTimeAgo(product.updatedAt)}'
+                  : 'Edited ${_getTimeAgo(product.updatedAt)}',
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Price Range
+        Text(
+          _priceRange,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600, // SemiBold
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        // Chips
+        if (product.variants.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Container(
+                height: 28,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${product.variants.length} Variants',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500, // Medium
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+        
+        // Stats
+        if (product.status == 'Live') ...[
+          Row(
+            children: [
+              const Icon(Icons.favorite, size: 16, color: Color(0xFFEF4444)),
+              const SizedBox(width: 4),
+              Text('${product.likes} Likes', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+              const SizedBox(width: 16),
+              const Icon(Icons.inventory_2_outlined, size: 16, color: Color(0xFF64748B)),
+              const SizedBox(width: 4),
+              Text('${product.totalOrders} Orders', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+            ],
+          ),
+        ],
+        
+        // Other statuses dynamic content
+        if (product.status != 'Live' || _hasDraftChanges || _isUpdatePending)
+          _buildDynamicContent(),
+      ],
+    );
+  }
+
   Widget _buildStatusBadge() {
-    if (product.status == 'Draft' || (product.status != 'Under Review' && product.status != 'Changes Required')) {
-      final timeString = _getTimeAgo(product.updatedAt);
-      return Text(
-        'Last edited $timeString',
-        style: const TextStyle(
-          color: Color(0xFF64748B), // Slate grey
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+    String text;
+    Color bgColor;
+
+    if (product.status == 'Live') {
+      text = 'LIVE';
+      bgColor = const Color(0xFF16A34A);
+    } else if (product.status == 'Draft') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'DRAFT',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
         ),
       );
+    } else if (product.status == 'Changes Required') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDC2626).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: const Color(0xFFDC2626).withOpacity(0.2)),
+        ),
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'CHANGES REQ.',
+            style: TextStyle(color: Color(0xFFE11D48), fontSize: 10, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+    } else if (product.status == 'Under Review' || product.status == 'Update Under Review' || product.status == 'Submitted') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF97316).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: const Color(0xFFF97316).withOpacity(0.2)),
+        ),
+        child: const Text(
+          'UNDER REVIEW',
+          style: TextStyle(color: Color(0xFFF97316), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+        ),
+      );
+    } else if (product.status == 'Unavailable') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'UNAVAILABLE',
+          style: TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+      );
+    } else {
+      text = product.status.toUpperCase();
+      bgColor = Colors.grey.shade600;
     }
 
-    String text;
-    Color dotColor;
-    
-    if (product.status == 'Under Review') {
-      text = 'Awaiting Approval'; 
-      dotColor = const Color(0xFFFF9800);
-    } else {
-      text = 'Changes Required'; 
-      dotColor = const Color(0xFFD32F2F);
-    }
-    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: dotColor.withOpacity(0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(100),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6, height: 6,
-            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              style: TextStyle(color: dotColor, fontSize: 11, fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
       ),
     );
+  }
+
+  Widget _buildSmallBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildDynamicContent() {
+    if (product.status == 'Changes Required') {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: product.requiredFixes.map((issue) {
+                return Container(
+                  height: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF97316),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            issue,
+                            style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF16A34A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Fix Issues', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review') {
+      return const SizedBox();
+    } else if (product.status == 'Live') {
+      if (_hasDraftChanges) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildSmallBadge('DRAFT CHANGES', Colors.orange),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text('Unsaved Updates', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+            const SizedBox(height: 2),
+            Text('Last edited ${_getTimeAgo(product.updatedAt)}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          ],
+        );
+      } else if (_isUpdatePending) {
+         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildSmallBadge('UPDATE PENDING', const Color(0xFF3B82F6)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text('Customers currently see the approved version.', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            const SizedBox(height: 2),
+            const Text('Your latest updates are under review.', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+          ],
+        );
+      }
+    } else if (product.status == 'Update Under Review') {
+       return const SizedBox();
+    } else if (product.status == 'Draft') {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: OutlinedButton(
+                onPressed: onEdit,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF16A34A),
+                  side: const BorderSide(color: Color(0xFF16A34A), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: const Text('Continue Editing', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (product.status == 'Unavailable') {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: OutlinedButton(
+                onPressed: onEdit,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF16A34A),
+                  side: const BorderSide(color: Color(0xFF16A34A), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: const Text('Manage', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (product.status == 'Hidden') {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Text(
+          'Paused By Vendor',
+          style: TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+    return const SizedBox();
+  }
+
+  Widget _buildActionArea() {
+    if (product.status == 'Changes Required') {
+      return const SizedBox();
+    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review') {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: OutlinedButton(
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFF97316),
+              side: const BorderSide(color: Color(0xFFF97316), width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+            child: const Text('View Review Status', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+          ),
+        ),
+      );
+    } else if (product.status == 'Live' && _hasDraftChanges) {
+       return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: ElevatedButton(
+            onPressed: onTap, // Submit update workflow
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Submit Update', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+          ),
+        ),
+      );
+    } else if (product.status == 'Live') {
+      return const SizedBox();
+    } else if (product.status == 'Unavailable' || product.status == 'Hidden') {
+      return const SizedBox();
+    }
+    
+    return const SizedBox();
   }
 
   String _getTimeAgo(String isoString) {
