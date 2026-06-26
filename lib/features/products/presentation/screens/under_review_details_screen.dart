@@ -75,17 +75,21 @@ class UnderReviewDetailsScreen extends StatelessWidget {
   }
 
   void _handleDelete(BuildContext context) async {
+    final bool isUpdate = product.status == 'Update Under Review' || product.status == 'Live + Update Pending';
+    final title = isUpdate ? 'Discard Update?' : 'Delete Submission?';
+    final content = isUpdate ? 'Are you sure you want to discard this pending update? Your live product will remain unchanged.' : 'Are you sure you want to delete this completely? This action cannot be undone.';
+    
     final confirm = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Delete Submission?'),
-        content: const Text('Are you sure you want to delete this completely? This action cannot be undone.'),
+        title: Text(title),
+        content: Text(content),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(c, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            child: Text(isUpdate ? 'Discard' : 'Delete'),
           ),
         ],
       ),
@@ -93,12 +97,19 @@ class UnderReviewDetailsScreen extends StatelessWidget {
 
     if (confirm == true && context.mounted) {
       final provider = context.read<ProductProvider>();
-      final success = await provider.deleteProduct(product.productId);
+      
+      bool success = false;
+      if (isUpdate) {
+        success = await provider.withdrawSubmission(product);
+      } else {
+        success = await provider.deleteProduct(product.productId);
+      }
+
       if (context.mounted) {
         if (success) {
           context.pop();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete: ${provider.errorMessage}')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${provider.errorMessage}')));
         }
       }
     }
@@ -111,7 +122,8 @@ class UnderReviewDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => context.pop(),

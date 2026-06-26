@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
+import '../../utils/product_change_detector.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:ui';
 
 class EditPhotosScreen extends StatefulWidget {
@@ -27,19 +29,48 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
     _images = List<String>.from(_product.images);
   }
 
+  bool get _isLocked => widget.product.status == 'Under Review' || widget.product.status == 'Live + Update Pending';
+
+  bool get _hasChanges {
+    final original = widget.product.applyDraftUpdates().images;
+    if (_images.length != original.length) return true;
+    for (int i = 0; i < _images.length; i++) {
+      if (_images[i] != original[i]) return true;
+    }
+    return false;
+  }
+
+  bool get _canSave => _hasChanges && !_isSaving && !_isLocked;
+
+  String get _buttonText {
+    if (_isSaving) return 'Saving...';
+    if (_isLocked) return 'Update Under Review';
+    if (widget.product.status == 'Changes Required') return 'Save & Resubmit';
+    return 'Save Changes';
+  }
+
   Future<void> _handleSubmit() async {
     setState(() => _isSaving = true);
     try {
       final provider = context.read<ProductProvider>();
-      await provider.updateDraftContent(
+      
+      final req = await provider.updateDraftContent(
         widget.product,
         {'images': _images},
         clearRequiredFix: 'photos',
       );
+      
       if (mounted) {
         setState(() => _isSaving = false);
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved to draft.')));
+        
+        if (req != null) {
+          if (req == ReviewRequirement.noReview) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved successfully.')));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update submitted for review. Your current live version remains visible until approval.')));
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -103,11 +134,22 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
   Widget _buildPhotoCard(String imgUrl, int index, bool isCover) {
     return Stack(
       children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CachedNetworkImage(
+            imageUrl: imgUrl,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            memCacheWidth: 400, // optimize memory and load speed
+            placeholder: (context, url) => Container(color: Colors.grey.shade200),
+            errorWidget: (context, url, error) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)),
+          ),
+        ),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
-            image: DecorationImage(image: NetworkImage(imgUrl), fit: BoxFit.cover),
           ),
         ),
         if (isCover && !_isReordering)
@@ -219,8 +261,27 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
     final bool isNeedsFix = feedbackData?['status'] == 'needs_fix';
     final String feedbackMsg = feedbackData?['feedback'] ?? 'Please update the photos as requested.';
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+    return PopScope(
+      canPop: !_hasChanges || _isSaving,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final bool? discard = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Discard Changes?'),
+            content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Continue Editing')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Discard Changes', style: TextStyle(color: Colors.red))),
+            ],
+          ),
+        );
+        if (discard == true && mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -282,7 +343,6 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
                   onTap: () {
                     if (_isReordering) {
                       setState(() => _isReordering = false);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo order updated successfully')));
                     } else {
                       setState(() => _isReordering = true);
                     }
@@ -431,9 +491,11 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _isSaving ? null : _handleSubmit,
+                    onPressed: _canSave ? _handleSubmit : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF16A34A),
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      disabledForegroundColor: Colors.grey.shade600,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -441,22 +503,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
                     ),
                     child: _isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save to Draft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.admin_panel_settings, color: Color(0xFF16A34A), size: 14),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Content updates require admin review before going live.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                    textAlign: TextAlign.center,
+                        : Text(_buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
@@ -464,7 +511,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

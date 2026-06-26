@@ -9,6 +9,7 @@ class ProductActionsSheet extends StatelessWidget {
   final VoidCallback onToggleVisibility;
   final VoidCallback onToggleAvailability;
   final VoidCallback onDuplicate;
+  final VoidCallback onArchive;
   final VoidCallback onDelete;
 
   const ProductActionsSheet({
@@ -19,6 +20,7 @@ class ProductActionsSheet extends StatelessWidget {
     required this.onToggleVisibility,
     required this.onToggleAvailability,
     required this.onDuplicate,
+    required this.onArchive,
     required this.onDelete,
   });
 
@@ -30,6 +32,7 @@ class ProductActionsSheet extends StatelessWidget {
     required VoidCallback onToggleVisibility,
     required VoidCallback onToggleAvailability,
     required VoidCallback onDuplicate,
+    required VoidCallback onArchive,
     required VoidCallback onDelete,
   }) {
     showModalBottomSheet(
@@ -45,6 +48,7 @@ class ProductActionsSheet extends StatelessWidget {
         onToggleVisibility: onToggleVisibility,
         onToggleAvailability: onToggleAvailability,
         onDuplicate: onDuplicate,
+        onArchive: onArchive,
         onDelete: onDelete,
       ),
     );
@@ -200,6 +204,17 @@ class ProductActionsSheet extends StatelessWidget {
             const SizedBox(height: 4),
             const Divider(height: 1, color: AppColors.grey200),
             const SizedBox(height: 4),
+            if (product.status != 'Archived')
+              _buildAction(
+                icon: Icons.archive_outlined,
+                label: 'Archive Product',
+                subtitle: 'Hide and preserve order data safely',
+                color: const Color(0xFF64748B),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmArchive(context);
+                },
+              ),
             _buildAction(
               icon: Icons.delete_outline,
               label: 'Delete Product',
@@ -277,6 +292,42 @@ class ProductActionsSheet extends StatelessWidget {
             Icon(Icons.chevron_right, color: color.withOpacity(0.3), size: 18),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmArchive(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Archive Product?',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Are you sure you want to archive "${product.name}"? It will be safely hidden from customers while preserving past order records.',
+          style: const TextStyle(color: AppColors.grey600, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.grey600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onArchive();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF64748B),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Archive', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

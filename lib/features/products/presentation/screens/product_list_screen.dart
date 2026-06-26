@@ -197,20 +197,25 @@ class _ProductListContentState extends State<_ProductListContent> {
 
               // Compute counts for filters
               final allCount = allProducts.length;
-              final liveCount = allProducts.where((p) => p.status == 'Live').length;
-              final reviewCount = allProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted').length;
+              final liveCount = allProducts.where((p) => p.status.startsWith('Live')).length;
+              final reviewCount = allProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').length;
               final changesCount = allProducts.where((p) => p.status == 'Changes Required').length;
               final draftCount = allProducts.where((p) => p.status == 'Draft').length;
               final unavailableCount = allProducts.where((p) => p.status == 'Unavailable' || p.status == 'Hidden').length;
+              final archivedCount = allProducts.where((p) => p.status == 'Archived').length;
 
               // Apply status filter
               var statusProducts = List<ProductModel>.from(allProducts);
               if (_selectedFilter == 'Live') {
-                statusProducts = statusProducts.where((p) => p.status == 'Live').toList();
+                statusProducts = statusProducts.where((p) => p.status.startsWith('Live')).toList();
               } else if (_selectedFilter == 'Under Review') {
-                statusProducts = statusProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted').toList();
+                statusProducts = statusProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').toList();
+              } else if (_selectedFilter == 'Draft') {
+                statusProducts = statusProducts.where((p) => p.status == 'Draft').toList();
               } else if (_selectedFilter == 'Unavailable') {
                 statusProducts = statusProducts.where((p) => p.status == 'Unavailable' || p.status == 'Hidden').toList();
+              } else if (_selectedFilter == 'Archived') {
+                statusProducts = statusProducts.where((p) => p.status == 'Archived').toList();
               } else {
                 statusProducts = statusProducts.where((p) => p.status == _selectedFilter).toList();
               }
@@ -257,6 +262,7 @@ class _ProductListContentState extends State<_ProductListContent> {
                           _buildFilterChip("Changes Required", changesCount),
                           _buildFilterChip("Draft", draftCount),
                           _buildFilterChip("Unavailable", unavailableCount),
+                          _buildFilterChip("Archived", archivedCount),
                         ],
                       ),
                     ),
@@ -371,6 +377,13 @@ class _ProductListContentState extends State<_ProductListContent> {
           subtitle: "None of your products are paused or out of stock.",
           color: const Color(0xFF198754), // Green
         );
+      case 'Archived':
+        return _buildEmptyState(
+          icon: Icons.archive_outlined,
+          title: "No Archived Products",
+          subtitle: "You don't have any archived products.",
+          color: const Color(0xFF64748B), // Grey
+        );
       default:
         return _buildEmptyState(
           icon: Icons.inventory_2_outlined,
@@ -456,7 +469,7 @@ class _ProductListContentState extends State<_ProductListContent> {
       onTap: () {
         if (product.status == 'Draft') {
           context.push('/add-product', extra: product);
-        } else if (product.status == 'Under Review' || product.status == 'Update Under Review' || product.status == 'Submitted') {
+        } else if (product.status == 'Under Review' || product.status == 'Update Under Review' || product.status == 'Submitted' || product.status == 'Live + Update Pending') {
           context.push('/under-review-details', extra: product);
         } else if (product.status == 'Changes Required') {
           context.push('/changes-required-details', extra: product);
@@ -496,6 +509,17 @@ class _ProductListContentState extends State<_ProductListContent> {
             SnackBar(
               content: Text(success ? 'Product duplicated successfully' : 'Failed to duplicate product'),
               backgroundColor: success ? const Color(0xFF4CAF50) : AppColors.error,
+            ),
+          );
+        }
+      },
+      onArchive: () async {
+        await provider.updateProductStatus(product.productId, 'Archived');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Product securely archived'),
+              backgroundColor: Color(0xFF4CAF50),
             ),
           );
         }

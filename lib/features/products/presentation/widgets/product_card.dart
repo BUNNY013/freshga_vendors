@@ -35,7 +35,7 @@ class ProductCard extends StatelessWidget {
   bool get _isUpdatePending => product.status == 'Update Under Review' || product.pendingReviewVersion != null || product.pendingUpdate != null;
 
   VoidCallback get _cardAction {
-    if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Changes Required' || product.status == 'Draft' || product.status == 'Unavailable') {
+    if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Changes Required' || product.status == 'Draft' || product.status == 'Unavailable' || product.status == 'Live + Update Pending') {
       return onTap;
     }
     return onEdit;
@@ -496,7 +496,7 @@ class ProductCard extends StatelessWidget {
   Widget _buildActionArea() {
     if (product.status == 'Changes Required') {
       return const SizedBox();
-    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review') {
+    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Live + Update Pending') {
       return Padding(
         padding: const EdgeInsets.only(top: 16),
         child: SizedBox(

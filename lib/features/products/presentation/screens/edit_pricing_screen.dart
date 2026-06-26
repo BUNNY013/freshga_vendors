@@ -30,6 +30,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
   final List<TextEditingController> _variantDiscountPriceCtrls = [];
 
   bool _isSaving = false;
+  bool _hasUnsavedChanges = false;
 
   @override
   void initState() {
@@ -48,20 +49,18 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     }
   }
 
+  void _markDirty() {
+    if (!_hasUnsavedChanges) setState(() => _hasUnsavedChanges = true);
+  }
+
   @override
   void dispose() {
     _baseWeightCtrl.dispose();
     _basePriceCtrl.dispose();
     _baseOriginalPriceCtrl.dispose();
-    for (var c in _variantLabelCtrls) {
-      c.dispose();
-    }
-    for (var c in _variantPriceCtrls) {
-      c.dispose();
-    }
-    for (var c in _variantDiscountPriceCtrls) {
-      c.dispose();
-    }
+    for (var c in _variantLabelCtrls) c.dispose();
+    for (var c in _variantPriceCtrls) c.dispose();
+    for (var c in _variantDiscountPriceCtrls) c.dispose();
     super.dispose();
   }
 
@@ -78,17 +77,18 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       _variantLabelCtrls.add(TextEditingController());
       _variantPriceCtrls.add(TextEditingController());
       _variantDiscountPriceCtrls.add(TextEditingController());
+      _hasUnsavedChanges = true;
     });
   }
 
   void _removeVariant(int index) {
     setState(() {
       _variants[index] = _variants[index].copyWith(isArchived: true);
+      _hasUnsavedChanges = true;
     });
   }
 
   Future<void> _handleSave() async {
-    // Collect data
     double basePrice = double.tryParse(_basePriceCtrl.text.trim()) ?? 0;
     double baseOriginalPrice = double.tryParse(_baseOriginalPriceCtrl.text.trim()) ?? 0;
     String baseWeight = _baseWeightCtrl.text.trim();
@@ -126,13 +126,10 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     try {
       final provider = context.read<ProductProvider>();
       
-      // Update logic via provider (assuming provider has a general update method or we update Firestore directly)
-      // Since operational changes are instant, we update the main doc immediately.
-      
       Map<String, dynamic> updates = {};
       if (updatedVariants.isNotEmpty) {
         updates['variants'] = updatedVariants.map((e) => e.toJson()).toList();
-        updates['price'] = updatedVariants.first.price; // keep base sync
+        updates['price'] = updatedVariants.first.price;
         updates['originalPrice'] = updatedVariants.first.discountPrice;
         updates['weight'] = updatedVariants.first.label;
       } else {
@@ -145,7 +142,10 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       await provider.updateOperationalFields(_product.productId, updates);
 
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() {
+          _isSaving = false;
+          _hasUnsavedChanges = false;
+        });
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pricing updated instantly!')));
       }
@@ -157,190 +157,223 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final feedbackData = _product.reviewFeedback?['packSizes'];
-    final bool isNeedsFix = feedbackData?['status'] == 'needs_fix';
-    final String feedbackMsg = feedbackData?['feedback'] ?? 'Please update the pricing/pack sizes as requested.';
+    return PopScope(
+      canPop: !_hasUnsavedChanges || _isSaving,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final bool? discard = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Discard Changes?'),
+            content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Continue Editing', style: TextStyle(color: AppColors.primary))),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Discard', style: TextStyle(color: Colors.red))),
+            ],
+          ),
+        );
+        if (discard == true && mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          centerTitle: false,
+          titleSpacing: 0,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            onPressed: () => context.pop(),
+          ),
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pack Sizes & Pricing',
+                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              Text(
+                'Add different pack sizes and set pricing',
+                style: TextStyle(color: AppColors.grey500, fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_variants.isEmpty) ...[
+                const Text('Base Pricing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                const SizedBox(height: 12),
+                _buildBasePricingCard(),
+                const SizedBox(height: 24),
+              ],
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FA),
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Pack Sizes & Pricing',
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-            Text(
-              'Update your product pricing',
-              style: TextStyle(color: AppColors.grey500, fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isNeedsFix) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Variants (Pack Sizes)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  if (_variants.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: _addVariant,
+                      icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
+                      label: const Text('Add Size', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    )
+                ],
+              ),
+              const SizedBox(height: 12),
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF5F5),
+                  color: const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withOpacity(0.2)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.local_offer_outlined, color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Add multiple pack sizes to give customers more choices.',
+                        style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (_variants.where((v) => !v.isArchived).isEmpty)
+                // Add first size button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _addVariant,
+                    icon: const Icon(Icons.add, color: AppColors.primary),
+                    label: const Text('Add Size', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _variants.length,
+                  separatorBuilder: (c, i) => _variants[i].isArchived ? const SizedBox.shrink() : const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    return _buildVariantCard(index);
+                  },
+                ),
+                
+              if (_variants.where((v) => !v.isArchived).isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _addVariant,
+                    icon: const Icon(Icons.add, color: AppColors.primary),
+                    label: const Text('Add Another Size', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade300, style: BorderStyle.solid), // Dashed look approximation
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF), // Light purple
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.auto_awesome, color: Color(0xFF7C3AED), size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Changes Required', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text('Smart Tip', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6D28D9), fontSize: 14)),
                           const SizedBox(height: 4),
-                          Text(feedbackMsg, style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),
+                          Text(
+                            'Add more variants like 400g, 1kg, 500g to increase visibility and sales.',
+                            style: TextStyle(color: Colors.grey.shade800, fontSize: 13, height: 1.4),
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 40),
             ],
-
-            if (_variants.isEmpty) ...[
-              _buildSectionTitle('Base Pricing'),
-              const SizedBox(height: 12),
-              _buildBasePricingCard(),
-              const SizedBox(height: 24),
-            ],
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildSectionTitle('Pack Sizes (Variants)'),
-                if (_variants.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _addVariant,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Size', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                  )
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            if (_variants.where((v) => !v.isArchived).isEmpty)
-              Container(
+          ),
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _handleSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(_product.status == 'Draft' ? 'Save & Submit Review' : 'Save Changes', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.inventory_2_outlined, size: 40, color: AppColors.grey400),
-                    const SizedBox(height: 16),
-                    const Text('Selling multiple sizes?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    const Text('Add variants like 250g, 500g, 1kg.', style: TextStyle(color: AppColors.grey500, fontSize: 13)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _addVariant,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Pack Sizes'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF4FAF5),
-                        foregroundColor: AppColors.primary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      ),
-                    )
-                  ],
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _variants.length,
-                separatorBuilder: (c, i) => _variants[i].isArchived ? const SizedBox.shrink() : const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  return _buildVariantCard(index);
-                },
               ),
-              
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock_outline, color: AppColors.grey500, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Your changes will be reviewed before going live.',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _handleSave,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF673AB7),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Submit Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.flash_on, color: Color(0xFFF57F17), size: 14),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Pricing updates are published instantly without requiring admin review.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
     );
   }
 
@@ -354,13 +387,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       ),
       child: Column(
         children: [
-          _buildTextField('Pack Size / Weight', 'e.g., 500g, 1 Pack', _baseWeightCtrl, TextInputType.text),
+          _buildVariantTextField('Pack Size / Weight', 'e.g., 500g', _baseWeightCtrl, TextInputType.text, Icons.inventory_2_outlined),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildTextField('Selling Price (₹)', '0', _basePriceCtrl, TextInputType.number)),
+              Expanded(child: _buildVariantTextField('Selling Price (₹)', '0', _basePriceCtrl, TextInputType.number, Icons.attach_money)),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField('Original Price (₹)', '0', _baseOriginalPriceCtrl, TextInputType.number)),
+              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _baseOriginalPriceCtrl, TextInputType.number, Icons.money_off)),
             ],
           ),
         ],
@@ -370,6 +403,12 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
 
   Widget _buildVariantCard(int index) {
     if (_variants[index].isArchived) return const SizedBox.shrink();
+    
+    int displayIndex = 1;
+    for (int i = 0; i < index; i++) {
+      if (!_variants[i].isArchived) displayIndex++;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -385,21 +424,37 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Variant ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+              Row(
+                children: [
+                  const Icon(Icons.drag_indicator, color: AppColors.grey400, size: 20),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      'Variant $displayIndex',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
               InkWell(
                 onTap: () => _removeVariant(index),
-                child: const Icon(Icons.close, color: AppColors.grey500, size: 20),
+                child: const Icon(Icons.delete_outline, color: AppColors.grey500, size: 20),
               )
             ],
           ),
           const SizedBox(height: 16),
-          _buildTextField('Size Label', 'e.g., 250g', _variantLabelCtrls[index], TextInputType.text),
+          _buildVariantTextField('Size Label', 'e.g., 800g', _variantLabelCtrls[index], TextInputType.text, Icons.inventory_2_outlined),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildTextField('Selling Price (₹)', '0', _variantPriceCtrls[index], TextInputType.number)),
+              Expanded(child: _buildVariantTextField('Selling Price (₹)', '0', _variantPriceCtrls[index], TextInputType.number, Icons.attach_money)),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField('Original Price (₹)', '0', _variantDiscountPriceCtrls[index], TextInputType.number)),
+              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _variantDiscountPriceCtrls[index], TextInputType.number, Icons.money_off)),
             ],
           ),
         ],
@@ -407,25 +462,47 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, TextEditingController controller, TextInputType keyboardType) {
+  Widget _buildVariantTextField(String label, String hint, TextEditingController controller, TextInputType keyboardType, IconData iconData) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.grey400, fontWeight: FontWeight.normal),
-            filled: true,
-            fillColor: const Color(0xFFF9F9F9),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(iconData, color: AppColors.primary, size: 16),
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  onChanged: (_) => _markDirty(),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(color: AppColors.grey400, fontWeight: FontWeight.normal, fontSize: 14),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

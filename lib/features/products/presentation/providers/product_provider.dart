@@ -8,6 +8,7 @@ import '../../../../data/models/product_model.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/models/category_model.dart';
 import '../../../../data/models/sub_category_model.dart';
+import '../../utils/product_change_detector.dart';
 
 class ProductProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -238,7 +239,7 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateDraftContent(ProductModel currentProduct, Map<String, dynamic> draftUpdates, {String? clearRequiredFix}) async {
+  Future<ReviewRequirement?> updateDraftContent(ProductModel currentProduct, Map<String, dynamic> draftUpdates, {String? clearRequiredFix}) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -252,33 +253,66 @@ class ProductProvider extends ChangeNotifier {
         'updatedAt': DateTime.now().toIso8601String(),
       };
 
-      if (currentProduct.lastApprovedAt == null) {
-         // Product has NEVER been live. Update the flat fields directly.
+      bool isLiveOrWasLive = currentProduct.lastApprovedAt != null || currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required';
+      
+      if (!isLiveOrWasLive) {
+         // Product is a pure Draft. Auto-submit since vendors don't manage drafts manually.
          firestoreUpdates.addAll(draftUpdates);
+         firestoreUpdates['status'] = 'Under Review';
+         firestoreUpdates['lastSubmittedAt'] = DateTime.now().toIso8601String();
       } else {
-         // Product is or was Live. Save changes to draftVersion.
+         // Product is or was Live, or is responding to feedback.
+         // Build the edited version combining current live data + existing drafts + new draft updates
          final currentDraft = currentProduct.draftVersion ?? {};
          final newDraft = Map<String, dynamic>.from(currentDraft)..addAll(draftUpdates);
          
-         String newStatus = currentProduct.status;
-         if (currentProduct.status == 'Live') {
-           newStatus = 'Live + Draft Changes';
-         }
+         final editedJson = currentProduct.toJson()..addAll(newDraft);
+         final editedProduct = ProductModel.fromJson(editedJson);
          
-         firestoreUpdates['draftVersion'] = newDraft;
-         firestoreUpdates['status'] = newStatus;
+         final changes = ProductChangeDetector.detectProductChanges(currentProduct, editedProduct);
+         final reviewRequirement = ProductChangeDetector.determineReviewRequirement(changes);
+
+         if (reviewRequirement == ReviewRequirement.noReview) {
+            // Apply immediately to the live product flat fields
+            firestoreUpdates.addAll(newDraft);
+            firestoreUpdates['draftVersion'] = FieldValue.delete();
+            
+            if (currentProduct.status == 'Live + Draft Changes') {
+               firestoreUpdates['status'] = 'Live';
+            }
+         } else {
+            // Needs review. Auto-submit as Product Update since it's a live product.
+            String newStatus = currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required'
+                ? 'Live + Update Pending'
+                : 'Under Review';
+                
+            firestoreUpdates['pendingReviewVersion'] = newDraft;
+            firestoreUpdates['status'] = newStatus;
+            firestoreUpdates['lastSubmittedAt'] = DateTime.now().toIso8601String();
+            firestoreUpdates['draftVersion'] = FieldValue.delete();
+         }
       }
       
       await _firestore.collection('products').doc(currentProduct.productId).update(firestoreUpdates);
       
       _isLoading = false;
       notifyListeners();
-      return true;
+      
+      if (!isLiveOrWasLive) {
+        return ReviewRequirement.fullReview; // Will trigger "Update submitted" message in UI
+      } else {
+        final currentDraft = currentProduct.draftVersion ?? {};
+        final newDraft = Map<String, dynamic>.from(currentDraft)..addAll(draftUpdates);
+        final editedJson = currentProduct.toJson()..addAll(newDraft);
+        final editedProduct = ProductModel.fromJson(editedJson);
+        final changes = ProductChangeDetector.detectProductChanges(currentProduct, editedProduct);
+        return ProductChangeDetector.determineReviewRequirement(changes);
+      }
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 
@@ -328,8 +362,8 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
     try {
       String newStatus = 'Draft';
-      if (currentProduct.status == 'Live + Update Pending') {
-         newStatus = 'Live + Draft Changes';
+      if (currentProduct.status == 'Live + Update Pending' || currentProduct.status == 'Update Under Review') {
+         newStatus = 'Live';
       }
       
       await _firestore.collection('products').doc(currentProduct.productId).update({

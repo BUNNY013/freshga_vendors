@@ -82,7 +82,8 @@ class ChangesRequiredDetailsScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          centerTitle: true,
+          centerTitle: false,
+          titleSpacing: 0,
           title: const Text('Edit Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF1E293B), letterSpacing: -0.5)),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
