@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/phone_login_screen.dart';
@@ -17,8 +18,25 @@ import '../features/products/presentation/screens/edit_optional_details_screen.d
 import '../features/products/presentation/screens/under_review_details_screen.dart';
 import '../features/products/presentation/screens/changes_required_details_screen.dart';
 import '../features/store/presentation/screens/edit_store_screen.dart';
+import '../features/store/presentation/screens/editors/store_address_screen.dart';
+import '../features/store/presentation/screens/editors/banking_details_screen.dart';
+import '../features/store/presentation/screens/editors/store_appearance_screen.dart';
+import '../features/store/presentation/screens/editors/store_info_screen.dart';
+import '../features/store/presentation/screens/editors/business_details_screen.dart';
+import '../features/store/presentation/screens/editors/store_categories_screen.dart';
+import '../features/store/presentation/screens/editors/policies_screen.dart';
+import '../features/store/presentation/screens/editors/faq_screen.dart';
+import '../features/store/presentation/screens/editors/social_links_screen.dart';
 import '../data/models/product_model.dart';
 
+import '../features/analytics/presentation/screens/revenue_analytics_screen.dart';
+import '../features/analytics/presentation/screens/orders_analytics_screen.dart';
+import '../features/analytics/presentation/screens/products_analytics_screen.dart';
+import '../features/analytics/presentation/screens/followers_analytics_screen.dart';
+import '../features/analytics/presentation/screens/ratings_analytics_screen.dart';
+import '../features/analytics/presentation/screens/store_views_analytics_screen.dart';
+import '../features/analytics/presentation/screens/seller_health_screen.dart';
+import '../features/analytics/presentation/screens/earnings_payouts_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
@@ -155,6 +173,74 @@ class AppRouter {
       GoRoute(
         path: '/edit-store',
         builder: (context, state) => const EditStoreScreen(),
+      ),
+      GoRoute(
+        path: '/store/address',
+        builder: (context, state) => const StoreAddressScreen(),
+      ),
+      GoRoute(
+        path: '/store/banking',
+        builder: (context, state) => const BankingDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/store/appearance',
+        builder: (context, state) => const StoreAppearanceScreen(),
+      ),
+      GoRoute(
+        path: '/store/info',
+        builder: (context, state) => const StoreInfoScreen(),
+      ),
+      GoRoute(
+        path: '/store/business-details',
+        builder: (context, state) => const BusinessDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/store/categories',
+        builder: (context, state) => const StoreCategoriesScreen(),
+      ),
+      GoRoute(
+        path: '/store/policies',
+        builder: (context, state) => const PoliciesScreen(),
+      ),
+      GoRoute(
+        path: '/store/faq',
+        builder: (context, state) => const FAQScreen(),
+      ),
+      GoRoute(
+        path: '/store/social-links',
+        builder: (context, state) => const SocialLinksScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/revenue',
+        builder: (context, state) => const RevenueAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/orders',
+        builder: (context, state) => const OrdersAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/products',
+        builder: (context, state) => const ProductsAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/followers',
+        builder: (context, state) => const FollowersAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/rating',
+        builder: (context, state) => const RatingsAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/views',
+        builder: (context, state) => const StoreViewsAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/health',
+        builder: (context, state) => const SellerHealthScreen(),
+      ),
+      GoRoute(
+        path: '/analytics/earnings',
+        builder: (context, state) => const EarningsPayoutsScreen(),
       ),
     ],
     redirect: (context, state) {

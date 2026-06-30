@@ -220,7 +220,7 @@ class ProductProvider extends ChangeNotifier {
     try {
       await _firestore.collection('products').doc(productId).update({
         'status': status,
-        'isActive': status == 'Live',
+        'isActive': status.startsWith('Live'),
         'updatedAt': DateTime.now().toIso8601String(),
       });
     } catch (e) {
