@@ -38,8 +38,15 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     _product = widget.product;
     
     _baseWeightCtrl = TextEditingController(text: _product.weight);
-    _basePriceCtrl = TextEditingController(text: _product.price > 0 ? _product.price.toStringAsFixed(0) : '');
-    _baseOriginalPriceCtrl = TextEditingController(text: _product.originalPrice > 0 ? _product.originalPrice.toStringAsFixed(0) : '');
+    final hasBaseDiscount = _product.originalPrice > _product.price && _product.price > 0;
+    _baseOriginalPriceCtrl = TextEditingController(
+      text: _product.originalPrice > 0 
+          ? _product.originalPrice.toStringAsFixed(0) 
+          : (_product.price > 0 ? _product.price.toStringAsFixed(0) : '')
+    );
+    _basePriceCtrl = TextEditingController(
+      text: hasBaseDiscount ? _product.price.toStringAsFixed(0) : ''
+    );
 
     _variants = List.from(_product.draftVersion?['variants']?.map((e) => ProductVariantModel.fromJson(e as Map<String, dynamic>)) ?? _product.variants);
     for (var v in _variants) {
@@ -89,8 +96,11 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
   }
 
   Future<void> _handleSave() async {
-    double basePrice = double.tryParse(_basePriceCtrl.text.trim()) ?? 0;
-    double baseOriginalPrice = double.tryParse(_baseOriginalPriceCtrl.text.trim()) ?? 0;
+    double inputOriginalPrice = double.tryParse(_baseOriginalPriceCtrl.text.trim()) ?? 0;
+    double inputDiscountPrice = double.tryParse(_basePriceCtrl.text.trim()) ?? 0;
+    
+    double basePrice = inputDiscountPrice > 0 ? inputDiscountPrice : inputOriginalPrice;
+    double baseOriginalPrice = inputOriginalPrice;
     String baseWeight = _baseWeightCtrl.text.trim();
 
     List<ProductVariantModel> updatedVariants = [];
@@ -116,8 +126,8 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       }
     }
 
-    if (updatedVariants.isEmpty && basePrice <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a valid price.')));
+    if (updatedVariants.isEmpty && baseOriginalPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a valid Original Price.')));
       return;
     }
 
@@ -129,8 +139,8 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       Map<String, dynamic> updates = {};
       if (updatedVariants.isNotEmpty) {
         updates['variants'] = updatedVariants.map((e) => e.toJson()).toList();
-        updates['price'] = updatedVariants.first.price;
-        updates['originalPrice'] = updatedVariants.first.discountPrice;
+        updates['price'] = updatedVariants.first.discountPrice > 0 ? updatedVariants.first.discountPrice : updatedVariants.first.price;
+        updates['originalPrice'] = updatedVariants.first.price;
         updates['weight'] = updatedVariants.first.label;
       } else {
         updates['variants'] = [];
@@ -329,6 +339,36 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                 ),
               ),
 
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50, 
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.campaign_outlined, color: Colors.blue.shade600, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Followers are notified!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade800, fontSize: 14)),
+                          const SizedBox(height: 4),
+                          Text(
+                            'When you drop the price or add a discount, we automatically send a "Price Drop" alert to all your store followers\' feed.',
+                            style: TextStyle(color: Colors.blue.shade900.withOpacity(0.8), fontSize: 13, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 40),
             ],
           ),
@@ -391,9 +431,9 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildVariantTextField('Selling Price (₹)', '0', _basePriceCtrl, TextInputType.number, Icons.attach_money)),
+              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _baseOriginalPriceCtrl, TextInputType.number, Icons.attach_money)),
               const SizedBox(width: 16),
-              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _baseOriginalPriceCtrl, TextInputType.number, Icons.money_off)),
+              Expanded(child: _buildVariantTextField('Discount Price (₹)', '0', _basePriceCtrl, TextInputType.number, Icons.local_offer_outlined)),
             ],
           ),
         ],
@@ -452,9 +492,9 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildVariantTextField('Selling Price (₹)', '0', _variantPriceCtrls[index], TextInputType.number, Icons.attach_money)),
+              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _variantPriceCtrls[index], TextInputType.number, Icons.attach_money)),
               const SizedBox(width: 16),
-              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _variantDiscountPriceCtrls[index], TextInputType.number, Icons.money_off)),
+              Expanded(child: _buildVariantTextField('Discount Price (₹)', '0', _variantDiscountPriceCtrls[index], TextInputType.number, Icons.local_offer_outlined)),
             ],
           ),
         ],

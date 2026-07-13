@@ -64,7 +64,16 @@ class _StoreSetupContent extends StatelessWidget {
                   child: _getStepContent(provider.currentStep, provider, context),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              if (provider.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    provider.errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               _buildBottomButton(provider, context),
             ],
           ),
@@ -76,7 +85,7 @@ class _StoreSetupContent extends StatelessWidget {
   Widget _buildProgressIndicator(int currentStep) {
     return Row(
       children: List.generate(
-        7,
+        6,
         (index) => Expanded(
           child: Container(
             height: 4,
@@ -106,13 +115,12 @@ class _StoreSetupContent extends StatelessWidget {
       case 4:
         return _buildSocialSettingsStep(provider);
       case 5:
-        return _buildDispatchSettingsStep(provider);
-      case 6:
         return _buildPreviewStep(provider);
       default:
         return const SizedBox.shrink();
     }
   }
+
 
   Widget _buildIntroStep() {
     return SingleChildScrollView(
@@ -251,6 +259,41 @@ class _StoreSetupContent extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           
+          const Text("Store Handle (Unique Link)", style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: provider.handleController,
+            onChanged: provider.setStoreHandle,
+            decoration: InputDecoration(
+              hintText: "grandmas_pickles",
+              prefixIcon: const Padding(
+                padding: EdgeInsets.all(14.0),
+                child: Text('@', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              ),
+              suffixIcon: provider.isCheckingHandle
+                  ? const Padding(padding: EdgeInsets.all(12.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                  : provider.storeHandle.isNotEmpty
+                      ? provider.isHandleAvailable == true
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : const Icon(Icons.cancel, color: Colors.red)
+                      : null,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12), 
+                borderSide: provider.storeHandle.isNotEmpty && provider.isHandleAvailable == false 
+                    ? const BorderSide(color: Colors.red) 
+                    : BorderSide.none
+              ),
+            ),
+          ),
+          if (provider.storeHandle.isNotEmpty && provider.isHandleAvailable == false)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Text(provider.handleError ?? "This handle is already taken. Try another.", style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ),
+          const SizedBox(height: 24),
+          
           const Text("Brand Story", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextFormField(
@@ -287,44 +330,58 @@ class _StoreSetupContent extends StatelessWidget {
           onChanged: provider.setInstagramLink,
           decoration: InputDecoration(
             hintText: "https://instagram.com/yourbrand",
-            prefixIcon: const Icon(Icons.link, color: AppColors.primary),
+            prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.pink),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
-      ],
-      ),
-    );
-  }
-
-  Widget _buildDispatchSettingsStep(StoreSetupProvider provider) {
-    return SingleChildScrollView(
-      key: const ValueKey('dispatch'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Dispatch Settings", style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          const Text("How quickly do you usually prepare and dispatch orders?", style: AppTextStyles.bodyText),
-          const SizedBox(height: 32),
+        const SizedBox(height: 16),
         
-        DropdownButtonFormField<String>(
-          value: provider.dispatchTime,
+        const Text("YouTube Channel (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: provider.youtubeLink,
+          onChanged: provider.setYoutubeLink,
           decoration: InputDecoration(
+            hintText: "https://youtube.com/@yourbrand",
+            prefixIcon: const Icon(Icons.play_circle_outline, color: Colors.red),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
-          items: const [
-            DropdownMenuItem(value: '24 hours', child: Text("Within 24 hours (Ready to ship)")),
-            DropdownMenuItem(value: '48 hours', child: Text("Within 48 hours")),
-            DropdownMenuItem(value: '3-4 days', child: Text("3-4 days (Made to order)")),
-            DropdownMenuItem(value: '1 week', child: Text("1 week")),
-          ],
-          onChanged: (val) {
-            if (val != null) provider.setDispatchTime(val);
-          },
+        ),
+        const SizedBox(height: 16),
+        
+        const Text("Facebook Page (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: provider.facebookLink,
+          onChanged: provider.setFacebookLink,
+          decoration: InputDecoration(
+            hintText: "https://facebook.com/yourbrand",
+            prefixIcon: const Icon(Icons.facebook, color: Colors.blue),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        const Text("WhatsApp Number (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: provider.whatsappNumber,
+          onChanged: provider.setWhatsappNumber,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            hintText: "Enter 10-digit number",
+            prefixIcon: const Icon(Icons.chat_bubble_outline, color: Colors.green),
+            prefixText: "+91 ",
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
         ),
       ],
       ),
@@ -345,94 +402,164 @@ class _StoreSetupContent extends StatelessWidget {
           const Text("This is how customers will see your brand.", style: AppTextStyles.bodyText),
           const SizedBox(height: 24),
           
-          // Premium Instagram/Youtube-style profile card
+          // Premium Customer App style profile card
           Container(
+            clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
               ],
+              border: Border.all(color: Colors.grey.shade200, width: 1),
             ),
             child: Column(
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Container(
-                      height: 140,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.grey200,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                        image: provider.bannerFile != null
-                            ? DecorationImage(image: FileImage(provider.bannerFile!), fit: BoxFit.cover)
-                            : null,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -40,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(color: Colors.white, width: 4),
-                          image: provider.logoFile != null
-                              ? DecorationImage(image: FileImage(provider.logoFile!), fit: BoxFit.cover)
-                              : null,
+                // Store Header
+                SizedBox(
+                  height: 220,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Banner Image
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 50,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.grey200,
+                            image: provider.bannerFile != null
+                                ? DecorationImage(image: FileImage(provider.bannerFile!), fit: BoxFit.cover)
+                                : null,
+                          ),
                         ),
-                        child: provider.logoFile == null
-                            ? const Icon(Icons.fastfood, size: 40, color: AppColors.grey400)
-                            : null,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 48),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(provider.storeName.isEmpty ? "Your Brand Name" : provider.storeName, style: AppTextStyles.h2),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.verified, color: Colors.blue, size: 18),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    provider.brandStory.isEmpty
-                        ? "Your brand story will appear here. It shows authenticity and builds trust with your customers."
-                        : provider.brandStory,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.grey600, fontSize: 13),
+                      // Gradient overlay
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 50,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.4),
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.1),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // White overlap area
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 50,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                          ),
+                        ),
+                      ),
+                      // Logo overlapping
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4)),
+                              ],
+                              image: provider.logoFile != null
+                                  ? DecorationImage(image: FileImage(provider.logoFile!), fit: BoxFit.cover)
+                                  : null,
+                            ),
+                            child: provider.logoFile == null
+                                ? const Icon(Icons.store, color: Colors.grey, size: 36)
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.favorite, size: 14, color: AppColors.grey600),
-                    SizedBox(width: 4),
-                    Text("0 Followers", style: TextStyle(color: AppColors.grey600, fontSize: 13)),
-                    SizedBox(width: 16),
-                    Icon(Icons.thumb_up_alt_outlined, size: 14, color: AppColors.grey600),
-                    SizedBox(width: 4),
-                    Text("0 Likes", style: TextStyle(color: AppColors.grey600, fontSize: 13)),
-                  ],
+                
+                // Store Info Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              provider.storeName.isEmpty ? "Your Brand Name" : provider.storeName,
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                                fontFamily: 'serif',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified, color: Colors.blue, size: 20),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        provider.storeHandle.isEmpty ? "@your_brand_handle" : "@${provider.storeHandle}",
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "0 Followers",
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          elevation: 0,
+                        ),
+                        child: const Text("Follow", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
               ],
             ),
           ),
-          
-          if (provider.errorMessage != null) ...[
-            const SizedBox(height: 16),
-            Text(provider.errorMessage!, style: const TextStyle(color: Colors.red)),
-          ]
         ],
       ),
     );
@@ -443,7 +570,7 @@ class _StoreSetupContent extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final isLastStep = provider.currentStep == 6;
+    final isLastStep = provider.currentStep == 5;
     
     return ElevatedButton(
       onPressed: () async {

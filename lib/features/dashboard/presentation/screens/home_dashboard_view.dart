@@ -50,7 +50,12 @@ class HomeDashboardView extends StatelessWidget {
         final userModel = UserModel.fromJson(userData);
         final storeId = userModel.storeId;
 
-        if (storeId.isEmpty) return const Center(child: Text("Store not set up."));
+        if (storeId.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go('/store-setup');
+          });
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('stores').doc(storeId).snapshots(),

@@ -11,6 +11,10 @@ class CustomTextField extends StatelessWidget {
   final String? hintText;
   final Widget? suffixIcon;
   final bool readOnly;
+  final TextCapitalization textCapitalization;
+  final Function(String)? onChanged;
+  final String? prefixText;
+  final int? maxLength;
 
   const CustomTextField({
     super.key,
@@ -23,6 +27,10 @@ class CustomTextField extends StatelessWidget {
     this.hintText,
     this.suffixIcon,
     this.readOnly = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.onChanged,
+    this.prefixText,
+    this.maxLength,
   });
 
   @override
@@ -50,14 +58,19 @@ class CustomTextField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
           validator: validator,
+          onChanged: onChanged,
           maxLines: maxLines,
+          maxLength: maxLength,
           readOnly: readOnly,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: AppColors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hintText,
+            prefixText: prefixText,
+            prefixStyle: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
             hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
             filled: true,
             fillColor: AppColors.surface,

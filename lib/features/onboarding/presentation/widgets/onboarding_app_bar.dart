@@ -9,7 +9,7 @@ class OnboardingAppBar extends StatelessWidget implements PreferredSizeWidget {
   const OnboardingAppBar({
     super.key,
     required this.step,
-    this.totalSteps = 6,
+    this.totalSteps = 3,
   });
 
   @override

@@ -12,6 +12,7 @@ class StoreModel {
   final String instagramLink;
   final String youtubeLink;
   final String facebookLink;
+  final String whatsappNumber;
   
   final List<String> categories;
   
@@ -26,13 +27,14 @@ class StoreModel {
   final bool isFeatured;
   final bool isActive;
   
-  final String dispatchTime;
-  
   // Location
   final String city;
   final String state;
   final String country;
   final String pincode;
+  
+  // Shipping
+  final Map<String, dynamic> shippingConfig;
   
   final String createdAt;
   final String updatedAt;
@@ -48,6 +50,7 @@ class StoreModel {
     required this.instagramLink,
     required this.youtubeLink,
     required this.facebookLink,
+    required this.whatsappNumber,
     required this.categories,
     required this.followers,
     required this.likesCount,
@@ -58,11 +61,11 @@ class StoreModel {
     required this.verified,
     required this.isFeatured,
     required this.isActive,
-    required this.dispatchTime,
     this.city = '',
     this.state = '',
     this.country = '',
     this.pincode = '',
+    this.shippingConfig = const {},
     required this.createdAt,
     required this.updatedAt,
   });
@@ -79,6 +82,7 @@ class StoreModel {
       instagramLink: json['instagramLink'] ?? '',
       youtubeLink: json['youtubeLink'] ?? '',
       facebookLink: json['facebookLink'] ?? '',
+      whatsappNumber: json['whatsappNumber'] ?? '',
       categories: List<String>.from(json['categories'] ?? []),
       followers: json['followers'] ?? 0,
       likesCount: json['likesCount'] ?? 0,
@@ -89,11 +93,13 @@ class StoreModel {
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
-      dispatchTime: json['dispatchTime'] ?? '24 hours',
       city: json['city'] ?? '',
       state: json['state'] ?? '',
       country: json['country'] ?? '',
       pincode: json['pincode'] ?? '',
+      shippingConfig: json['shippingConfig'] != null 
+          ? Map<String, dynamic>.from(json['shippingConfig']) 
+          : const {},
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
     );
@@ -111,6 +117,7 @@ class StoreModel {
       'instagramLink': instagramLink,
       'youtubeLink': youtubeLink,
       'facebookLink': facebookLink,
+      'whatsappNumber': whatsappNumber,
       'categories': categories,
       'followers': followers,
       'likesCount': likesCount,
@@ -121,11 +128,11 @@ class StoreModel {
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
-      'dispatchTime': dispatchTime,
       'city': city,
       'state': state,
       'country': country,
       'pincode': pincode,
+      'shippingConfig': shippingConfig,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -142,6 +149,7 @@ class StoreModel {
     String? instagramLink,
     String? youtubeLink,
     String? facebookLink,
+    String? whatsappNumber,
     List<String>? categories,
     int? followers,
     int? likesCount,
@@ -152,11 +160,11 @@ class StoreModel {
     bool? verified,
     bool? isFeatured,
     bool? isActive,
-    String? dispatchTime,
     String? city,
     String? state,
     String? country,
     String? pincode,
+    Map<String, dynamic>? shippingConfig,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -171,6 +179,7 @@ class StoreModel {
       instagramLink: instagramLink ?? this.instagramLink,
       youtubeLink: youtubeLink ?? this.youtubeLink,
       facebookLink: facebookLink ?? this.facebookLink,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       categories: categories ?? this.categories,
       followers: followers ?? this.followers,
       likesCount: likesCount ?? this.likesCount,
@@ -181,11 +190,11 @@ class StoreModel {
       verified: verified ?? this.verified,
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
-      dispatchTime: dispatchTime ?? this.dispatchTime,
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
       pincode: pincode ?? this.pincode,
+      shippingConfig: shippingConfig ?? this.shippingConfig,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

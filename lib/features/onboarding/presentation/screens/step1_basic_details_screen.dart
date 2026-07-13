@@ -53,9 +53,9 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       ),
                       const SizedBox(height: 32),
                       CustomTextField(
-                        label: 'Full Name',
+                        label: 'Owner Full Name',
                         controller: provider.fullNameController,
-                        hintText: 'Enter your full name',
+                        hintText: 'Enter owner full name',
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
@@ -71,7 +71,22 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         controller: provider.phoneController,
                         keyboardType: TextInputType.phone,
                         readOnly: true, // Phone is prefilled and read-only
-                        hintText: '+91 XXXXX XXXXX',
+                        hintText: 'XXXXX XXXXX',
+                        prefixText: '+91 ',
+                      ),
+                      CustomTextField(
+                        label: 'Alternate Phone Number',
+                        controller: provider.alternatePhoneController,
+                        keyboardType: TextInputType.phone,
+                        hintText: 'Enter alternate phone number',
+                        prefixText: '+91 ',
+                        isRequired: false,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty && value.length < 10) {
+                            return 'Enter valid phone number';
+                          }
+                          return null;
+                        },
                       ),
                       CustomTextField(
                         label: 'Email Address',
@@ -80,13 +95,72 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         hintText: 'Enter your email address',
                         isRequired: false,
                       ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Business Address',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
                       CustomTextField(
-                        label: 'Instagram Link',
-                        controller: provider.instagramController,
-                        keyboardType: TextInputType.url,
-                        hintText: 'https://instagram.com/yourbusiness',
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Required' : null,
+                        label: 'Address Details (Door No, Building, Street)',
+                        controller: provider.businessAddressController,
+                        hintText: 'Enter permanent business address',
+                        maxLines: 2,
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      ),
+                      CustomTextField(
+                        label: 'Pincode',
+                        controller: provider.pincodeController,
+                        keyboardType: TextInputType.number,
+                        hintText: 'Enter 6-digit pincode',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (value.length != 6) return 'Enter valid pincode';
+                          return null;
+                        },
+                        suffixIcon: provider.isLoading
+                            ? const Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (provider.error != null && provider.error!.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Text(
+                            '${provider.error}. Please enter your details manually.',
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                      CustomTextField(
+                        label: 'Village/Area',
+                        controller: provider.villageController,
+                        hintText: 'Enter village or area',
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      ),
+                      CustomTextField(
+                        label: 'City/Block',
+                        controller: provider.cityController,
+                        hintText: 'Enter city or block',
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      ),
+                      CustomTextField(
+                        label: 'District',
+                        controller: provider.districtController,
+                        hintText: 'Enter district',
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      ),
+                      CustomTextField(
+                        label: 'State',
+                        controller: provider.stateController,
+                        hintText: 'Enter state',
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
                     ],
                   ),

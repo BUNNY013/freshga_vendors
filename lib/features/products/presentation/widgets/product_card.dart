@@ -290,6 +290,19 @@ class ProductCard extends StatelessWidget {
           style: TextStyle(color: Color(0xFFF97316), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
       );
+    } else if (product.status == 'Approved') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16A34A).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.2)),
+        ),
+        child: const Text(
+          'APPROVED & READY',
+          style: TextStyle(color: Color(0xFF16A34A), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+        ),
+      );
     } else if (product.status == 'Unavailable') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -433,6 +446,16 @@ class ProductCard extends StatelessWidget {
           ],
         );
       }
+    } else if (product.status == 'Approved') {
+       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          const Text('Your product has been approved by the Admin!', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          const Text('Publish it to notify your followers and go live.', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+        ],
+      );
     } else if (product.status == 'Update Under Review') {
        return const SizedBox();
     } else if (product.status == 'Draft') {
@@ -534,6 +557,24 @@ class ProductCard extends StatelessWidget {
       );
     } else if (product.status == 'Live') {
       return const SizedBox();
+    } else if (product.status == 'Approved') {
+       return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: SizedBox(
+          width: double.infinity,
+          height: 36,
+          child: ElevatedButton(
+            onPressed: () => onToggleVisibility(true), // Triggers publish and notification!
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Publish (Go Live)', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+          ),
+        ),
+      );
     } else if (product.status == 'Unavailable' || product.status == 'Hidden') {
       return const SizedBox();
     }

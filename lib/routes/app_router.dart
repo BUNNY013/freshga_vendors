@@ -40,9 +40,6 @@ import '../features/analytics/presentation/screens/earnings_payouts_screen.dart'
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
-import '../features/onboarding/presentation/screens/step4_legal_documents_screen.dart';
-import '../features/onboarding/presentation/screens/step5_bank_details_screen.dart';
-import '../features/onboarding/presentation/screens/step6_review_submit_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -77,19 +74,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/onboarding/step3',
-        builder: (context, state) => const Step3AddressDetailsScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/step4',
-        builder: (context, state) => const Step4LegalDocumentsScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/step5',
-        builder: (context, state) => const Step5BankDetailsScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/step6',
-        builder: (context, state) => const Step6ReviewSubmitScreen(),
+        builder: (context, state) => const Step3AddressDetailsScreen(), // Actually Bank Details now
       ),
       GoRoute(
         path: '/pending',

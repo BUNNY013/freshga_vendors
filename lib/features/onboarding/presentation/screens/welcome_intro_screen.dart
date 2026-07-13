@@ -34,38 +34,56 @@ class WelcomeIntroScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.celebration_rounded, color: AppColors.primary, size: 56),
-              const SizedBox(height: 32),
-              Text(
-                'Welcome to FreshGa\nHomeMades',
-                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  height: 1.2,
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.celebration_rounded, color: AppColors.primary, size: 56),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Welcome to FreshGa\nHomeMades',
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          color: AppColors.textPrimary,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Start your own homemade food store today.',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      
+                      _buildFeatureItem(Icons.public_rounded, 'Sell across India'),
+                      _buildFeatureItem(Icons.groups_rounded, 'Build followers'),
+                      _buildFeatureItem(Icons.local_shipping_rounded, 'Receive direct orders'),
+                      _buildFeatureItem(Icons.star_rounded, 'Create your food brand'),
+                      _buildFeatureItem(Icons.trending_up_rounded, 'Grow like Instagram creators'),
+                    ],
+                  ),
                 ),
               ),
+              
               const SizedBox(height: 16),
-              Text(
-                'Start your own homemade food store today.',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.normal,
+              
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    context.push('/onboarding/step1');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Start Verification', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
-              ),
-              const SizedBox(height: 48),
-              
-              _buildFeatureItem(Icons.public_rounded, 'Sell across India'),
-              _buildFeatureItem(Icons.groups_rounded, 'Build followers'),
-              _buildFeatureItem(Icons.local_shipping_rounded, 'Receive direct orders'),
-              _buildFeatureItem(Icons.star_rounded, 'Create your food brand'),
-              _buildFeatureItem(Icons.trending_up_rounded, 'Grow like Instagram creators'),
-              
-              const Spacer(),
-              
-              ElevatedButton(
-                onPressed: () {
-                  context.push('/onboarding/step1');
-                },
-                child: const Text('Start Verification'),
               ),
             ],
           ),

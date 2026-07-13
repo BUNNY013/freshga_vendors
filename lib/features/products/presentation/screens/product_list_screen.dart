@@ -195,9 +195,9 @@ class _ProductListContentState extends State<_ProductListContent> {
                 );
               }
 
-              // Compute counts for filters
               final allCount = allProducts.length;
               final liveCount = allProducts.where((p) => p.status.startsWith('Live')).length;
+              final approvedCount = allProducts.where((p) => p.status == 'Approved').length;
               final reviewCount = allProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').length;
               final changesCount = allProducts.where((p) => p.status == 'Changes Required').length;
               final draftCount = allProducts.where((p) => p.status == 'Draft').length;
@@ -208,6 +208,8 @@ class _ProductListContentState extends State<_ProductListContent> {
               var statusProducts = List<ProductModel>.from(allProducts);
               if (_selectedFilter == 'Live') {
                 statusProducts = statusProducts.where((p) => p.status.startsWith('Live')).toList();
+              } else if (_selectedFilter == 'Approved') {
+                statusProducts = statusProducts.where((p) => p.status == 'Approved').toList();
               } else if (_selectedFilter == 'Under Review') {
                 statusProducts = statusProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').toList();
               } else if (_selectedFilter == 'Draft') {
@@ -258,6 +260,7 @@ class _ProductListContentState extends State<_ProductListContent> {
                         runSpacing: 10,
                         children: [
                           _buildFilterChip("Live", liveCount),
+                          _buildFilterChip("Approved", approvedCount),
                           _buildFilterChip("Under Review", reviewCount),
                           _buildFilterChip("Changes Required", changesCount),
                           _buildFilterChip("Draft", draftCount),
@@ -348,6 +351,13 @@ class _ProductListContentState extends State<_ProductListContent> {
           title: "No Live Products",
           subtitle: "Your active products that customers can buy will appear here.",
           color: AppColors.primary,
+        );
+      case 'Approved':
+        return _buildEmptyState(
+          icon: Icons.check_circle_outline_rounded,
+          title: "No Approved Products",
+          subtitle: "Products approved by Admin and ready to go live will appear here.",
+          color: const Color(0xFF16A34A), // Green
         );
       case 'Under Review':
         return _buildEmptyState(
@@ -530,7 +540,7 @@ class _ProductListContentState extends State<_ProductListContent> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(newStatus == 'Live' ? 'Product is now Live' : 'Product is now Hidden'),
+              content: Text(newStatus == 'Live' ? 'Product is now Live. Followers notified!' : 'Product is now Hidden'),
               backgroundColor: const Color(0xFF4CAF50),
             ),
           );
@@ -542,7 +552,7 @@ class _ProductListContentState extends State<_ProductListContent> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(newStatus == 'Live' ? 'Product is now Available' : 'Product is now Unavailable'),
+              content: Text(newStatus == 'Live' ? 'Product is now Available. Followers notified!' : 'Product is now Unavailable'),
               backgroundColor: const Color(0xFF4CAF50),
             ),
           );

@@ -56,9 +56,9 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       } else if (_authProvider.applicationModel == null) {
         context.go('/welcome');
-      } else if (_authProvider.applicationModel!.status == 'pending') {
+      } else if (_authProvider.applicationModel!.status == 'pending' || _authProvider.applicationModel!.status == 'changes_required') {
         context.go('/pending');
-      } else if (_authProvider.applicationModel!.status == 'rejected') {
+      } else if (_authProvider.applicationModel!.status == 'rejected' || _authProvider.applicationModel!.status == 'rejected_permanent') {
         context.go('/rejected');
       } else {
         context.go('/welcome');

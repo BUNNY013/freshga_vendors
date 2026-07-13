@@ -9,6 +9,7 @@ import '../../../../data/models/user_model.dart';
 import '../../../../data/models/category_model.dart';
 import '../../../../data/models/sub_category_model.dart';
 import '../../utils/product_change_detector.dart';
+import '../../services/feed_event_service.dart';
 
 class ProductProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -172,6 +173,14 @@ class ProductProvider extends ChangeNotifier {
       final user = _auth.currentUser;
       if (user == null) throw Exception("Not authenticated");
 
+      // Check for price drop before update
+      final oldDoc = await _firestore.collection('products').doc(product.productId).get();
+      if (oldDoc.exists) {
+        final oldProduct = ProductModel.fromJson(oldDoc.data()!);
+        final oldEffectivePrice = oldProduct.price;
+        await FeedEventService.dispatchPriceDropEvent(product, oldPrice: oldEffectivePrice);
+      }
+
       // Handle newly selected images
       List<String> imageUrls = List.from(product.images);
       
@@ -206,6 +215,19 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> toggleProductVisibility(String productId, bool isActive) async {
     try {
+      if (isActive) {
+        final doc = await _firestore.collection('products').doc(productId).get();
+        if (doc.exists) {
+          final p = ProductModel.fromJson(doc.data()!);
+          if (!p.isActive) {
+            if (p.status == 'Approved') {
+              FeedEventService.dispatchNewLaunchEvent(p);
+            } else {
+              FeedEventService.dispatchRestockEvent(p);
+            }
+          }
+        }
+      }
       await _firestore.collection('products').doc(productId).update({
         'isActive': isActive,
         'status': isActive ? 'Live' : 'Hidden',
@@ -218,6 +240,19 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> updateProductStatus(String productId, String status) async {
     try {
+      if (status.startsWith('Live')) {
+        final doc = await _firestore.collection('products').doc(productId).get();
+        if (doc.exists) {
+          final p = ProductModel.fromJson(doc.data()!);
+          if (!p.isActive) {
+            if (p.status == 'Approved') {
+              FeedEventService.dispatchNewLaunchEvent(p);
+            } else {
+              FeedEventService.dispatchRestockEvent(p);
+            }
+          }
+        }
+      }
       await _firestore.collection('products').doc(productId).update({
         'status': status,
         'isActive': status.startsWith('Live'),
@@ -230,6 +265,20 @@ class ProductProvider extends ChangeNotifier {
 
   Future<bool> updateOperationalFields(String productId, Map<String, dynamic> updates) async {
     try {
+      if (updates.containsKey('price')) {
+        final doc = await _firestore.collection('products').doc(productId).get();
+        if (doc.exists) {
+          final oldProduct = ProductModel.fromJson(doc.data()!);
+          final oldEffectivePrice = oldProduct.price;
+          
+          final newJson = Map<String, dynamic>.from(doc.data()!);
+          newJson.addAll(updates);
+          final newProduct = ProductModel.fromJson(newJson);
+          
+          await FeedEventService.dispatchPriceDropEvent(newProduct, oldPrice: oldEffectivePrice);
+        }
+      }
+
       updates['updatedAt'] = DateTime.now().toIso8601String();
       await _firestore.collection('products').doc(productId).update(updates);
       return true;
@@ -428,6 +477,14 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Check for price drop before update
+      final oldDoc = await _firestore.collection('products').doc(product.productId).get();
+      if (oldDoc.exists) {
+        final oldProduct = ProductModel.fromJson(oldDoc.data()!);
+        final oldEffectivePrice = oldProduct.price;
+        await FeedEventService.dispatchPriceDropEvent(product, oldPrice: oldEffectivePrice);
+      }
+
       final updated = product.copyWith(
         updatedAt: DateTime.now().toIso8601String(),
       );

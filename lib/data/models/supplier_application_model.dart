@@ -6,26 +6,30 @@ class SupplierApplicationModel {
   final String businessName;
 
   final String phone;
+  final String alternatePhone;
   final String email;
 
-  final String instagramLink;
+  // Tax & Legal Compliance
+  final String taxRegistrationType; // 'GSTIN', 'EnrolmentNumber', 'NeedsHelp'
+  final String taxNumber;
+  final String taxImage;
 
-  final String businessDescription;
-  final List<String> foodCategories;
-  final String dispatchTime;
-  final String experience;
-
-  final String businessAddress;
-  final String pickupAddress;
-  final String city;
-  final String state;
-  final String pincode;
-
+  final String fssaiStatus; // 'Have', 'NeedsHelp'
   final String fssaiNumber;
   final String fssaiCertificateImage;
 
   final String panNumber;
   final String panImage;
+
+  // Address
+  final String businessAddress;
+  final String village;
+  final String city;
+  final String district;
+  final String state;
+  final String pincode;
+
+
 
   final Map<String, dynamic> bankDetails;
 
@@ -42,15 +46,16 @@ class SupplierApplicationModel {
     required this.fullName,
     required this.businessName,
     required this.phone,
+    required this.alternatePhone,
     required this.email,
-    required this.instagramLink,
-    required this.businessDescription,
-    required this.foodCategories,
-    required this.dispatchTime,
-    required this.experience,
+    required this.taxRegistrationType,
+    required this.taxNumber,
+    required this.taxImage,
+    required this.fssaiStatus,
     required this.businessAddress,
-    required this.pickupAddress,
+    required this.village,
     required this.city,
+    required this.district,
     required this.state,
     required this.pincode,
     required this.fssaiNumber,
@@ -71,15 +76,16 @@ class SupplierApplicationModel {
       fullName: json['fullName'] ?? '',
       businessName: json['businessName'] ?? '',
       phone: json['phone'] ?? '',
+      alternatePhone: json['alternatePhone'] ?? '',
       email: json['email'] ?? '',
-      instagramLink: json['instagramLink'] ?? '',
-      businessDescription: json['businessDescription'] ?? '',
-      foodCategories: List<String>.from(json['foodCategories'] ?? []),
-      dispatchTime: json['dispatchTime'] ?? '',
-      experience: json['experience'] ?? '',
-      businessAddress: json['businessAddress'] ?? '',
-      pickupAddress: json['pickupAddress'] ?? '',
+      taxRegistrationType: json['taxRegistrationType'] ?? '',
+      taxNumber: json['taxNumber'] ?? '',
+      taxImage: json['taxImage'] ?? '',
+      fssaiStatus: json['fssaiStatus'] ?? '',
+      businessAddress: json['businessAddress'] ?? json['pickupAddress'] ?? '',
+      village: json['village'] ?? '',
       city: json['city'] ?? '',
+      district: json['district'] ?? '',
       state: json['state'] ?? '',
       pincode: json['pincode'] ?? '',
       fssaiNumber: json['fssaiNumber'] ?? '',
@@ -101,15 +107,16 @@ class SupplierApplicationModel {
       'fullName': fullName,
       'businessName': businessName,
       'phone': phone,
+      'alternatePhone': alternatePhone,
       'email': email,
-      'instagramLink': instagramLink,
-      'businessDescription': businessDescription,
-      'foodCategories': foodCategories,
-      'dispatchTime': dispatchTime,
-      'experience': experience,
+      'taxRegistrationType': taxRegistrationType,
+      'taxNumber': taxNumber,
+      'taxImage': taxImage,
+      'fssaiStatus': fssaiStatus,
       'businessAddress': businessAddress,
-      'pickupAddress': pickupAddress,
+      'village': village,
       'city': city,
+      'district': district,
       'state': state,
       'pincode': pincode,
       'fssaiNumber': fssaiNumber,

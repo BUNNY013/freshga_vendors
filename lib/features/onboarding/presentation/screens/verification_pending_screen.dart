@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class VerificationPendingScreen extends StatelessWidget {
@@ -58,96 +59,167 @@ class VerificationPendingScreen extends StatelessWidget {
                 .limit(1)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-            final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("Application not found."));
+              }
+
+              final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
             final status = data['status'] as String?;
+            final adminRemarks = data['adminRemarks'] as String? ?? '';
+            final taxType = data['taxRegistrationType'] as String? ?? '';
+            final fssaiStatus = data['fssaiStatus'] as String? ?? '';
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (status == 'approved') {
                 context.go('/dashboard');
-              } else if (status == 'rejected') {
+              } else if (status == 'rejected_permanent') {
                 context.go('/rejected');
               }
             });
-          }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              await context.read<AuthProvider>().refreshApplicationStatus();
-            },
-            color: AppColors.primary,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Container(
-                height: MediaQuery.of(context).size.height,
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryLight,
-                        shape: BoxShape.circle,
+            final needsAgentHelp = (taxType == 'NeedsHelp' || fssaiStatus == 'NeedsHelp');
+            final isChangesRequired = (status == 'changes_required');
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                await context.read<AuthProvider>().refreshApplicationStatus();
+              },
+              color: AppColors.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height,
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: isChangesRequired ? Colors.red.shade50 : AppColors.primaryLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isChangesRequired ? Icons.edit_document : Icons.hourglass_top_rounded,
+                          color: isChangesRequired ? Colors.red : AppColors.primary,
+                          size: 80,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.hourglass_top_rounded,
-                        color: AppColors.primary,
-                        size: 80,
+                      const SizedBox(height: 32),
+                      Text(
+                        isChangesRequired ? '⚠️ Changes Required' : '🎉 Application Submitted',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      '🎉 Application Submitted',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      Text(
+                        isChangesRequired 
+                            ? 'The Admin has reviewed your application and requested some updates.'
+                            : 'Your FreshGa store verification is under review.',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Your FreshGa store verification is under review.',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.inputBackground,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline_rounded, color: AppColors.textSecondary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '⏳ Verification usually completes within 24 hours.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
+                      const SizedBox(height: 32),
+                      
+                      if (isChangesRequired) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Admin Remarks:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                              const SizedBox(height: 8),
+                              Text(adminRemarks, style: TextStyle(color: Colors.red.shade900)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () {
+                              context.read<OnboardingProvider>().hydrateFromFirestore(data);
+                              context.go('/onboarding/step1');
+                            },
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            label: const Text('Edit Application', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                        ),
+                      ] else ...[
+                        if (needsAgentHelp) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.support_agent_rounded, color: Colors.orange, size: 32),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Our agent will contact you shortly to help you register for your missing FSSAI or GST Enrolment ID.',
+                                    style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.inputBackground,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline_rounded, color: AppColors.textSecondary),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    '⏳ Verification usually completes within 24 hours.',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        // Contact Support Logic
-                      },
-                      icon: const Icon(Icons.headset_mic_rounded),
-                      label: const Text('Contact Support'),
-                    ),
-                  ],
+                        const SizedBox(height: 48),
+                        OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.headset_mic_rounded),
+                          label: const Text('Contact Support'),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
+            );
             },
           );
         },
