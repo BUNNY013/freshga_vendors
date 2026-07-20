@@ -33,26 +33,23 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> loadCategories() async {
     try {
-      final snapshot = await _firestore.collection('categories')
-          .where('isActive', isEqualTo: true)
-          .orderBy('sortOrder')
-          .get();
+      final snapshot = await _firestore.collection('categories').get();
       List<CategoryModel> loaded = [];
       for (var doc in snapshot.docs) {
         try {
           final data = Map<String, dynamic>.from(doc.data());
           data['categoryId'] ??= doc.id;
           final loadedCat = CategoryModel.fromJson(data);
-          loaded.add(loadedCat);
-          if (loaded.length <= 3) {
-            debugPrint("Loaded Category: name=${loadedCat.name}, categoryId=${loadedCat.categoryId}, docId=${doc.id}");
+          if (loadedCat.isActive) {
+            loaded.add(loadedCat);
           }
         } catch (e) {
           debugPrint("Failed to parse category ${doc.id}: $e");
         }
       }
+      loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
       _categories = loaded;
-      debugPrint("Successfully loaded ${_categories.length} categories from Firebase.");
+      debugPrint("Successfully loaded ${_categories.length} active categories from Firebase.");
       notifyListeners();
     } catch (e) {
       debugPrint("Failed to load categories: $e");
@@ -63,22 +60,24 @@ class ProductProvider extends ChangeNotifier {
     try {
       final snapshot = await _firestore.collection('sub_categories')
           .where('categoryId', isEqualTo: categoryId)
-          .where('isActive', isEqualTo: true)
-          .orderBy('sortOrder')
           .get();
       List<SubCategoryModel> loaded = [];
       for (var doc in snapshot.docs) {
         try {
           final data = Map<String, dynamic>.from(doc.data());
           data['subCategoryId'] ??= doc.id;
-          loaded.add(SubCategoryModel.fromJson(data));
+          final loadedSub = SubCategoryModel.fromJson(data);
+          if (loadedSub.isActive) {
+            loaded.add(loadedSub);
+          }
         } catch (e) {
           debugPrint("Failed to parse subcategory ${doc.id}: $e");
         }
       }
+      loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
       _errorMessage = null;
       _subCategories = loaded;
-      debugPrint("Successfully loaded ${_subCategories.length} subcategories from Firebase for category $categoryId.");
+      debugPrint("Successfully loaded ${_subCategories.length} active subcategories from Firebase for category $categoryId.");
       notifyListeners();
     } catch (e) {
       _errorMessage = "Failed to load subcategories: $e";

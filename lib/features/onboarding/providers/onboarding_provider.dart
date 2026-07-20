@@ -23,6 +23,9 @@ class OnboardingProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  bool _isLocationFetched = false;
+  bool get isLocationFetched => _isLocationFetched;
+
   // Step 1: Basic Details
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController businessNameController = TextEditingController();
@@ -100,6 +103,8 @@ class OnboardingProvider extends ChangeNotifier {
       }
     } else if (text.length != 6) {
       _lastFetchedPincode = '';
+      _isLocationFetched = false;
+      notifyListeners();
     }
   }
 
@@ -170,9 +175,11 @@ class OnboardingProvider extends ChangeNotifier {
           cityController.text = postOffice['Block'] ?? '';
           districtController.text = postOffice['District'] ?? '';
           stateController.text = postOffice['State'] ?? '';
+          _isLocationFetched = true;
           _saveDraft();
         } else {
           _error = 'Invalid Pincode';
+          _isLocationFetched = false;
           villageController.text = '';
           cityController.text = '';
           districtController.text = '';
@@ -182,6 +189,7 @@ class OnboardingProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Pincode error: $e');
       _error = 'Failed to fetch location';
+      _isLocationFetched = false;
       villageController.text = '';
       cityController.text = '';
       districtController.text = '';
@@ -326,6 +334,10 @@ class OnboardingProvider extends ChangeNotifier {
         districtController.text = draft['district'] ?? '';
         stateController.text = draft['state'] ?? '';
         pincodeController.text = draft['pincode'] ?? '';
+        
+        if (pincodeController.text.length == 6 && stateController.text.isNotEmpty) {
+          _isLocationFetched = true;
+        }
         
         taxRegistrationType = draft['taxRegistrationType'] ?? 'GSTIN';
         taxNumberController.text = draft['taxNumber'] ?? '';

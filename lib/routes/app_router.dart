@@ -8,6 +8,7 @@ import '../features/onboarding/presentation/screens/verification_pending_screen.
 import '../features/onboarding/presentation/screens/rejection_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/store/presentation/screens/store_setup_screen.dart';
+import '../features/store/presentation/screens/trial_activation_screen.dart';
 import '../features/products/presentation/screens/add_product_screen.dart';
 import '../features/products/presentation/screens/edit_product_screen.dart';
 import '../features/products/presentation/screens/edit_pricing_screen.dart';
@@ -23,6 +24,7 @@ import '../features/store/presentation/screens/editors/banking_details_screen.da
 import '../features/store/presentation/screens/editors/store_appearance_screen.dart';
 import '../features/store/presentation/screens/editors/store_info_screen.dart';
 import '../features/store/presentation/screens/editors/business_details_screen.dart';
+import '../features/store/presentation/screens/editors/order_fulfillment_screen.dart';
 import '../features/store/presentation/screens/editors/store_categories_screen.dart';
 import '../features/store/presentation/screens/editors/policies_screen.dart';
 import '../features/store/presentation/screens/editors/faq_screen.dart';
@@ -87,6 +89,10 @@ class AppRouter {
       GoRoute(
         path: '/store-setup',
         builder: (context, state) => const StoreSetupScreen(),
+      ),
+      GoRoute(
+        path: '/trial-activation',
+        builder: (context, state) => const TrialActivationScreen(),
       ),
       GoRoute(
         path: '/dashboard',
@@ -178,6 +184,10 @@ class AppRouter {
       GoRoute(
         path: '/store/business-details',
         builder: (context, state) => const BusinessDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/store/order-fulfillment',
+        builder: (context, state) => const OrderFulfillmentScreen(),
       ),
       GoRoute(
         path: '/store/categories',

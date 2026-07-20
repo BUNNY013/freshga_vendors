@@ -194,29 +194,12 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                       const SizedBox(height: 32),
                       
                       CustomTextField(
-                        label: 'IFSC Code',
-                        controller: provider.ifscController,
-                        textCapitalization: TextCapitalization.characters,
-                        hintText: '11-character IFSC code',
-                        maxLength: 11,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Required';
-                          if (value.length != 11) return 'Invalid IFSC length';
-                          return null;
-                        },
-                      ),
-                      CustomTextField(
-                        label: 'Bank Name',
-                        controller: provider.bankNameController,
-                        hintText: 'Auto-fetched using IFSC',
-                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                      ),
-                      CustomTextField(
                         label: 'Account Holder Name',
                         controller: provider.accountNameController,
                         hintText: 'As per bank records (Must match PAN Card)',
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
+
                       const SizedBox(height: 16),
                       Text('Account Type', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
@@ -249,6 +232,25 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                           if (value != provider.accountNumberController.text) return 'Account numbers do not match';
                           return null;
                         },
+                      ),
+                      CustomTextField(
+                        label: 'IFSC Code',
+                        controller: provider.ifscController,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [UpperCaseTextFormatter()],
+                        hintText: '11-character IFSC code',
+                        maxLength: 11,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (value.length != 11) return 'Invalid IFSC length';
+                          return null;
+                        },
+                      ),
+                      CustomTextField(
+                        label: 'Bank Name',
+                        controller: provider.bankNameController,
+                        hintText: 'Auto-fetched using IFSC',
+                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
 
                       CustomTextField(

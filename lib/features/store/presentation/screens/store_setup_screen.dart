@@ -577,7 +577,7 @@ class _StoreSetupContent extends StatelessWidget {
         if (isLastStep) {
           final success = await provider.publishStore();
           if (success && context.mounted) {
-            context.go('/dashboard');
+            context.go('/trial-activation');
           }
         } else {
           provider.nextStep();

@@ -3,24 +3,84 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/theme/app_colors.dart';
 
-class BankingDetailsScreen extends StatelessWidget {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class BankingDetailsScreen extends StatefulWidget {
   const BankingDetailsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock Stored Data
-    final String savedAccountHolder = "Saraswathi Devi";
-    final String savedAccountType = "Savings Account";
-    final String savedAccountNumber = "9876543210123";
-    final String savedIFSC = "HDFC0001234";
-    final String savedBankName = "HDFC Bank";
-    final String savedBranch = "Madhapur Branch";
-    final String savedCity = "Hyderabad";
-    final String savedState = "Telangana";
-    final String lastVerified = "May 20, 2026";
+  State<BankingDetailsScreen> createState() => _BankingDetailsScreenState();
+}
 
-    String maskedAccount = savedAccountNumber.length > 4 
-      ? '•••• •••• •••• ${savedAccountNumber.substring(savedAccountNumber.length - 4)}'
+class _BankingDetailsScreenState extends State<BankingDetailsScreen> {
+  bool _isLoading = true;
+  String _savedAccountHolder = "";
+  String _savedAccountType = "";
+  String _savedAccountNumber = "";
+  String _savedIFSC = "";
+  String _savedBankName = "";
+  String _savedBranch = "";
+  String _savedCity = "";
+  String _savedState = "";
+  String _chequeUrl = "";
+  
+  final String _lastVerified = "Recently";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBankingDetails();
+  }
+
+  Future<void> _fetchBankingDetails() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('supplierApplications')
+            .where('userId', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+            
+        if (querySnapshot.docs.isNotEmpty) {
+          final data = querySnapshot.docs.first.data();
+          final bank = data['bankDetails'] as Map<String, dynamic>? ?? {};
+          setState(() {
+            _savedAccountHolder = bank['accountHolderName'] ?? '';
+            _savedAccountType = bank['accountType'] ?? 'Savings Account';
+            _savedAccountNumber = bank['accountNumber'] ?? '';
+            _savedIFSC = bank['ifscCode'] ?? '';
+            _savedBankName = bank['bankName'] ?? '';
+            _savedBranch = data['city'] ?? 'Branch'; // Assuming branch not saved separately
+            _savedCity = data['city'] ?? '';
+            _savedState = data['state'] ?? '';
+            _chequeUrl = bank['bankImage'] ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching banking details: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+
+    String maskedAccount = _savedAccountNumber.length > 4 
+      ? '•••• •••• •••• ${_savedAccountNumber.substring(_savedAccountNumber.length - 4)}'
       : '•••• •••• ••••';
 
     return Scaffold(
@@ -84,26 +144,27 @@ class BankingDetailsScreen extends StatelessWidget {
                 children: [
                   const Text('Bank Account', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A))),
                   const SizedBox(height: 24),
-                  _buildViewRow('Account Holder', savedAccountHolder),
+                  _buildViewRow('Account Holder', _savedAccountHolder),
                   const SizedBox(height: 16),
-                  _buildViewRow('Account Type', savedAccountType),
+                  _buildViewRow('Account Type', _savedAccountType),
                   const SizedBox(height: 16),
-                  _buildViewRow('Bank', savedBankName),
+                  _buildViewRow('Bank', _savedBankName),
                   const SizedBox(height: 16),
                   _buildViewRow('Account Number', maskedAccount),
                   const SizedBox(height: 16),
-                  _buildViewRow('IFSC', savedIFSC),
+                  _buildViewRow('IFSC', _savedIFSC),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: _buildViewRow('Branch', savedBranch)),
-                      Expanded(child: _buildViewRow('City', savedCity)),
+                      Expanded(child: _buildViewRow('Branch', _savedBranch)),
+                      Expanded(child: _buildViewRow('City', _savedCity)),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildViewRow('State', savedState),
+                  _buildViewRow('State', _savedState),
                   const SizedBox(height: 24),
-                  _buildDocumentAction(context, 'View Cancelled Cheque / Passbook', 'https://images.unsplash.com/photo-1579621970588-a35d0e7ab9b6'),
+                  if (_chequeUrl.isNotEmpty)
+                    _buildDocumentAction(context, 'View Cancelled Cheque / Passbook', _chequeUrl),
                 ],
               ),
             ),
@@ -142,7 +203,7 @@ class BankingDetailsScreen extends StatelessWidget {
                         children: [
                           const Text('Verified & Active', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
                           const SizedBox(height: 2),
-                          Text('Last Verified: $lastVerified', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                          Text('Last Verified: $_lastVerified', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
                         ],
                       ),
                     ],

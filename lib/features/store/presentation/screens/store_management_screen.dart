@@ -110,7 +110,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         children: [
-                          _buildSettingsMenu(context, store),
+                          _buildSettingsMenu(context, store, user.uid),
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -206,7 +206,18 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             Text(store.storeName.isNotEmpty ? store.storeName : "Amma's Secrets", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A))),
           ],
         ),
-        const SizedBox(height: 4),
+        if (store.storeSlug.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('@${store.storeSlug}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
+          ),
+        ],
+        const SizedBox(height: 6),
         Text('${store.city.isNotEmpty ? store.city : 'Hyderabad'}, ${store.state.isNotEmpty ? store.state : 'Telangana'}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)), textAlign: TextAlign.center),
         const SizedBox(height: 16),
         // Instagram-style Metrics Row
@@ -405,7 +416,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     );
   }
 
-  Widget _buildSettingsMenu(BuildContext context, StoreModel store) {
+  Widget _buildSettingsMenu(BuildContext context, StoreModel store, String userId) {
     return Column(
       children: [
         _buildVacationModeCard(store),
@@ -415,78 +426,149 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
           title: 'Social Links',
           subtitleWidget: Row(
             children: [
-              _buildSocialIcon(Icons.camera_alt_outlined, Colors.pink),
-              const SizedBox(width: 8),
-              _buildSocialIcon(Icons.facebook, Colors.blue),
-              const SizedBox(width: 8),
-              _buildSocialIcon(Icons.play_circle_fill, Colors.red),
+              if (store.instagramLink.isNotEmpty) _buildSocialIcon(Icons.camera_alt_outlined, Colors.pink),
+              if (store.instagramLink.isNotEmpty) const SizedBox(width: 8),
+              if (store.facebookLink.isNotEmpty) _buildSocialIcon(Icons.facebook, Colors.blue),
+              if (store.facebookLink.isNotEmpty) const SizedBox(width: 8),
+              if (store.youtubeLink.isNotEmpty) _buildSocialIcon(Icons.play_circle_fill, Colors.red),
             ],
           ),
           route: '/store/social-links',
         ),
         _buildSettingsCard(
           context: context,
-          icon: Icons.business_outlined,
-          title: 'Business Details',
+          icon: Icons.local_shipping_outlined,
+          title: 'Delivery Settings',
           subtitleWidget: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Owner Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('Saraswathi Devi', style: TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
-              const SizedBox(height: 12),
-              const Text('Business Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text("Amma's Secrets Homemade Foods", style: TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
-              const SizedBox(height: 12),
-              const Text('Business Type', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('Home Based Business', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              const SizedBox(height: 12),
-              const Text('Experience', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('5+ Years', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              const SizedBox(height: 12),
-              const Text('Contact Information', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('hello@ammassecrets.com\n+91 9876543210', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              const SizedBox(height: 12),
-              const Text('Compliance', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('GST: Not Registered\nFSSAI: 21220183001524', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              const SizedBox(height: 12),
-              const Text('Registered Premises', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 2),
-              const Text('Plot 42, Jubilee Hills Road No. 36...', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
+              Text(
+                store.shippingConfig['shippingMode'] == 'self'
+                    ? 'Fulfillment: Self Shipping'
+                    : (store.shippingConfig['shippingMode'] == 'freshga' 
+                        ? 'Fulfillment: FreshGa Delivery' 
+                        : 'Fulfillment: Not configured'),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+              if (store.shippingConfig['shippingMode'] == 'self' && store.deliveryAreas.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...store.deliveryAreas.map((area) {
+                  String ruleText = '';
+                  if (area.ruleType == 'free') {
+                    ruleText = 'Free';
+                  } else if (area.ruleType == 'flat') {
+                    ruleText = '₹${area.deliveryCharge.toInt()}';
+                  } else if (area.ruleType == 'flat_plus_free_above') {
+                    ruleText = '₹${area.deliveryCharge.toInt()} (Free > ₹${area.freeShippingThreshold?.toInt()})';
+                  }
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 12, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${area.areaType}: ',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          ruleText,
+                          style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
             ],
           ),
-          route: '/store/business-details',
+          route: '/store/order-fulfillment',
         ),
-        _buildSettingsCard(
-          context: context,
-          icon: Icons.account_balance_outlined,
-          title: 'Banking & Payouts',
-          subtitleWidget: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Account Holder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              SizedBox(height: 2),
-              Text("Saraswathi Devi", style: TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
-              SizedBox(height: 12),
-              Text('Bank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              SizedBox(height: 2),
-              Text('HDFC Bank', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              SizedBox(height: 12),
-              Text('Account Number', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              SizedBox(height: 2),
-              Text('•••••• 1234', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-              SizedBox(height: 12),
-              Text('IFSC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-              SizedBox(height: 2),
-              Text('HDFC0001234', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-            ],
-          ),
-          route: '/store/banking',
+        FutureBuilder<QuerySnapshot>(
+          future: FirebaseFirestore.instance.collection('supplierApplications').where('userId', isEqualTo: userId).limit(1).get(),
+          builder: (context, snapshot) {
+            Map<String, dynamic>? data;
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+            }
+
+            final ownerName = data?['fullName'] ?? 'Not provided';
+            final email = data?['email'] ?? 'Not provided';
+            final phone = data?['phone'] ?? 'Not provided';
+            final fssai = data?['fssaiNumber'] ?? 'Not provided';
+            final taxType = data?['taxRegistrationType'] ?? 'GST';
+            final gst = data?['taxNumber'] ?? 'Not Registered';
+            final address = data != null ? "${data['businessAddress'] ?? ''}, ${data['city'] ?? ''}" : 'Not provided';
+            
+            final bank = data?['bankDetails'] as Map<String, dynamic>? ?? {};
+            final accountHolder = bank['accountHolderName'] ?? 'Not provided';
+            final bankName = bank['bankName'] ?? 'Not provided';
+            final acctNum = bank['accountNumber'] ?? '';
+            final maskedAcct = acctNum.length > 4 ? '•••••• ${acctNum.substring(acctNum.length - 4)}' : 'Not provided';
+            final ifsc = bank['ifscCode'] ?? 'Not provided';
+
+            return Column(
+              children: [
+                _buildSettingsCard(
+                  context: context,
+                  icon: Icons.business_outlined,
+                  title: 'Business Details',
+                  subtitleWidget: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Owner Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(ownerName, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 12),
+                      const Text('Business Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(store.storeName, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 12),
+                      const Text('Contact Information', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text('$email\n$phone', style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                      const SizedBox(height: 12),
+                      const Text('Compliance', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text('$taxType: $gst\nFSSAI: $fssai', style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                      const SizedBox(height: 12),
+                      const Text('Registered Premises', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(address, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                    ],
+                  ),
+                  route: '/store/business-details',
+                ),
+                _buildSettingsCard(
+                  context: context,
+                  icon: Icons.account_balance_outlined,
+                  title: 'Banking & Payouts',
+                  subtitleWidget: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Account Holder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(accountHolder, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 12),
+                      const Text('Bank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(bankName, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                      const SizedBox(height: 12),
+                      const Text('Account Number', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(maskedAcct, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                      const SizedBox(height: 12),
+                      const Text('IFSC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                      const SizedBox(height: 2),
+                      Text(ifsc, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                    ],
+                  ),
+                  route: '/store/banking',
+                ),
+              ],
+            );
+          }
         ),
       ],
     );

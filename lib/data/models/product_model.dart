@@ -56,6 +56,9 @@ class ProductModel {
   final bool isFeatured;
   final bool isTrending;
   final bool isActive;
+  
+  final String state;
+  final bool canSellPanIndia;
 
   final List<String> searchKeywords;
 
@@ -104,6 +107,8 @@ class ProductModel {
     required this.isFeatured,
     required this.isTrending,
     required this.isActive,
+    this.state = '',
+    this.canSellPanIndia = false,
     required this.searchKeywords,
     required this.createdAt,
     required this.updatedAt,
@@ -155,6 +160,8 @@ class ProductModel {
       isFeatured: json['isFeatured'] ?? false,
       isTrending: json['isTrending'] as bool? ?? false,
       isActive: json['isActive'] as bool? ?? true,
+      state: json['state'] ?? '',
+      canSellPanIndia: json['canSellPanIndia'] ?? false,
       searchKeywords: (json['searchKeywords'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
       createdAt: json['createdAt'] as String? ?? DateTime.now().toIso8601String(),
       updatedAt: json['updatedAt'] as String? ?? DateTime.now().toIso8601String(),
@@ -204,6 +211,8 @@ class ProductModel {
       'isFeatured': isFeatured,
       'isTrending': isTrending,
       'isActive': isActive,
+      'state': state,
+      'canSellPanIndia': canSellPanIndia,
       'searchKeywords': searchKeywords,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
@@ -252,6 +261,8 @@ class ProductModel {
     bool? isFeatured,
     bool? isTrending,
     bool? isActive,
+    String? state,
+    bool? canSellPanIndia,
     List<String>? searchKeywords,
     String? createdAt,
     String? updatedAt,
@@ -298,6 +309,8 @@ class ProductModel {
       isFeatured: isFeatured ?? this.isFeatured,
       isTrending: isTrending ?? this.isTrending,
       isActive: isActive ?? this.isActive,
+      state: state ?? this.state,
+      canSellPanIndia: canSellPanIndia ?? this.canSellPanIndia,
       searchKeywords: searchKeywords ?? this.searchKeywords,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

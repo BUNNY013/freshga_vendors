@@ -3,25 +3,93 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/theme/app_colors.dart';
 
-class BusinessDetailsScreen extends StatelessWidget {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class BusinessDetailsScreen extends StatefulWidget {
   const BusinessDetailsScreen({super.key});
 
   @override
+  State<BusinessDetailsScreen> createState() => _BusinessDetailsScreenState();
+}
+
+class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
+  bool _isLoading = true;
+  String _savedOwnerName = "";
+  String _savedEmail = "";
+  String _savedPhone = "";
+  String _taxType = "";
+  String _savedGst = "";
+  String _savedFssai = "";
+  String _savedAddress = "";
+  String _savedVillage = "";
+  String _savedDistrict = "";
+  String _savedCity = "";
+  String _savedState = "";
+  String _savedPincode = "";
+  String _fssaiUrl = "";
+  String _taxUrl = "";
+  
+  // Verification states
+  final bool _isFssaiVerified = true;
+  final bool _isEmailVerified = true;
+  final bool _isPhoneVerified = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBusinessDetails();
+  }
+
+  Future<void> _fetchBusinessDetails() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('supplierApplications')
+            .where('userId', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+            
+        if (querySnapshot.docs.isNotEmpty) {
+          final data = querySnapshot.docs.first.data();
+          setState(() {
+            _savedOwnerName = data['fullName'] ?? '';
+            _savedEmail = data['email'] ?? '';
+            _savedPhone = data['phone'] ?? '';
+            _taxType = data['taxRegistrationType'] ?? 'GST Number';
+            _savedGst = data['taxNumber'] ?? '';
+            _savedFssai = data['fssaiNumber'] ?? '';
+            _fssaiUrl = data['fssaiCertificateImage'] ?? '';
+            _taxUrl = data['taxImage'] ?? '';
+            _savedAddress = data['businessAddress'] ?? '';
+            _savedVillage = data['village'] ?? '';
+            _savedDistrict = data['district'] ?? '';
+            _savedCity = data['city'] ?? '';
+            _savedState = data['state'] ?? '';
+            _savedPincode = data['pincode'] ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching business details: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Mock Stored Data (simulating fetched DB state)
-    final String savedOwnerName = "Saraswathi Devi";
-    final String savedBusinessType = "Home Based Business";
-    final String savedExperience = "5+ Years";
-    final String savedEmail = "hello@ammassecrets.com";
-    final String savedPhone = "9876543210";
-    final String savedGst = "";
-    final String savedFssai = "21220183001524";
-    final String savedAddress = "Plot 42, Jubilee Hills Road No. 36\nHyderabad, Telangana 500033";
-    
-    // Verification states
-    final bool isFssaiVerified = true;
-    final bool isEmailVerified = true;
-    final bool isPhoneVerified = true;
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -84,11 +152,7 @@ class BusinessDetailsScreen extends StatelessWidget {
                 children: [
                   const Text('Business Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A))),
                   const SizedBox(height: 24),
-                  _buildViewRow(Icons.person_outline, 'Owner Name', savedOwnerName),
-                  const SizedBox(height: 20),
-                  _buildViewRow(Icons.storefront_outlined, 'Business Type', savedBusinessType),
-                  const SizedBox(height: 20),
-                  _buildViewRow(Icons.workspace_premium_outlined, 'Experience', savedExperience),
+                  _buildViewRow(Icons.person_outline, 'Owner Name', _savedOwnerName),
                 ],
               ),
             ),
@@ -111,19 +175,26 @@ class BusinessDetailsScreen extends StatelessWidget {
                 children: [
                   const Text('Contact & Compliance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A))),
                   const SizedBox(height: 24),
-                  _buildViewRow(Icons.phone_outlined, 'Phone Number', '+91 $savedPhone', isVerified: isPhoneVerified),
+                  _buildViewRow(Icons.phone_outlined, 'Phone Number', _savedPhone.isNotEmpty ? _savedPhone : 'Not provided', isVerified: _savedPhone.isNotEmpty ? _isPhoneVerified : false),
                   const SizedBox(height: 20),
-                  _buildViewRow(Icons.email_outlined, 'Email Address', savedEmail, isVerified: isEmailVerified),
+                  _buildViewRow(Icons.email_outlined, 'Email Address', _savedEmail.isNotEmpty ? _savedEmail : 'Not provided', isVerified: _savedEmail.isNotEmpty ? _isEmailVerified : false),
                   const SizedBox(height: 20),
                   _buildViewRow(
                     Icons.security_outlined, 
                     'FSSAI License', 
-                    savedFssai.isNotEmpty ? savedFssai : 'Not provided', 
-                    isVerified: savedFssai.isNotEmpty ? isFssaiVerified : false,
-                    bottomWidget: savedFssai.isNotEmpty ? _buildDocumentAction(context, 'View FSSAI Certificate', 'https://images.unsplash.com/photo-1618044733300-9472054094ee') : null,
+                    _savedFssai.isNotEmpty ? _savedFssai : 'Not provided', 
+                    isVerified: _savedFssai.isNotEmpty ? _isFssaiVerified : false,
+                    bottomWidget: _savedFssai.isNotEmpty && _fssaiUrl.isNotEmpty ? _buildDocumentAction(context, 'View FSSAI Certificate', _fssaiUrl) : null,
                   ),
                   const SizedBox(height: 20),
-                  _buildViewRow(Icons.receipt_long_outlined, 'GST Number', savedGst.isNotEmpty ? savedGst : 'Not provided', isVerified: false, showVerifyBadge: false),
+                  _buildViewRow(
+                    Icons.receipt_long_outlined, 
+                    _taxType.isNotEmpty ? _taxType : 'Tax Registration', 
+                    _savedGst.isNotEmpty ? _savedGst : 'Not provided', 
+                    isVerified: false, 
+                    showVerifyBadge: false,
+                    bottomWidget: _savedGst.isNotEmpty && _taxUrl.isNotEmpty ? _buildDocumentAction(context, 'View Tax Document', _taxUrl) : null,
+                  ),
                 ],
               ),
             ),
@@ -148,7 +219,17 @@ class BusinessDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text('This is your official pickup address tied to your FSSAI license.', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
                   const SizedBox(height: 24),
-                  _buildViewRow(Icons.location_on_outlined, 'Pickup Location', savedAddress, isVerified: true),
+                  _buildViewRow(Icons.home_outlined, 'Address Details', _savedAddress.isNotEmpty ? _savedAddress : 'Not provided', isVerified: true),
+                  const SizedBox(height: 20),
+                  _buildViewRow(Icons.map_outlined, 'Village / Area', _savedVillage.isNotEmpty ? _savedVillage : 'Not provided', showVerifyBadge: false),
+                  const SizedBox(height: 20),
+                  _buildViewRow(Icons.location_city_outlined, 'District', _savedDistrict.isNotEmpty ? _savedDistrict : 'Not provided', showVerifyBadge: false),
+                  const SizedBox(height: 20),
+                  _buildViewRow(Icons.location_city_outlined, 'City / Block', _savedCity.isNotEmpty ? _savedCity : 'Not provided', showVerifyBadge: false),
+                  const SizedBox(height: 20),
+                  _buildViewRow(Icons.map_outlined, 'State', _savedState.isNotEmpty ? _savedState : 'Not provided', showVerifyBadge: false),
+                  const SizedBox(height: 20),
+                  _buildViewRow(Icons.pin_drop_outlined, 'Pincode', _savedPincode.isNotEmpty ? _savedPincode : 'Not provided', showVerifyBadge: false),
                 ],
               ),
             ),

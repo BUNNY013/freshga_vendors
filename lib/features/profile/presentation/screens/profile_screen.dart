@@ -178,7 +178,7 @@ class ProfileScreen extends StatelessWidget {
           _buildDivider(),
           _buildListTile(Icons.notifications_outlined, "Notification Settings", () {}),
           _buildDivider(),
-          _buildListTile(Icons.local_shipping_outlined, "Delivery Settings", () {}),
+          _buildListTile(Icons.local_shipping_outlined, "Delivery Settings", () => context.push('/store/order-fulfillment')),
         ],
       ),
     );

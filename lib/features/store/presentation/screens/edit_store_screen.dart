@@ -51,9 +51,9 @@ class EditStoreScreen extends StatelessWidget {
             const Divider(color: Color(0xFFF1F5F9), height: 1, indent: 64),
             _buildMenuItem(
               context,
-              icon: Icons.local_shipping_outlined, // using shipping icon
-              title: 'Order Fulfillment',
-              subtitle: 'Pickup, dispatch & packaging',
+              icon: Icons.local_shipping_outlined,
+              title: 'Shipping Settings',
+              subtitle: 'Delivery areas & fulfillment rules',
               route: '/store/order-fulfillment',
             ),
             const Divider(color: Color(0xFFF1F5F9), height: 1, indent: 64),

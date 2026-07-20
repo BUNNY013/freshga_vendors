@@ -217,6 +217,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                         hintText: 'Enter 10-digit PAN',
                         maxLength: 10,
                         textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [UpperCaseTextFormatter()],
                       ),
                       const SizedBox(height: 16),
                       _buildPhotoUploadButton(context, 'Upload PAN Card Photo', 'pan', provider),

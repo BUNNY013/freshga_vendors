@@ -1,3 +1,5 @@
+import '../../../../data/models/delivery_area_model.dart';
+
 class StoreModel {
   final String storeId;
   final String ownerId;
@@ -7,6 +9,8 @@ class StoreModel {
   final String logo;
   final String banner;
   final String instagramLink;
+  final String facebookLink;
+  final String youtubeLink;
   final List<String> categories;
   final double rating;
   final int totalReviews;
@@ -15,11 +19,14 @@ class StoreModel {
   final bool verified;
   final bool isFeatured;
   final bool isActive;
+  final bool canSellPanIndia;
   final String dispatchTime;
   final String city;
   final String state;
   final String country;
   final String pincode;
+  final Map<String, dynamic> shippingConfig;
+  final List<DeliveryAreaModel> deliveryAreas;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -32,6 +39,8 @@ class StoreModel {
     required this.logo,
     required this.banner,
     required this.instagramLink,
+    this.facebookLink = '',
+    this.youtubeLink = '',
     required this.categories,
     this.rating = 0.0,
     this.totalReviews = 0,
@@ -40,11 +49,14 @@ class StoreModel {
     this.verified = false,
     this.isFeatured = false,
     this.isActive = true,
+    this.canSellPanIndia = false,
     required this.dispatchTime,
     this.city = '',
     this.state = '',
     this.country = '',
     this.pincode = '',
+    this.shippingConfig = const {},
+    this.deliveryAreas = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -59,6 +71,8 @@ class StoreModel {
       logo: json['logo'] ?? '',
       banner: json['banner'] ?? '',
       instagramLink: json['instagramLink'] ?? '',
+      facebookLink: json['facebookLink'] ?? '',
+      youtubeLink: json['youtubeLink'] ?? '',
       categories: List<String>.from(json['categories'] ?? []),
       rating: (json['rating'] ?? 0.0).toDouble(),
       totalReviews: json['totalReviews'] ?? 0,
@@ -67,11 +81,16 @@ class StoreModel {
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
+      canSellPanIndia: json['canSellPanIndia'] ?? false,
       dispatchTime: json['dispatchTime'] ?? '24 hours',
       city: json['city'] ?? '',
       state: json['state'] ?? '',
       country: json['country'] ?? '',
       pincode: json['pincode'] ?? '',
+      shippingConfig: Map<String, dynamic>.from(json['shippingConfig'] ?? {}),
+      deliveryAreas: json['deliveryAreas'] != null && (json['deliveryAreas'] as List).isNotEmpty
+          ? (json['deliveryAreas'] as List).map((e) => DeliveryAreaModel.fromJson(e)).toList() 
+          : DeliveryAreaModel.createDefaultAreas(json['state'] ?? '', json['canSellPanIndia'] ?? false),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
@@ -91,6 +110,8 @@ class StoreModel {
       'logo': logo,
       'banner': banner,
       'instagramLink': instagramLink,
+      'facebookLink': facebookLink,
+      'youtubeLink': youtubeLink,
       'categories': categories,
       'rating': rating,
       'totalReviews': totalReviews,
@@ -99,11 +120,14 @@ class StoreModel {
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
+      'canSellPanIndia': canSellPanIndia,
       'dispatchTime': dispatchTime,
       'city': city,
       'state': state,
       'country': country,
       'pincode': pincode,
+      'shippingConfig': shippingConfig,
+      'deliveryAreas': deliveryAreas.map((e) => e.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -118,6 +142,8 @@ class StoreModel {
     String? logo,
     String? banner,
     String? instagramLink,
+    String? facebookLink,
+    String? youtubeLink,
     List<String>? categories,
     double? rating,
     int? totalReviews,
@@ -126,11 +152,14 @@ class StoreModel {
     bool? verified,
     bool? isFeatured,
     bool? isActive,
+    bool? canSellPanIndia,
     String? dispatchTime,
     String? city,
     String? state,
     String? country,
     String? pincode,
+    Map<String, dynamic>? shippingConfig,
+    List<DeliveryAreaModel>? deliveryAreas,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -143,6 +172,8 @@ class StoreModel {
       logo: logo ?? this.logo,
       banner: banner ?? this.banner,
       instagramLink: instagramLink ?? this.instagramLink,
+      facebookLink: facebookLink ?? this.facebookLink,
+      youtubeLink: youtubeLink ?? this.youtubeLink,
       categories: categories ?? this.categories,
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,
@@ -151,11 +182,14 @@ class StoreModel {
       verified: verified ?? this.verified,
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
+      canSellPanIndia: canSellPanIndia ?? this.canSellPanIndia,
       dispatchTime: dispatchTime ?? this.dispatchTime,
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
       pincode: pincode ?? this.pincode,
+      shippingConfig: shippingConfig ?? this.shippingConfig,
+      deliveryAreas: deliveryAreas ?? this.deliveryAreas,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

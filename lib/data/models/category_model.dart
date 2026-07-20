@@ -15,11 +15,11 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      categoryId: json['categoryId'] ?? '',
-      name: json['name'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
-      isActive: json['isActive'] ?? true,
-      sortOrder: json['sortOrder'] is num ? (json['sortOrder'] as num).toInt() : 0,
+      categoryId: json['categoryId']?.toString() ?? json['slug']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      imageUrl: (json['image'] != null && json['image']['url'] != null) ? json['image']['url'].toString() : (json['imageUrl']?.toString() ?? ''),
+      isActive: json['status']?.toString().toLowerCase() == 'active' || json['isActive'] == true || json['isActive']?.toString().toLowerCase() == 'true',
+      sortOrder: (json['displayIndex'] as num?)?.toInt() ?? (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
   }
 

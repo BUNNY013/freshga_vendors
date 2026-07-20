@@ -471,43 +471,45 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                         ),
                         child: Stack(
                           children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 16.0),
-                                    child: cat.imageUrl.isNotEmpty
-                                        ? Transform.scale(
-                                            scale: isSelected ? 1.05 : 1.15,
-                                            child: CachedNetworkImage(
-                                              imageUrl: cat.imageUrl,
-                                              fit: BoxFit.contain,
-                                              placeholder: (context, url) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
-                                              errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey),
-                                            ),
-                                          )
-                                        : const Icon(Icons.category, color: Colors.grey, size: 40),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: Text(
-                                    cat.name,
-                                    style: TextStyle(
-                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                      fontSize: 12,
-                                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                                      letterSpacing: -0.1,
+                            Positioned.fill(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 16.0),
+                                      child: cat.imageUrl.isNotEmpty
+                                          ? Transform.scale(
+                                              scale: isSelected ? 1.05 : 1.15,
+                                              child: CachedNetworkImage(
+                                                imageUrl: cat.imageUrl,
+                                                fit: BoxFit.contain,
+                                                placeholder: (context, url) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
+                                                errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey),
+                                              ),
+                                            )
+                                          : const Icon(Icons.category, color: Colors.grey, size: 40),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
+                                  const SizedBox(height: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: Text(
+                                      cat.name,
+                                      style: TextStyle(
+                                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                        fontSize: 12,
+                                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                        letterSpacing: -0.1,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
                             ),
                             if (isSelected)
                               Positioned(

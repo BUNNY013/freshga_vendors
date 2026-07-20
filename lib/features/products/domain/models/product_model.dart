@@ -15,6 +15,8 @@ class ProductModel {
   final int stock;
   final List<String> images;
   final String status; // 'In Stock', 'Out of Stock', 'Draft', 'Published'
+  final String state;
+  final bool canSellPanIndia;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -35,6 +37,8 @@ class ProductModel {
     required this.stock,
     required this.images,
     required this.status,
+    this.state = '',
+    this.canSellPanIndia = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -57,6 +61,8 @@ class ProductModel {
       stock: json['stock'] ?? 0,
       images: List<String>.from(json['images'] ?? []),
       status: json['status'] ?? 'Draft',
+      state: json['state'] ?? '',
+      canSellPanIndia: json['canSellPanIndia'] ?? false,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
     );
@@ -80,6 +86,8 @@ class ProductModel {
       'stock': stock,
       'images': images,
       'status': status,
+      'state': state,
+      'canSellPanIndia': canSellPanIndia,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

@@ -142,11 +142,36 @@ class _OrderListTab extends StatelessWidget {
           itemBuilder: (context, index) {
             return OrderCard(
               order: orders[index],
-              onStatusUpdate: (newStatus) {
+              onStatusUpdate: (newStatus, payload) {
+                final order = orders[index];
+                final timeline = List<Map<String, dynamic>>.from(order.timeline);
+                
+                timeline.add({
+                  'status': newStatus,
+                  'time': DateTime.now().toIso8601String(),
+                  if (payload != null && payload.containsKey('shippingProvider'))
+                    'note': 'Shipped via ${payload['shippingProvider']} (Tracking: ${payload['trackingId']})',
+                  if (payload != null && payload.containsKey('rejectionReason'))
+                    'note': 'Reason: ${payload['rejectionReason']}',
+                });
+
+                final updates = <String, dynamic>{
+                  'orderStatus': newStatus,
+                  'timeline': timeline,
+                  'updatedAt': DateTime.now().toIso8601String(),
+                };
+
+                if (payload != null) {
+                  if (payload.containsKey('shippingProvider')) updates['shippingProvider'] = payload['shippingProvider'];
+                  if (payload.containsKey('trackingId')) updates['trackingId'] = payload['trackingId'];
+                  if (payload.containsKey('trackingLink')) updates['trackingLink'] = payload['trackingLink'];
+                  if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
+                }
+
                 FirebaseFirestore.instance
                     .collection('orders')
-                    .doc(orders[index].orderId)
-                    .update({'orderStatus': newStatus});
+                    .doc(order.orderId)
+                    .update(updates);
               },
             );
           },

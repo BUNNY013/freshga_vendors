@@ -93,7 +93,7 @@ class SupplierApplicationModel {
       panNumber: json['panNumber'] ?? '',
       panImage: json['panImage'] ?? '',
       bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
-      status: json['status'] ?? 'pending',
+      status: json['status'] ?? 'draft',
       adminRemarks: json['adminRemarks'] ?? '',
       submittedAt: json['submittedAt'] ?? '',
       verifiedAt: json['verifiedAt'] ?? '',

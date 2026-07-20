@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -15,6 +16,7 @@ class CustomTextField extends StatelessWidget {
   final Function(String)? onChanged;
   final String? prefixText;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -31,6 +33,7 @@ class CustomTextField extends StatelessWidget {
     this.onChanged,
     this.prefixText,
     this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -64,6 +67,7 @@ class CustomTextField extends StatelessWidget {
           maxLines: maxLines,
           maxLength: maxLength,
           readOnly: readOnly,
+          inputFormatters: inputFormatters,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: AppColors.textPrimary,
           ),
@@ -100,6 +104,17 @@ class CustomTextField extends StatelessWidget {
         ),
         const SizedBox(height: 20),
       ],
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

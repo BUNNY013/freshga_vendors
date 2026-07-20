@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../domain/models/order_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../screens/order_details_screen.dart';
 
 class OrderCard extends StatelessWidget {
   final OrderModel order;
-  final Function(String) onStatusUpdate;
+  final Function(String, Map<String, dynamic>?) onStatusUpdate;
 
   const OrderCard({
     super.key,
@@ -15,9 +16,21 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailsScreen(
+              order: order,
+              onStatusUpdate: onStatusUpdate,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -89,8 +102,9 @@ class OrderCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           
-          _buildActionButtons(),
+          _buildActionButtons(context),
         ],
+      ),
       ),
     );
   }
@@ -133,13 +147,38 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     if (order.orderStatus == 'New') {
       return _buildSingleAction("Accept Order", 'Accepted', const Color(0xFF4A90D9));
     } else if (order.orderStatus == 'Accepted') {
       return _buildSingleAction("Prepare & Pack", 'Packed', const Color(0xFFE67E22));
     } else if (order.orderStatus == 'Packed') {
-      return _buildSingleAction("Ship Order", 'Shipped', const Color(0xFF9B59B6));
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {
+            // For packed, navigating to details is better to dispatch,
+            // or just trigger the detail screen dispatch flow directly.
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderDetailsScreen(
+                  order: order,
+                  onStatusUpdate: onStatusUpdate,
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF9B59B6),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text("Dispatch Order", style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      );
     } else if (order.orderStatus == 'Shipped') {
       return _buildSingleAction("Mark Delivered", 'Delivered', const Color(0xFFF39C12));
     }
@@ -151,7 +190,7 @@ class OrderCard extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () => onStatusUpdate(newStatus),
+        onPressed: () => onStatusUpdate(newStatus, null),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,

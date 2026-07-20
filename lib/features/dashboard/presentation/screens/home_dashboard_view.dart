@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../features/store/domain/models/store_model.dart';
+import '../../../../features/store/providers/subscription_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 
 
@@ -76,6 +78,7 @@ class HomeDashboardView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _buildTrialCountdownBanner(context),
                           _buildGreetingHeader(context, store),
                           const SizedBox(height: 16),
                           Padding(
@@ -108,6 +111,55 @@ class HomeDashboardView extends StatelessWidget {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  // 0. Trial Countdown Banner
+  Widget _buildTrialCountdownBanner(BuildContext context) {
+    return Consumer<SubscriptionProvider>(
+      builder: (context, subProvider, _) {
+        final sub = subProvider.currentSubscription;
+        if (sub == null || !sub.isTrialActive || sub.status != 'trialing') return const SizedBox.shrink();
+
+        final daysLeft = sub.trialEndsAt.difference(DateTime.now()).inDays;
+        
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFDE68A), // Light amber
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: Color(0xFFD97706), size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "$daysLeft Days left in Growth Trial",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  // context.push('/subscription-plans');
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  minimumSize: Size.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                child: const Text("Upgrade Now", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
         );
       },
     );

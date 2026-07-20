@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_colors.dart';
 
+import 'package:provider/provider.dart';
+import '../../../providers/store_provider.dart';
+
 class SocialLinksScreen extends StatelessWidget {
   const SocialLinksScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final storeProvider = Provider.of<StoreProvider>(context);
+    final store = storeProvider.store;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -37,7 +43,7 @@ class SocialLinksScreen extends StatelessWidget {
             _buildLabel('Instagram', required: false),
             const SizedBox(height: 8),
             _buildTextField(
-              initialValue: 'https://instagram.com/ammas.secrets',
+              initialValue: store?.instagramLink ?? '',
               hintText: 'Instagram URL',
               icon: Icons.camera_alt,
               iconColor: const Color(0xFFE1306C),
@@ -46,7 +52,7 @@ class SocialLinksScreen extends StatelessWidget {
             _buildLabel('Facebook', required: false),
             const SizedBox(height: 8),
             _buildTextField(
-              initialValue: 'https://facebook.com/ammas.secrets',
+              initialValue: store?.facebookLink ?? '',
               hintText: 'Facebook URL',
               icon: Icons.facebook,
               iconColor: const Color(0xFF1877F2),
@@ -55,7 +61,7 @@ class SocialLinksScreen extends StatelessWidget {
             _buildLabel('YouTube', required: false),
             const SizedBox(height: 8),
             _buildTextField(
-              initialValue: 'https://youtube.com/@ammassecrets',
+              initialValue: store?.youtubeLink ?? '',
               hintText: 'YouTube Channel URL',
               icon: Icons.play_circle_fill,
               iconColor: const Color(0xFFFF0000),

@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../data/models/store_model.dart';
+import '../../../../data/models/delivery_area_model.dart';
 
 class StoreSetupProvider extends ChangeNotifier {
   int _currentStep = 0;
@@ -18,6 +19,13 @@ class StoreSetupProvider extends ChangeNotifier {
   String _state = '';
   String get state => _state;
 
+  String _businessAddress = '';
+  String _village = '';
+  String _district = '';
+  String _pincode = '';
+
+  String _taxRegistrationType = '';
+
   StoreSetupProvider() {
     _fetchVendorLocation();
   }
@@ -28,7 +36,7 @@ class StoreSetupProvider extends ChangeNotifier {
       if (user != null) {
         debugPrint("Fetching location for user: ${user.uid}");
         final querySnapshot = await FirebaseFirestore.instance
-            .collection('supplier_applications')
+            .collection('supplierApplications')
             .where('userId', isEqualTo: user.uid)
             .limit(1)
             .get();
@@ -36,7 +44,12 @@ class StoreSetupProvider extends ChangeNotifier {
           final data = querySnapshot.docs.first.data();
           _city = data['city'] ?? '';
           _state = data['state'] ?? '';
-          debugPrint("Found location: $_city, $_state");
+          _businessAddress = data['businessAddress'] ?? '';
+          _village = data['village'] ?? '';
+          _district = data['district'] ?? '';
+          _pincode = data['pincode'] ?? '';
+          _taxRegistrationType = data['taxRegistrationType'] ?? '';
+          debugPrint("Found location: $_city, $_state, Tax: $_taxRegistrationType");
           notifyListeners();
         } else {
           debugPrint("No supplier application found for user.");
@@ -123,6 +136,7 @@ class StoreSetupProvider extends ChangeNotifier {
 
   void previousStep() {
     if (_currentStep > 0) {
+      _errorMessage = null;
       _currentStep--;
       notifyListeners();
     }
@@ -309,6 +323,10 @@ class StoreSetupProvider extends ChangeNotifier {
         await ref.putFile(_bannerFile!);
         bannerUrl = await ref.getDownloadURL();
       }
+      
+      final bool canSellPanIndia = _taxRegistrationType.trim().toUpperCase() == 'GSTIN' || 
+                                   _taxRegistrationType.trim().toUpperCase() == 'GST' || 
+                                   _taxRegistrationType.trim().toUpperCase().contains('GST');
 
       final store = StoreModel(
         storeId: storeId,
@@ -318,8 +336,13 @@ class StoreSetupProvider extends ChangeNotifier {
         description: _brandStory,
         logo: logoUrl,
         banner: bannerUrl,
+        businessAddress: _businessAddress,
+        village: _village,
         city: _city,
+        district: _district,
         state: _state,
+        pincode: _pincode,
+        country: 'India',
         instagramLink: _instagramLink,
         youtubeLink: _youtubeLink,
         facebookLink: _facebookLink,
@@ -334,13 +357,35 @@ class StoreSetupProvider extends ChangeNotifier {
         verified: true,
         isFeatured: false,
         isActive: true,
-        shippingConfig: {},
+        canSellPanIndia: canSellPanIndia,
+        shippingConfig: {
+          'shippingMode': 'self',
+        },
+        deliveryAreas: DeliveryAreaModel.createDefaultAreas(_state, canSellPanIndia),
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
       );
 
       await FirebaseFirestore.instance.collection('stores').doc(storeId).set(store.toJson());
       
+      // Create the 14-Day Growth Trial Subscription
+      final trialEndsAt = DateTime.now().add(const Duration(days: 14));
+      
+      final subscriptionData = {
+        'storeId': storeId,
+        'status': 'trialing',
+        'currentTier': 'growth',
+        'trialEndsAt': trialEndsAt.toIso8601String(),
+        'currentPeriodEnd': null,
+        'cancelAtPeriodEnd': false,
+        'activeFeatures': ['advanced_analytics', 'verified_badge', 'discount_codes'],
+      };
+
+      await FirebaseFirestore.instance
+          .collection('store_subscriptions')
+          .doc(storeId)
+          .set(subscriptionData);
+
       // Update user doc with storeId
       await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
         'storeId': storeId,

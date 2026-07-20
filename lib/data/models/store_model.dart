@@ -1,3 +1,5 @@
+import 'delivery_area_model.dart';
+
 class StoreModel {
   final String storeId;
   final String ownerId;
@@ -26,15 +28,24 @@ class StoreModel {
   final bool verified;
   final bool isFeatured;
   final bool isActive;
+  final bool canSellPanIndia;
+  
+  // Tax Info
+  final String taxRegistrationType; // 'GSTIN' or 'EnrolmentNumber'
+  final String taxNumber;
   
   // Location
+  final String businessAddress;
+  final String village;
   final String city;
+  final String district;
   final String state;
   final String country;
   final String pincode;
   
   // Shipping
   final Map<String, dynamic> shippingConfig;
+  final List<DeliveryAreaModel> deliveryAreas;
   
   final String createdAt;
   final String updatedAt;
@@ -61,11 +72,18 @@ class StoreModel {
     required this.verified,
     required this.isFeatured,
     required this.isActive,
+    this.canSellPanIndia = false,
+    this.taxRegistrationType = '',
+    this.taxNumber = '',
+    this.businessAddress = '',
+    this.village = '',
     this.city = '',
+    this.district = '',
     this.state = '',
     this.country = '',
     this.pincode = '',
     this.shippingConfig = const {},
+    this.deliveryAreas = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -93,13 +111,20 @@ class StoreModel {
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
+      canSellPanIndia: json['canSellPanIndia'] ?? false,
+      taxRegistrationType: json['taxRegistrationType'] ?? '',
+      taxNumber: json['taxNumber'] ?? '',
+      businessAddress: json['businessAddress'] ?? '',
+      village: json['village'] ?? '',
       city: json['city'] ?? '',
+      district: json['district'] ?? '',
       state: json['state'] ?? '',
       country: json['country'] ?? '',
       pincode: json['pincode'] ?? '',
-      shippingConfig: json['shippingConfig'] != null 
-          ? Map<String, dynamic>.from(json['shippingConfig']) 
-          : const {},
+      shippingConfig: Map<String, dynamic>.from(json['shippingConfig'] ?? {}),
+      deliveryAreas: json['deliveryAreas'] != null 
+          ? (json['deliveryAreas'] as List).map((e) => DeliveryAreaModel.fromJson(e)).toList() 
+          : DeliveryAreaModel.createDefaultAreas(json['state'] ?? '', json['canSellPanIndia'] ?? false),
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
     );
@@ -128,11 +153,18 @@ class StoreModel {
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
+      'canSellPanIndia': canSellPanIndia,
+      'taxRegistrationType': taxRegistrationType,
+      'taxNumber': taxNumber,
+      'businessAddress': businessAddress,
+      'village': village,
       'city': city,
+      'district': district,
       'state': state,
       'country': country,
       'pincode': pincode,
       'shippingConfig': shippingConfig,
+      'deliveryAreas': deliveryAreas.map((e) => e.toJson()).toList(),
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -160,6 +192,7 @@ class StoreModel {
     bool? verified,
     bool? isFeatured,
     bool? isActive,
+    bool? canSellPanIndia,
     String? city,
     String? state,
     String? country,
@@ -190,6 +223,7 @@ class StoreModel {
       verified: verified ?? this.verified,
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
+      canSellPanIndia: canSellPanIndia ?? this.canSellPanIndia,
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
