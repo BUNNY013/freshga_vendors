@@ -424,7 +424,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 _buildStatItem(Icons.favorite, const Color(0xFFFEF2F2), const Color(0xFFEF4444), '${_product.likes}', 'Likes'),
                 _buildStatItem(Icons.inventory_2_outlined, const Color(0xFFFFF7ED), const Color(0xFFF97316), '${_product.totalOrders}', 'Orders'),
                 _buildStatItem(Icons.remove_red_eye_outlined, const Color(0xFFEFF6FF), const Color(0xFF3B82F6), '${_product.likes * 8 + 42}', 'Views'),
-                _buildStatItem(Icons.star_border, const Color(0xFFFEF9C3), const Color(0xFFEAB308), '4.8', 'Rating'),
+                _buildStatItem(Icons.star_border, const Color(0xFFFEF9C3), const Color(0xFFEAB308), _product.rating > 0 ? _product.rating.toStringAsFixed(1) : 'New', 'Rating'),
               ],
             ),
           ),

@@ -84,7 +84,18 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isFetchingPincode = false;
+  bool _isApiFallback = true;
   String? _pincodeError;
+
+  final List<String> _indianStates = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
+    'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 
+    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 
+    'Delhi', 'Lakshadweep', 'Puducherry', 'Jammu and Kashmir', 'Ladakh'
+  ];
 
   @override
   void initState() {
@@ -129,17 +140,19 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
             _cityController.text = rawCity;
             _stateController.text = postOffice['State'] ?? '';
             _pincodeError = null;
+            _isApiFallback = false;
           });
         } else {
           setState(() {
             _pincodeError = "Invalid Pincode";
             _cityController.clear();
             _stateController.clear();
+            _isApiFallback = true;
           });
         }
       }
     } catch (e) {
-      // Silently allow manual entry if API fails
+      if (mounted) setState(() => _isApiFallback = true);
     } finally {
       if (mounted) {
         setState(() => _isFetchingPincode = false);
@@ -160,6 +173,7 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
         _cityController.text = address.city;
         _stateController.text = address.state;
         _pincodeController.text = address.pincode;
+        _isApiFallback = false;
       } else {
         _houseController.clear();
         _areaController.clear();
@@ -167,6 +181,7 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
         _cityController.clear();
         _stateController.clear();
         _pincodeController.clear();
+        _isApiFallback = true;
       }
     });
   }
@@ -636,11 +651,29 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
                         children: [
                           _buildLabel('State', required: true),
                           const SizedBox(height: 8),
-                          _buildTextField(
-                            controller: _stateController, 
-                            hintText: 'State',
-                            validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                          ),
+                          _isApiFallback
+                            ? DropdownButtonFormField<String>(
+                                value: _indianStates.contains(_stateController.text) ? _stateController.text : null,
+                                decoration: InputDecoration(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                ),
+                                hint: const Text('Select State', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+                                items: _indianStates.map((state) {
+                                  return DropdownMenuItem(value: state, child: Text(state, style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A))));
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _stateController.text = val);
+                                },
+                                validator: (val) => val == null || val.isEmpty ? "Required" : null,
+                              )
+                            : _buildTextField(
+                                controller: _stateController, 
+                                hintText: 'State',
+                                readOnly: true,
+                                validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                              ),
                         ],
                       ),
                     ),
@@ -723,9 +756,11 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
       maxLines: maxLines,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,

@@ -5,6 +5,7 @@ import '../../domain/models/order_model.dart';
 import '../widgets/order_card.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
+import 'vendor_issues_screen.dart';
 
 class OrdersListScreen extends StatelessWidget {
   const OrdersListScreen({super.key});
@@ -37,7 +38,7 @@ class OrdersListScreen extends StatelessWidget {
         }
 
         return DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             backgroundColor: AppColors.background,
             appBar: AppBar(
@@ -52,8 +53,23 @@ class OrdersListScreen extends StatelessWidget {
               backgroundColor: Colors.white,
               elevation: 0,
               surfaceTintColor: Colors.transparent,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const VendorIssuesScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
               bottom: const TabBar(
-                isScrollable: true,
+                isScrollable: false,
+                labelPadding: EdgeInsets.zero,
+                labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: -0.3),
+                unselectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: -0.3),
                 labelColor: AppColors.primary,
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.primary,
@@ -61,6 +77,7 @@ class OrdersListScreen extends StatelessWidget {
                 tabs: [
                   Tab(text: 'New'),
                   Tab(text: 'Preparing'),
+                  Tab(text: 'Ready'),
                   Tab(text: 'Shipped'),
                   Tab(text: 'Delivered'),
                 ],
@@ -68,10 +85,11 @@ class OrdersListScreen extends StatelessWidget {
             ),
             body: TabBarView(
               children: [
-                _OrderListTab(storeId: storeId, statusFilter: ['New', 'Accepted']),
-                _OrderListTab(storeId: storeId, statusFilter: ['Packed']),
-                _OrderListTab(storeId: storeId, statusFilter: ['Shipped']),
-                _OrderListTab(storeId: storeId, statusFilter: ['Delivered']),
+                _OrderListTab(storeId: storeId, statusFilter: const ['New']),
+                _OrderListTab(storeId: storeId, statusFilter: const ['Accepted']),
+                _OrderListTab(storeId: storeId, statusFilter: const ['Packed']),
+                _OrderListTab(storeId: storeId, statusFilter: const ['Shipped']),
+                _OrderListTab(storeId: storeId, statusFilter: const ['Delivered']),
               ],
             ),
           ),
@@ -145,14 +163,22 @@ class _OrderListTab extends StatelessWidget {
               onStatusUpdate: (newStatus, payload) {
                 final order = orders[index];
                 final timeline = List<Map<String, dynamic>>.from(order.timeline);
-                
+
+                String? note;
+                if (payload != null && payload.containsKey('shippingMethod')) {
+                  final method = payload['shippingMethod'];
+                  if (method == 'Courier') note = 'Shipped via ${payload['shippingProvider']} (Tracking: ${payload['trackingId']})';
+                  if (method == 'Hyperlocal') note = 'Dispatched via ${payload['shippingProvider']}';
+                  if (method == 'Local Transport') note = 'Sent via ${payload['shippingProvider']} (LR: ${payload['receiptNumber']})';
+                  if (method == 'Self Delivery') note = 'Vendor delivering directly by ${payload['deliveryTime']}';
+                } else if (payload != null && payload.containsKey('rejectionReason')) {
+                  note = 'Reason: ${payload['rejectionReason']}';
+                }
+
                 timeline.add({
                   'status': newStatus,
                   'time': DateTime.now().toIso8601String(),
-                  if (payload != null && payload.containsKey('shippingProvider'))
-                    'note': 'Shipped via ${payload['shippingProvider']} (Tracking: ${payload['trackingId']})',
-                  if (payload != null && payload.containsKey('rejectionReason'))
-                    'note': 'Reason: ${payload['rejectionReason']}',
+                  if (note != null) 'note': note,
                 });
 
                 final updates = <String, dynamic>{
@@ -160,11 +186,8 @@ class _OrderListTab extends StatelessWidget {
                   'timeline': timeline,
                   'updatedAt': DateTime.now().toIso8601String(),
                 };
-
                 if (payload != null) {
-                  if (payload.containsKey('shippingProvider')) updates['shippingProvider'] = payload['shippingProvider'];
-                  if (payload.containsKey('trackingId')) updates['trackingId'] = payload['trackingId'];
-                  if (payload.containsKey('trackingLink')) updates['trackingLink'] = payload['trackingLink'];
+                  if (payload.containsKey('shippingMethod')) updates['shippingDetails'] = payload;
                   if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
                 }
 

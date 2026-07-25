@@ -1343,11 +1343,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.star, color: Colors.amber, size: 14),
-                              SizedBox(width: 4),
-                              Text("4.8 (124)  320+ sold", style: TextStyle(color: AppColors.grey600, fontSize: 12)),
+                              const Icon(Icons.star, color: Colors.amber, size: 14),
+                              const SizedBox(width: 4),
+                              Text(widget.product != null ? "${widget.product!.rating > 0 ? widget.product!.rating.toStringAsFixed(1) : 'New'} (${widget.product!.totalReviews})  ${widget.product!.totalOrders} sold" : "New  0 sold", style: const TextStyle(color: AppColors.grey600, fontSize: 12)),
                             ],
                           ),
                           const SizedBox(height: 4),

@@ -17,6 +17,16 @@ class Step1BasicDetailsScreen extends StatefulWidget {
 
 class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  final List<String> _indianStates = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
+    'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 
+    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 
+    'Delhi', 'Lakshadweep', 'Puducherry', 'Jammu and Kashmir', 'Ladakh'
+  ];
 
   void _nextStep() {
     if (_formKey.currentState!.validate()) {
@@ -158,13 +168,44 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         readOnly: provider.isLocationFetched,
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
-                        label: 'State',
-                        controller: provider.stateController,
-                        hintText: 'Enter state',
-                        readOnly: provider.isLocationFetched,
-                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                      ),
+                      provider.isLocationFetched
+                          ? CustomTextField(
+                              label: 'State',
+                              controller: provider.stateController,
+                              hintText: 'Enter state',
+                              readOnly: true,
+                              validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('State', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  value: _indianStates.contains(provider.stateController.text) ? provider.stateController.text : null,
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                  ),
+                                  hint: const Text('Select State', style: TextStyle(fontSize: 14)),
+                                  items: _indianStates.map((state) {
+                                    return DropdownMenuItem(value: state, child: Text(state, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)));
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        provider.stateController.text = val;
+                                      });
+                                    }
+                                  },
+                                  validator: (val) => val == null || val.isEmpty ? "Required" : null,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
                     ],
                   ),
                 ),

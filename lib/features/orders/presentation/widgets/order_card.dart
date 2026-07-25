@@ -3,6 +3,7 @@ import '../../domain/models/order_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../screens/order_details_screen.dart';
+import 'dispatch_bottom_sheet.dart';
 
 class OrderCard extends StatelessWidget {
   final OrderModel order;
@@ -151,21 +152,23 @@ class OrderCard extends StatelessWidget {
     if (order.orderStatus == 'New') {
       return _buildSingleAction("Accept Order", 'Accepted', const Color(0xFF4A90D9));
     } else if (order.orderStatus == 'Accepted') {
-      return _buildSingleAction("Prepare & Pack", 'Packed', const Color(0xFFE67E22));
+      return _buildSingleAction("Mark as Packed", 'Packed', const Color(0xFFE67E22));
     } else if (order.orderStatus == 'Packed') {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            // For packed, navigating to details is better to dispatch,
-            // or just trigger the detail screen dispatch flow directly.
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderDetailsScreen(
-                  order: order,
-                  onStatusUpdate: onStatusUpdate,
-                ),
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              builder: (context) => DispatchBottomSheet(
+                orderId: order.orderId,
+                onDispatch: (payload) {
+                  Navigator.pop(context);
+                  onStatusUpdate('Shipped', payload);
+                },
               ),
             );
           },

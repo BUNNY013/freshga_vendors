@@ -39,6 +39,7 @@ import '../features/analytics/presentation/screens/ratings_analytics_screen.dart
 import '../features/analytics/presentation/screens/store_views_analytics_screen.dart';
 import '../features/analytics/presentation/screens/seller_health_screen.dart';
 import '../features/analytics/presentation/screens/earnings_payouts_screen.dart';
+import '../features/profile/presentation/screens/customer_feedback_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
@@ -236,6 +237,10 @@ class AppRouter {
       GoRoute(
         path: '/analytics/earnings',
         builder: (context, state) => const EarningsPayoutsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/feedback',
+        builder: (context, state) => const CustomerFeedbackScreen(),
       ),
     ],
     redirect: (context, state) {

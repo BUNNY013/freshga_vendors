@@ -174,6 +174,8 @@ class ProfileScreen extends StatelessWidget {
         children: [
           _buildListTile(Icons.storefront_outlined, "Edit Store Info", () => context.push('/edit-store')),
           _buildDivider(),
+          _buildListTile(Icons.star_outline, "Customer Feedback", () => context.push('/profile/feedback')),
+          _buildDivider(),
           _buildListTile(Icons.account_balance_wallet_outlined, "Bank & Payouts", () {}),
           _buildDivider(),
           _buildListTile(Icons.notifications_outlined, "Notification Settings", () {}),

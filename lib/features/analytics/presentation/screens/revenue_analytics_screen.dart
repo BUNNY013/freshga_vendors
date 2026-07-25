@@ -387,6 +387,8 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
         paymentStatus: 'Paid',
         deliveryAddress: 'Mock Address',
         orderStatus: status,
+        expiresAt: orderDate.add(const Duration(hours: 24)),
+        maxDispatchDate: orderDate.add(const Duration(days: 2)),
         createdAt: orderDate,
         updatedAt: orderDate,
       ));

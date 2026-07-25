@@ -104,6 +104,9 @@ class OnboardingProvider extends ChangeNotifier {
     } else if (text.length != 6) {
       _lastFetchedPincode = '';
       _isLocationFetched = false;
+      if (_error != null) {
+        _error = null;
+      }
       notifyListeners();
     }
   }
@@ -163,6 +166,7 @@ class OnboardingProvider extends ChangeNotifier {
     if (pincode.length != 6) return;
     
     _isLoading = true;
+    _error = null; // Clear previous error
     notifyListeners();
     
     try {
@@ -176,6 +180,7 @@ class OnboardingProvider extends ChangeNotifier {
           districtController.text = postOffice['District'] ?? '';
           stateController.text = postOffice['State'] ?? '';
           _isLocationFetched = true;
+          _error = null;
           _saveDraft();
         } else {
           _error = 'Invalid Pincode';

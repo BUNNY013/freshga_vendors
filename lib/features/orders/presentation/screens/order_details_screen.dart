@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/order_model.dart';
+import '../widgets/dispatch_bottom_sheet.dart';
 
 class OrderDetailsScreen extends StatelessWidget {
   final OrderModel order;
@@ -38,6 +40,10 @@ class OrderDetailsScreen extends StatelessWidget {
             _buildTimelineCard(),
             const SizedBox(height: 16),
             _buildPaymentSummaryCard(),
+            if (order.orderStatus.toLowerCase() == 'delivered') ...[
+              const SizedBox(height: 16),
+              _buildCustomerFeedbackCard(),
+            ],
             const SizedBox(height: 100), // padding for bottom action bar
           ],
         ),
@@ -330,6 +336,103 @@ class OrderDetailsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCustomerFeedbackCard() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('reviews')
+          .where('orderId', isEqualTo: order.orderId)
+          .get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox();
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox();
+        }
+
+        final reviews = snapshot.data!.docs;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.orange.shade200, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Customer Feedback',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...reviews.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final rating = data['rating'] ?? 0;
+                final feedback = data['feedback'] ?? '';
+                final productName = data['productName'] ?? 'Product';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              productName,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
+                          Row(
+                            children: List.generate(5, (index) {
+                              return Icon(
+                                index < rating ? Icons.star : Icons.star_border,
+                                color: index < rating ? Colors.orange : Colors.grey.shade300,
+                                size: 16,
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                      if (feedback.toString().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          "\"$feedback\"",
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSummaryRow(String label, double amount, {bool isDeduction = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -466,73 +569,17 @@ class OrderDetailsScreen extends StatelessWidget {
   }
 
   void _showDispatchSheet(BuildContext context) {
-    final providerController = TextEditingController();
-    final trackingController = TextEditingController();
-    final linkController = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Dispatch Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Provide tracking info so the customer can track their delivery.', style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: providerController,
-              decoration: const InputDecoration(
-                labelText: 'Shipping Provider (e.g., Delhivery, DTDC)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: trackingController,
-              decoration: const InputDecoration(
-                labelText: 'Tracking ID',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: linkController,
-              decoration: const InputDecoration(
-                labelText: 'Tracking Link (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                onStatusUpdate('Shipped', {
-                  'shippingProvider': providerController.text,
-                  'trackingId': trackingController.text,
-                  'trackingLink': linkController.text,
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Mark as Shipped', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+      builder: (context) => DispatchBottomSheet(
+        orderId: order.orderId,
+        onDispatch: (payload) {
+          Navigator.pop(context);
+          onStatusUpdate('Shipped', payload);
+        },
       ),
     );
   }

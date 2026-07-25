@@ -146,5 +146,13 @@ service cloud.firestore {
     match /payouts/{payoutId} {
       allow read, write: if isAuthenticated();
     }
+
+    // =========================
+    // REFUND REQUESTS
+    // =========================
+
+    match /refund_requests/{requestId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }
