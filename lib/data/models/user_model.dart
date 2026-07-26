@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String userId;
   final String role;
@@ -27,8 +29,16 @@ class UserModel {
       isVerified: json['isVerified'] == true || json['isVerified']?.toString().toLowerCase() == 'true',
       isBlocked: json['isBlocked'] == true || json['isBlocked']?.toString().toLowerCase() == 'true',
       storeId: json['storeId'] ?? '',
-      createdAt: json['createdAt'] ?? '',
-      updatedAt: json['updatedAt'] ?? '',
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate().toIso8601String()
+              : json['createdAt'].toString())
+          : '',
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] is Timestamp
+              ? (json['updatedAt'] as Timestamp).toDate().toIso8601String()
+              : json['updatedAt'].toString())
+          : '',
     );
   }
 

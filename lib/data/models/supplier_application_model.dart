@@ -1,42 +1,30 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class SupplierApplicationModel {
   final String applicationId;
   final String userId;
-
   final String fullName;
   final String businessName;
-
   final String phone;
   final String alternatePhone;
   final String email;
-
-  // Tax & Legal Compliance
-  final String taxRegistrationType; // 'GSTIN', 'EnrolmentNumber', 'NeedsHelp'
+  final String taxRegistrationType;
   final String taxNumber;
   final String taxImage;
-
-  final String fssaiStatus; // 'Have', 'NeedsHelp'
-  final String fssaiNumber;
-  final String fssaiCertificateImage;
-
-  final String panNumber;
-  final String panImage;
-
-  // Address
+  final String fssaiStatus;
   final String businessAddress;
   final String village;
   final String city;
   final String district;
   final String state;
   final String pincode;
-
-
-
+  final String fssaiNumber;
+  final String fssaiCertificateImage;
+  final String panNumber;
+  final String panImage;
   final Map<String, dynamic> bankDetails;
-
-  final String status;
-
+  final String status; // 'draft', 'submitted', 'under_review', 'changes_required', 'approved', 'rejected'
   final String adminRemarks;
-
   final String submittedAt;
   final String verifiedAt;
 
@@ -95,8 +83,16 @@ class SupplierApplicationModel {
       bankDetails: Map<String, dynamic>.from(json['bankDetails'] ?? {}),
       status: json['status'] ?? 'draft',
       adminRemarks: json['adminRemarks'] ?? '',
-      submittedAt: json['submittedAt'] ?? '',
-      verifiedAt: json['verifiedAt'] ?? '',
+      submittedAt: json['submittedAt'] != null
+          ? (json['submittedAt'] is Timestamp
+              ? (json['submittedAt'] as Timestamp).toDate().toIso8601String()
+              : json['submittedAt'].toString())
+          : '',
+      verifiedAt: json['verifiedAt'] != null
+          ? (json['verifiedAt'] is Timestamp
+              ? (json['verifiedAt'] as Timestamp).toDate().toIso8601String()
+              : json['verifiedAt'].toString())
+          : '',
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'product_variant_model.dart';
 
 class ProductModel {
@@ -163,8 +164,16 @@ class ProductModel {
       state: json['state'] ?? '',
       canSellPanIndia: json['canSellPanIndia'] ?? false,
       searchKeywords: (json['searchKeywords'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      createdAt: json['createdAt'] as String? ?? DateTime.now().toIso8601String(),
-      updatedAt: json['updatedAt'] as String? ?? DateTime.now().toIso8601String(),
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate().toIso8601String()
+              : json['createdAt'].toString())
+          : DateTime.now().toIso8601String(),
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] is Timestamp
+              ? (json['updatedAt'] as Timestamp).toDate().toIso8601String()
+              : json['updatedAt'].toString())
+          : DateTime.now().toIso8601String(),
     );
   }
 

@@ -6,6 +6,11 @@ class ProductVariantModel {
   final int stock;
   final bool isAvailable;
   final bool isArchived;
+  final bool manageStock;
+  final int weightGrams;
+  final double lengthCm;
+  final double widthCm;
+  final double heightCm;
 
   ProductVariantModel({
     required this.variantId,
@@ -15,6 +20,11 @@ class ProductVariantModel {
     required this.stock,
     required this.isAvailable,
     this.isArchived = false,
+    this.manageStock = false,
+    this.weightGrams = 0,
+    this.lengthCm = 0.0,
+    this.widthCm = 0.0,
+    this.heightCm = 0.0,
   });
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +36,11 @@ class ProductVariantModel {
       stock: json['stock'] ?? 0,
       isAvailable: json['isAvailable'] ?? true,
       isArchived: json['isArchived'] ?? false,
+      manageStock: json['manageStock'] ?? false,
+      weightGrams: json['weightGrams'] ?? 0,
+      lengthCm: (json['lengthCm'] ?? 0.0).toDouble(),
+      widthCm: (json['widthCm'] ?? 0.0).toDouble(),
+      heightCm: (json['heightCm'] ?? 0.0).toDouble(),
     );
   }
 
@@ -38,6 +53,11 @@ class ProductVariantModel {
       'stock': stock,
       'isAvailable': isAvailable,
       'isArchived': isArchived,
+      'manageStock': manageStock,
+      'weightGrams': weightGrams,
+      'lengthCm': lengthCm,
+      'widthCm': widthCm,
+      'heightCm': heightCm,
     };
   }
 
@@ -49,6 +69,11 @@ class ProductVariantModel {
     int? stock,
     bool? isAvailable,
     bool? isArchived,
+    bool? manageStock,
+    int? weightGrams,
+    double? lengthCm,
+    double? widthCm,
+    double? heightCm,
   }) {
     return ProductVariantModel(
       variantId: variantId ?? this.variantId,
@@ -58,6 +83,11 @@ class ProductVariantModel {
       stock: stock ?? this.stock,
       isAvailable: isAvailable ?? this.isAvailable,
       isArchived: isArchived ?? this.isArchived,
+      manageStock: manageStock ?? this.manageStock,
+      weightGrams: weightGrams ?? this.weightGrams,
+      lengthCm: lengthCm ?? this.lengthCm,
+      widthCm: widthCm ?? this.widthCm,
+      heightCm: heightCm ?? this.heightCm,
     );
   }
 }

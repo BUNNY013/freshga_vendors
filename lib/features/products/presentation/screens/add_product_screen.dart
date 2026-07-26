@@ -59,7 +59,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
   List<ProductVariantModel> _packSizes = [];
   List<String> _ingredients = [];
   String _storageInstructions = '';
-  bool _showStock = true;
+  bool _showStock = false;
 
   // Form Keys
   final _formDetails = GlobalKey<FormState>();
@@ -128,13 +128,6 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       if (_subCategoryIds.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one sub category')));
         return;
-      }
-      if (_formDetails.currentState != null) {
-        if (!_formDetails.currentState!.validate()) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields')));
-          return;
-        }
-        _formDetails.currentState!.save();
       }
     } else if (_currentPage == 2) {
       // Final submission validation
@@ -663,6 +656,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Form(
         key: _formDetails,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -876,7 +870,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader("Pack Sizes & Prices", trailingWidget: GestureDetector(
-          onTap: _openAddPackSheet,
+          onTap: () => _openAddPackSheet(),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(20)),
@@ -893,55 +887,122 @@ class _AddProductWizardState extends State<_AddProductWizard> {
         if (_packSizes.isEmpty)
           const Text("Please add at least one pack size.", style: TextStyle(color: Colors.red, fontSize: 13)),
           
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _packSizes.asMap().entries.map((entry) {
-              int index = entry.key;
-              ProductVariantModel pack = entry.value;
-              return Container(
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E7EB))),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _packSizes.removeAt(index)),
-                        child: const Icon(Icons.delete_outline, color: AppColors.grey500, size: 20),
+        Column(
+          children: _packSizes.asMap().entries.map((entry) {
+            int index = entry.key;
+            ProductVariantModel pack = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(pack.label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                          if (pack.discountPrice > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text(
+                                "${(((pack.price - pack.discountPrice) / pack.price) * 100).toInt()}% OFF", 
+                                style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 11)
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _openAddPackSheet(pack: pack, editIndex: index),
+                            child: const Icon(Icons.edit_outlined, color: AppColors.grey500, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () => setState(() => _packSizes.removeAt(index)),
+                            child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Selling Price", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text("₹${pack.discountPrice > 0 ? pack.discountPrice.toInt() : pack.price.toInt()}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                if (pack.discountPrice > 0) ...[
+                                  const SizedBox(width: 6),
+                                  Text("₹${pack.price.toInt()}", style: const TextStyle(color: AppColors.grey400, fontSize: 12, decoration: TextDecoration.lineThrough)),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 30, color: const Color(0xFFE5E7EB)),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Inventory", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text(pack.manageStock ? "${pack.stock} in stock" : "Unlimited", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(8)),
+                    child: Row(
                       children: [
-                        Text(pack.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        Text("₹${pack.price.toInt()}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Icon(Icons.local_shipping_outlined, size: 16, color: AppColors.grey600),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text("Weight: ${pack.weightGrams}g  |  Size: ${pack.lengthCm}x${pack.widthCm}x${pack.heightCm} cm", style: const TextStyle(color: AppColors.grey600, fontSize: 12))),
                       ],
                     ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text("Stock: ${pack.stock}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: () {}, // Future Edit feature
-                          child: const Icon(Icons.edit_outlined, color: AppColors.grey400, size: 16),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
         
         const SizedBox(height: 12),
@@ -961,17 +1022,39 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     );
   }
 
-  void _openAddPackSheet() {
-    final qtyCtrl = TextEditingController();
-    String selectedUnit = 'g';
-    final priceCtrl = TextEditingController();
-    final discountCtrl = TextEditingController();
-    final stockCtrl = TextEditingController();
+  void _openAddPackSheet({ProductVariantModel? pack, int? editIndex}) {
+    String parsedQty = '';
+    String parsedUnit = 'g';
+    if (pack != null) {
+      if (pack.label.endsWith(' pcs')) { parsedUnit = 'pcs'; parsedQty = pack.label.replaceAll(' pcs', ''); }
+      else if (pack.label.endsWith(' pack')) { parsedUnit = 'pack'; parsedQty = pack.label.replaceAll(' pack', ''); }
+      else if (pack.label.endsWith('kg')) { parsedUnit = 'kg'; parsedQty = pack.label.replaceAll('kg', ''); }
+      else if (pack.label.endsWith('ml')) { parsedUnit = 'ml'; parsedQty = pack.label.replaceAll('ml', ''); }
+      else if (pack.label.endsWith('L')) { parsedUnit = 'L'; parsedQty = pack.label.replaceAll('L', ''); }
+      else if (pack.label.endsWith('g')) { parsedUnit = 'g'; parsedQty = pack.label.replaceAll('g', ''); }
+    }
+
+    final qtyCtrl = TextEditingController(text: parsedQty);
+    String selectedUnit = parsedUnit;
+    final priceCtrl = TextEditingController(text: pack?.price.toInt().toString() ?? '');
+    final discountCtrl = TextEditingController(text: pack != null && pack.discountPrice > 0 ? pack.discountPrice.toInt().toString() : '');
+    
+    // Inventory
+    bool manageStock = pack?.manageStock ?? false;
+    final stockCtrl = TextEditingController(text: manageStock ? pack!.stock.toString() : '');
+    
+    // Logistics (Shiprocket)
+    final weightCtrl = TextEditingController(text: pack?.weightGrams.toString() ?? '');
+    final lengthCtrl = TextEditingController(text: pack?.lengthCm.toInt().toString() ?? '');
+    final widthCtrl = TextEditingController(text: pack?.widthCm.toInt().toString() ?? '');
+    final heightCtrl = TextEditingController(text: pack?.heightCm.toInt().toString() ?? '');
 
     String? qtyError;
     String? priceError;
     String? discountError;
     String? stockError;
+    String? weightError;
+    String? dimError;
 
     showModalBottomSheet(
       context: context,
@@ -980,159 +1063,271 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Add New Pack Size", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
-                _buildLabel("Pack Size", required: true),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextField(
-                        controller: qtyCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*'))],
-                        decoration: _premiumInputDecoration("e.g., 250, 1, 6").copyWith(errorText: qtyError),
-                        onChanged: (_) => setSheetState(() => qtyError = null),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 1,
-                      child: DropdownButtonFormField<String>(
-                        value: selectedUnit,
-                        decoration: _premiumInputDecoration(""),
-                        items: ['g', 'kg', 'ml', 'L', 'pcs', 'pack']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500))))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) setSheetState(() => selectedUnit = val);
-                        },
-                      ),
-                    ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.only(top: 24, bottom: 16),
+                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel("Price (₹)", required: true),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Align(alignment: Alignment.centerLeft, child: Text("Add New Pack Size", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 24, left: 24, right: 24, top: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel("Pack Size", required: true),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: qtyCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*'))],
+                                decoration: _premiumInputDecoration("e.g., 250, 1, 6").copyWith(errorText: qtyError),
+                                onChanged: (_) => setSheetState(() => qtyError = null),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 1,
+                              child: DropdownButtonFormField<String>(
+                                value: selectedUnit,
+                                decoration: _premiumInputDecoration(""),
+                                items: ['g', 'kg', 'ml', 'L', 'pcs', 'pack']
+                                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500))))
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) setSheetState(() => selectedUnit = val);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Price (₹)", required: true),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: priceCtrl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                                    decoration: _premiumInputDecoration("0").copyWith(errorText: priceError),
+                                    onChanged: (_) => setSheetState(() => priceError = null),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Discount Price (₹)"),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: discountCtrl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                                    decoration: _premiumInputDecoration("Optional").copyWith(errorText: discountError),
+                                    onChanged: (_) => setSheetState(() => discountError = null),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Divider(),
+                        ),
+                        
+                        // Inventory Section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Track Inventory", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Switch(
+                              value: manageStock,
+                              activeColor: AppColors.primary,
+                              onChanged: (val) => setSheetState(() => manageStock = val),
+                            ),
+                          ],
+                        ),
+                        const Text("If disabled, customers can buy unlimited quantities.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        
+                        if (manageStock) ...[
+                          const SizedBox(height: 16),
+                          _buildLabel("Stock Quantity", required: true),
                           const SizedBox(height: 8),
                           TextField(
-                            controller: priceCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                            decoration: _premiumInputDecoration("0").copyWith(errorText: priceError),
-                            onChanged: (_) => setSheetState(() => priceError = null),
+                            controller: stockCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: _premiumInputDecoration("e.g. 50").copyWith(errorText: stockError),
+                            onChanged: (_) => setSheetState(() => stockError = null),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel("Discount Price (₹)"),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: discountCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                            decoration: _premiumInputDecoration("Optional").copyWith(errorText: discountError),
-                            onChanged: (_) => setSheetState(() => discountError = null),
+                        
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Divider(),
+                        ),
+                        
+                        // Logistics (Shiprocket) Section
+                        const Text("Shipping Dimensions (Required)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text("Enter the packed weight & size of this variant to calculate accurate shipping fees.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        const SizedBox(height: 16),
+                        
+                        _buildLabel("Actual Weight (grams)", required: true),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: weightCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: _premiumInputDecoration("e.g. 250").copyWith(errorText: weightError),
+                          onChanged: (_) => setSheetState(() => weightError = null),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        _buildLabel("Box Dimensions (cm)", required: true),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: lengthCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: _premiumInputDecoration("L").copyWith(errorText: dimError),
+                                onChanged: (_) => setSheetState(() => dimError = null),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: widthCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: _premiumInputDecoration("W").copyWith(errorText: dimError),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: heightCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: _premiumInputDecoration("H").copyWith(errorText: dimError),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onPressed: () {
+                            bool isValid = true;
+                            setSheetState(() {
+                              if (qtyCtrl.text.isEmpty) {
+                                qtyError = "Required";
+                                isValid = false;
+                              }
+                              
+                              double? price = double.tryParse(priceCtrl.text);
+                              if (price == null || price <= 0) {
+                                priceError = "Invalid price";
+                                isValid = false;
+                              }
+
+                              double? discount = double.tryParse(discountCtrl.text);
+                              if (discountCtrl.text.isNotEmpty) {
+                                if (discount == null || discount <= 0) {
+                                  discountError = "Invalid";
+                                  isValid = false;
+                                } else if (price != null && discount >= price) {
+                                  discountError = "Must be < price";
+                                  isValid = false;
+                                }
+                              }
+
+                              if (manageStock) {
+                                if (stockCtrl.text.isEmpty || int.tryParse(stockCtrl.text) == null) {
+                                  stockError = "Required for tracking";
+                                  isValid = false;
+                                }
+                              }
+                              
+                              if (weightCtrl.text.isEmpty || int.tryParse(weightCtrl.text) == null) {
+                                weightError = "Required";
+                                isValid = false;
+                              }
+                              
+                              if (lengthCtrl.text.isEmpty || widthCtrl.text.isEmpty || heightCtrl.text.isEmpty) {
+                                dimError = "Required";
+                                isValid = false;
+                              }
+                            });
+
+                            if (!isValid) return;
+                            
+                            String formattedLabel = qtyCtrl.text.trim();
+                            if (selectedUnit == 'pcs' || selectedUnit == 'pack') {
+                              formattedLabel += ' $selectedUnit';
+                            } else {
+                              formattedLabel += selectedUnit;
+                            }
+
+                            setState(() {
+                              final newPack = ProductVariantModel(
+                                variantId: pack?.variantId ?? const Uuid().v4(),
+                                label: formattedLabel,
+                                price: double.parse(priceCtrl.text),
+                                discountPrice: double.tryParse(discountCtrl.text) ?? 0,
+                                stock: int.tryParse(stockCtrl.text) ?? 0,
+                                isAvailable: true,
+                                manageStock: manageStock,
+                                weightGrams: int.parse(weightCtrl.text),
+                                lengthCm: double.parse(lengthCtrl.text),
+                                widthCm: double.parse(widthCtrl.text),
+                                heightCm: double.parse(heightCtrl.text),
+                              );
+                              if (editIndex != null) {
+                                _packSizes[editIndex] = newPack;
+                              } else {
+                                _packSizes.add(newPack);
+                              }
+                            });
+                            context.pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 56),
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                        ],
-                      ),
+                          child: const Text("Save Pack Size", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildLabel("Stock Quantity"),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: stockCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: _premiumInputDecoration("e.g. 50 (Optional)").copyWith(errorText: stockError),
-                  onChanged: (_) => setSheetState(() => stockError = null),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () {
-                    bool isValid = true;
-                    setSheetState(() {
-                      if (qtyCtrl.text.isEmpty) {
-                        qtyError = "Required";
-                        isValid = false;
-                      }
-                      
-                      double? price = double.tryParse(priceCtrl.text);
-                      if (price == null || price <= 0) {
-                        priceError = "Invalid price";
-                        isValid = false;
-                      }
-
-                      double? discount = double.tryParse(discountCtrl.text);
-                      if (discountCtrl.text.isNotEmpty) {
-                        if (discount == null || discount <= 0) {
-                          discountError = "Invalid";
-                          isValid = false;
-                        } else if (price != null && discount >= price) {
-                          discountError = "Must be < price";
-                          isValid = false;
-                        }
-                      }
-
-                      if (stockCtrl.text.isNotEmpty && int.tryParse(stockCtrl.text) == null) {
-                        stockError = "Invalid";
-                        isValid = false;
-                      }
-                    });
-
-                    if (!isValid) return;
-                    
-                    String formattedLabel = qtyCtrl.text.trim();
-                    if (selectedUnit == 'pcs' || selectedUnit == 'pack') {
-                      formattedLabel += ' $selectedUnit';
-                    } else {
-                      formattedLabel += selectedUnit;
-                    }
-
-                    setState(() {
-                      _packSizes.add(ProductVariantModel(
-                        variantId: const Uuid().v4(),
-                        label: formattedLabel,
-                        price: double.parse(priceCtrl.text),
-                        discountPrice: double.tryParse(discountCtrl.text) ?? 0,
-                        stock: int.tryParse(stockCtrl.text) ?? 0,
-                        isAvailable: true,
-                      ));
-                    });
-                    context.pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text("Save Pack Size", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
                 ),
-                const SizedBox(height: 32),
               ],
             ),
           );
@@ -1145,7 +1340,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("Ingredients"),
+        _buildLabel("Ingredients (Optional)"),
         const SizedBox(height: 8),
         TextFormField(
           controller: _ingredientCtrl,
@@ -1183,81 +1378,67 @@ class _AddProductWizardState extends State<_AddProductWizard> {
         ],
         
         const SizedBox(height: 16),
+        _buildLabel("Dispatch Time", required: true),
+        const SizedBox(height: 2),
+        const Text("Time taken to prepare and handover to delivery partner.", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+        const SizedBox(height: 8),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel("Dispatch Time"),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          initialValue: _dispatchTimeQty,
-                          keyboardType: TextInputType.number,
-                          decoration: _premiumInputDecoration("e.g. 2").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
-                          onChanged: (val) => _dispatchTimeQty = val,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 1,
-                        child: DropdownButtonFormField<String>(
-                          value: _dispatchTimeUnit,
-                          decoration: _premiumInputDecoration("").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16)),
-                          isExpanded: true,
-                          items: ['Hours', 'Days', 'Weeks'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
-                          onChanged: (val) => setState(() => _dispatchTimeUnit = val ?? 'Days'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              flex: 1,
+              child: TextFormField(
+                initialValue: _dispatchTimeQty,
+                keyboardType: TextInputType.number,
+                decoration: _premiumInputDecoration("e.g. 2").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
+                onChanged: (val) => _dispatchTimeQty = val,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel("Shelf Life"),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          initialValue: _shelfLifeQty,
-                          keyboardType: TextInputType.number,
-                          decoration: _premiumInputDecoration("e.g. 3").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
-                          onChanged: (val) => _shelfLifeQty = val,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 1,
-                        child: DropdownButtonFormField<String>(
-                          value: _shelfLifeUnit,
-                          decoration: _premiumInputDecoration("").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16)),
-                          isExpanded: true,
-                          items: ['Days', 'Weeks', 'Months', 'Years'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
-                          onChanged: (val) => setState(() => _shelfLifeUnit = val ?? 'Months'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              flex: 1,
+              child: DropdownButtonFormField<String>(
+                value: _dispatchTimeUnit,
+                decoration: _premiumInputDecoration("").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16)),
+                isExpanded: true,
+                items: ['Hours', 'Days', 'Weeks'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
+                onChanged: (val) => setState(() => _dispatchTimeUnit = val ?? 'Days'),
               ),
             ),
           ],
         ),
 
         const SizedBox(height: 16),
-        _buildLabel("Storage Instructions"),
+        _buildLabel("Shelf Life", required: true),
+        const SizedBox(height: 2),
+        const Text("How long the product stays fresh from the day it is prepared.", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: TextFormField(
+                initialValue: _shelfLifeQty,
+                keyboardType: TextInputType.number,
+                decoration: _premiumInputDecoration("e.g. 3").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
+                onChanged: (val) => _shelfLifeQty = val,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 1,
+              child: DropdownButtonFormField<String>(
+                value: _shelfLifeUnit,
+                decoration: _premiumInputDecoration("").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16)),
+                isExpanded: true,
+                items: ['Days', 'Weeks', 'Months', 'Years'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
+                onChanged: (val) => setState(() => _shelfLifeUnit = val ?? 'Months'),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+        _buildLabel("Storage Instructions (Optional)"),
         const SizedBox(height: 8),
         TextFormField(
           initialValue: _storageInstructions,
@@ -1266,30 +1447,6 @@ class _AddProductWizardState extends State<_AddProductWizard> {
           onChanged: (val) => _storageInstructions = val,
         ),
         
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(12)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Show stock count to customers", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14)),
-                  SizedBox(height: 2),
-                  Text("Increases transparency and urgency", style: TextStyle(fontSize: 12, color: AppColors.grey500)),
-                ],
-              ),
-              Switch(
-                value: _showStock,
-                onChanged: (val) => setState(() => _showStock = val),
-                activeColor: Colors.white,
-                activeTrackColor: AppColors.primary,
-              )
-            ],
-          ),
-        )
       ],
     );
   }
@@ -1410,7 +1567,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
 
   void _handleSubmission(String targetStatus) async {
     // Validate current page if we are on details
-    if (_currentPage == 1 && _formDetails.currentState != null) {
+    if (_currentPage == 2 && _formDetails.currentState != null) {
       if (!_formDetails.currentState!.validate()) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields in Product Details')));
         return;

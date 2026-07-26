@@ -79,6 +79,7 @@ class HomeDashboardView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildTrialCountdownBanner(context),
+                          if (store.isSuspended) _buildSuspensionBanner(context),
                           _buildGreetingHeader(context, store),
                           const SizedBox(height: 16),
                           Padding(
@@ -162,6 +163,50 @@ class HomeDashboardView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSuspensionBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFECACA), width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.gavel_rounded, color: Color(0xFFDC2626), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  "Store Suspended by Platform Policy",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF991B1B),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Your store is temporarily offline and cannot accept new orders. You can still fulfill existing pending orders. Contact Admin Support for reinstatement.",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFB91C1C),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -252,27 +297,48 @@ class HomeDashboardView extends StatelessWidget {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: store.isActive ? Colors.green : Colors.red,
+                      color: store.isSuspended
+                          ? Colors.red.shade900
+                          : (store.isActive ? Colors.green : Colors.red),
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    store.isActive ? "Store is Open" : "Store is Paused",
+                    store.isSuspended
+                        ? "Store Suspended by Admin"
+                        : (store.isActive ? "Store is Open" : "Store is Paused"),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: store.isActive ? Colors.green.shade700 : Colors.red.shade700,
+                      color: store.isSuspended
+                          ? Colors.red.shade900
+                          : (store.isActive ? Colors.green.shade700 : Colors.red.shade700),
                     ),
                   ),
                 ],
               ),
               Switch(
-                value: store.isActive,
+                value: store.isActive && !store.isSuspended,
                 activeColor: Colors.green,
-                onChanged: (val) {
-                  FirebaseFirestore.instance.collection('stores').doc(store.storeId).update({'isActive': val});
-                },
+                onChanged: store.isSuspended
+                    ? (val) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.red,
+                            content: Text(
+                              "Your store is suspended by Admin due to platform policy. Contact Support for reinstatement.",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      }
+                    : (val) {
+                        FirebaseFirestore.instance
+                            .collection('stores')
+                            .doc(store.storeId)
+                            .update({'isActive': val});
+                      },
               ),
             ],
           ),

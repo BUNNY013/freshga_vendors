@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class VendorSubscriptionModel {
   final String storeId;
   final String status; // 'trialing', 'active', 'past_due', 'canceled', 'expired'
@@ -5,7 +7,7 @@ class VendorSubscriptionModel {
   final DateTime trialEndsAt;
   final DateTime? currentPeriodEnd;
   final bool cancelAtPeriodEnd;
-  final List<String> activeFeatures; 
+  final List<String> activeFeatures;
 
   VendorSubscriptionModel({
     required this.storeId,
@@ -23,10 +25,14 @@ class VendorSubscriptionModel {
       status: json['status'] ?? 'expired',
       currentTier: json['currentTier'] ?? 'basic',
       trialEndsAt: json['trialEndsAt'] != null 
-          ? DateTime.parse(json['trialEndsAt']) 
+          ? (json['trialEndsAt'] is Timestamp 
+              ? (json['trialEndsAt'] as Timestamp).toDate() 
+              : DateTime.parse(json['trialEndsAt'].toString())) 
           : DateTime.now().subtract(const Duration(days: 1)),
       currentPeriodEnd: json['currentPeriodEnd'] != null 
-          ? DateTime.parse(json['currentPeriodEnd']) 
+          ? (json['currentPeriodEnd'] is Timestamp 
+              ? (json['currentPeriodEnd'] as Timestamp).toDate() 
+              : DateTime.parse(json['currentPeriodEnd'].toString())) 
           : null,
       cancelAtPeriodEnd: json['cancelAtPeriodEnd'] ?? false,
       activeFeatures: List<String>.from(json['activeFeatures'] ?? []),

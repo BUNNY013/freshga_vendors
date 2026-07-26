@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ProductModel {
   final String productId;
   final String storeId;
@@ -63,8 +65,16 @@ class ProductModel {
       status: json['status'] ?? 'Draft',
       state: json['state'] ?? '',
       canSellPanIndia: json['canSellPanIndia'] ?? false,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate()
+              : DateTime.parse(json['createdAt'].toString()))
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] is Timestamp
+              ? (json['updatedAt'] as Timestamp).toDate()
+              : DateTime.parse(json['updatedAt'].toString()))
+          : DateTime.now(),
     );
   }
 

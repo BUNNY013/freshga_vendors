@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../data/models/delivery_area_model.dart';
 
 class StoreModel {
@@ -19,7 +20,11 @@ class StoreModel {
   final bool verified;
   final bool isFeatured;
   final bool isActive;
+  final String status; // 'Active', 'Pending', 'Suspended'
   final bool canSellPanIndia;
+
+  bool get isSuspended => status.toLowerCase() == 'suspended';
+
   final String dispatchTime;
   final String city;
   final String state;
@@ -49,6 +54,7 @@ class StoreModel {
     this.verified = false,
     this.isFeatured = false,
     this.isActive = true,
+    this.status = 'Active',
     this.canSellPanIndia = false,
     required this.dispatchTime,
     this.city = '',
@@ -81,6 +87,7 @@ class StoreModel {
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
+      status: json['status'] ?? 'Active',
       canSellPanIndia: json['canSellPanIndia'] ?? false,
       dispatchTime: json['dispatchTime'] ?? '24 hours',
       city: json['city'] ?? '',
@@ -92,10 +99,14 @@ class StoreModel {
           ? (json['deliveryAreas'] as List).map((e) => DeliveryAreaModel.fromJson(e)).toList() 
           : DeliveryAreaModel.createDefaultAreas(json['state'] ?? '', json['canSellPanIndia'] ?? false),
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate()
+              : DateTime.parse(json['createdAt'].toString()))
           : DateTime.now(),
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? (json['updatedAt'] is Timestamp
+              ? (json['updatedAt'] as Timestamp).toDate()
+              : DateTime.parse(json['updatedAt'].toString()))
           : DateTime.now(),
     );
   }
@@ -120,6 +131,7 @@ class StoreModel {
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
+      'status': status,
       'canSellPanIndia': canSellPanIndia,
       'dispatchTime': dispatchTime,
       'city': city,

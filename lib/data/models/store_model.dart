@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'delivery_area_model.dart';
 
 class StoreModel {
@@ -28,6 +29,8 @@ class StoreModel {
   final bool verified;
   final bool isFeatured;
   final bool isActive;
+  final String status;
+  bool get isSuspended => status.toLowerCase() == 'suspended';
   final bool canSellPanIndia;
   
   // Tax Info
@@ -72,6 +75,7 @@ class StoreModel {
     required this.verified,
     required this.isFeatured,
     required this.isActive,
+    this.status = 'Active',
     this.canSellPanIndia = false,
     this.taxRegistrationType = '',
     this.taxNumber = '',
@@ -111,6 +115,7 @@ class StoreModel {
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
+      status: json['status'] ?? 'Active',
       canSellPanIndia: json['canSellPanIndia'] ?? false,
       taxRegistrationType: json['taxRegistrationType'] ?? '',
       taxNumber: json['taxNumber'] ?? '',
@@ -125,8 +130,16 @@ class StoreModel {
       deliveryAreas: json['deliveryAreas'] != null 
           ? (json['deliveryAreas'] as List).map((e) => DeliveryAreaModel.fromJson(e)).toList() 
           : DeliveryAreaModel.createDefaultAreas(json['state'] ?? '', json['canSellPanIndia'] ?? false),
-      createdAt: json['createdAt'] ?? '',
-      updatedAt: json['updatedAt'] ?? '',
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] is Timestamp
+              ? (json['createdAt'] as Timestamp).toDate().toIso8601String()
+              : json['createdAt'].toString())
+          : '',
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] is Timestamp
+              ? (json['updatedAt'] as Timestamp).toDate().toIso8601String()
+              : json['updatedAt'].toString())
+          : '',
     );
   }
 
@@ -153,6 +166,7 @@ class StoreModel {
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
+      'status': status,
       'canSellPanIndia': canSellPanIndia,
       'taxRegistrationType': taxRegistrationType,
       'taxNumber': taxNumber,
@@ -192,6 +206,7 @@ class StoreModel {
     bool? verified,
     bool? isFeatured,
     bool? isActive,
+    String? status,
     bool? canSellPanIndia,
     String? city,
     String? state,
@@ -223,6 +238,7 @@ class StoreModel {
       verified: verified ?? this.verified,
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
       canSellPanIndia: canSellPanIndia ?? this.canSellPanIndia,
       city: city ?? this.city,
       state: state ?? this.state,

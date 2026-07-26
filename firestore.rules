@@ -154,5 +154,13 @@ service cloud.firestore {
     match /refund_requests/{requestId} {
       allow read, write: if isAuthenticated();
     }
+
+    // =========================
+    // REPORTS & MODERATION
+    // =========================
+
+    match /reports/{reportId} {
+      allow read, write: if true; // Allows customers to submit store/product reports & Admin to moderate
+    }
   }
 }
