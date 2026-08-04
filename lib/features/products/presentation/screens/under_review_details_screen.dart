@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
-import '../widgets/product_preview_sheet.dart';
 
 enum _StepState { completed, active, pending }
 
@@ -61,35 +60,43 @@ class UnderReviewDetailsScreen extends StatelessWidget {
     }
   }
 
-  void _handleWithdraw(BuildContext context) async {
-    final provider = context.read<ProductProvider>();
-    final success = await provider.withdrawSubmission(product);
-    if (context.mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submission withdrawn successfully.')));
-        context.pop();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${provider.errorMessage}')));
-      }
+  void _safePop(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/dashboard');
     }
   }
 
-  void _handleDelete(BuildContext context) async {
+  void _handleWithdrawSubmission(BuildContext context) async {
     final bool isUpdate = product.status == 'Update Under Review' || product.status == 'Live + Update Pending';
-    final title = isUpdate ? 'Discard Update?' : 'Delete Submission?';
-    final content = isUpdate ? 'Are you sure you want to discard this pending update? Your live product will remain unchanged.' : 'Are you sure you want to delete this completely? This action cannot be undone.';
-    
+    final title = isUpdate ? 'Withdraw Pending Update?' : 'Withdraw Review Submission?';
+    final content = isUpdate
+        ? 'Are you sure you want to withdraw this pending update? Your live product will remain active on the store without changes.'
+        : 'Are you sure you want to withdraw this submission from the review queue? You can edit and resubmit anytime.';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(content, style: const TextStyle(height: 1.4, color: Color(0xFF475569))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(c, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: Text(isUpdate ? 'Discard' : 'Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Withdraw', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -97,19 +104,20 @@ class UnderReviewDetailsScreen extends StatelessWidget {
 
     if (confirm == true && context.mounted) {
       final provider = context.read<ProductProvider>();
-      
-      bool success = false;
-      if (isUpdate) {
-        success = await provider.withdrawSubmission(product);
-      } else {
-        success = await provider.deleteProduct(product.productId);
-      }
-
+      final success = await provider.withdrawSubmission(product);
       if (context.mounted) {
         if (success) {
-          context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Submission withdrawn successfully. Ready for new edits! ⚡'),
+              backgroundColor: Color(0xFF16A34A),
+            ),
+          );
+          _safePop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${provider.errorMessage}')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed: ${provider.errorMessage}')),
+          );
         }
       }
     }
@@ -126,7 +134,7 @@ class UnderReviewDetailsScreen extends StatelessWidget {
         titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
+          onPressed: () => _safePop(context),
         ),
         title: const Text(
           'Under Review Details',
@@ -143,10 +151,17 @@ class UnderReviewDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildLiveReassuranceBanner(),
                 _buildHeaderCard(),
+                const SizedBox(height: 24),
+
+                _buildSubmittedScopeCard(context),
                 const SizedBox(height: 24),
                 
                 _buildVerticalTimelineStepper(),
+                const SizedBox(height: 24),
+
+                _buildAuditChecklistCard(),
                 const SizedBox(height: 24),
 
                 _buildWhatHappensNextCard(),
@@ -559,37 +574,23 @@ class UnderReviewDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFED7AA)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.lightbulb_outline, color: Colors.orange),
-              const SizedBox(width: 12),
-              const Text('Need to make changes?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              Icon(Icons.lightbulb_outline, color: Color(0xFFEA580C)),
+              SizedBox(width: 12),
+              Text('Need to make changes?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF9A3412))),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'If you want to update something, withdraw this submission first, make changes, and resubmit.',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13, height: 1.4),
+            'If you want to update something while in review, withdraw this submission using the button below, make your changes, and resubmit.',
+            style: TextStyle(color: Colors.grey.shade800, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _handleWithdraw(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange.shade800,
-                side: BorderSide(color: Colors.orange.shade300),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                backgroundColor: Colors.white,
-              ),
-              child: const Text('Withdraw Submission', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          )
         ],
       ),
     );
@@ -619,33 +620,618 @@ class UnderReviewDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildBottomActions(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => ProductPreviewSheet.show(context, product),
-            icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
-            label: const Text('Preview Product'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.green.shade700,
-              side: BorderSide(color: Colors.green.shade300),
+        const Row(
+          children: [
+            Icon(Icons.info_outline, size: 18, color: Color(0xFF64748B)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Need to edit or cancel this review request?',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF334155)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _handleWithdrawSubmission(context),
+            icon: const Icon(Icons.undo_rounded, size: 20),
+            label: const Text(
+              'Withdraw Submission',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            style: ElevatedButton.styleFrom(
+              foregroundColor: const Color(0xFF9A3412),
+              backgroundColor: const Color(0xFFFFEDD5),
+              elevation: 0,
+              side: const BorderSide(color: Color(0xFFFDBA74), width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _handleDelete(context),
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Delete Submission'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red.shade700,
-              side: BorderSide(color: Colors.red.shade300),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ],
+    );
+  }
+
+  Widget _buildLiveReassuranceBanner() {
+    final bool isUpdate = product.status == 'Update Under Review' || product.status == 'Live + Update Pending';
+    if (!isUpdate) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFA7F3D0), width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+            child: const Icon(Icons.check, color: Colors.white, size: 14),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🟢 Live on Store',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065F46), fontSize: 14),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Your current approved version remains active and shoppable for customers while this update is audited.',
+                  style: TextStyle(color: Color(0xFF047857), fontSize: 12, height: 1.4),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmittedScopeCard(BuildContext context) {
+    final bool isUpdate = product.status == 'Update Under Review' || 
+                          product.status == 'Live + Update Pending' || 
+                          product.lastApprovedAt != null;
+
+    if (isUpdate) {
+      return _buildUpdateDiffCard(context);
+    } else {
+      return _buildNewProductDossierCard(context);
+    }
+  }
+
+  Widget _buildUpdateDiffCard(BuildContext context) {
+    final pending = product.pendingReviewVersion ?? product.pendingUpdate ?? {};
+    final imagesList = (pending['images'] != null && (pending['images'] as List).isNotEmpty)
+        ? List<String>.from(pending['images'])
+        : product.images;
+    final category = pending['categoryName'] ?? product.categoryName;
+    
+    final String? newName = pending['name'] as String?;
+    final bool nameChanged = newName != null && newName != product.name;
+
+    final String? newDesc = pending['description'] as String?;
+    final bool descChanged = newDesc != null && newDesc != product.description;
+
+    final String? newCat = pending['categoryName'] as String?;
+    final bool catChanged = newCat != null && newCat != product.categoryName;
+
+    final dynamic newPrice = pending['price'];
+    final bool priceChanged = newPrice != null && (newPrice is num ? newPrice.toDouble() : double.tryParse(newPrice.toString()) ?? product.price) != product.price;
+
+    final String? newShelf = pending['shelfLife'] as String?;
+    final bool shelfChanged = newShelf != null && newShelf != product.shelfLife;
+
+    final List? newTags = pending['tags'] as List?;
+    final bool tagsChanged = newTags != null && newTags.join(', ') != product.tags.join(', ');
+
+    final bool imagesChanged = pending['images'] != null && (pending['images'] as List).join(',') != product.images.join(',');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.difference_outlined, color: Color(0xFF2563EB), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Submitted Modifications (Diff vs. Live Store)',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B)),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Auditing changes to your live store product',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 16),
+
+          if (nameChanged) ...[
+            _buildDiffRow('Title Modified', product.name, newName!),
+            const SizedBox(height: 14),
+          ],
+
+          if (catChanged) ...[
+            _buildDiffRow('Category Modified', product.categoryName, newCat!),
+            const SizedBox(height: 14),
+          ],
+
+          if (priceChanged) ...[
+            _buildDiffRow('Price Modified', '₹${product.price.toStringAsFixed(0)}', '₹${newPrice.toString()}'),
+            const SizedBox(height: 14),
+          ],
+
+          if (shelfChanged) ...[
+            _buildDiffRow('Shelf Life / Prep Time Modified', product.shelfLife, newShelf!),
+            const SizedBox(height: 14),
+          ],
+
+          if (tagsChanged) ...[
+            _buildDiffRow('Collections / Tags Modified', product.tags.join(', '), newTags.join(', ')),
+            const SizedBox(height: 14),
+          ],
+
+          if (descChanged) ...[
+            const Text(
+              'DESCRIPTION UPDATED',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(4)),
+                        child: const Text('New Submitted Description', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(newDesc!, style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), height: 1.4)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          if (imagesChanged) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'SUBMITTED PHOTOS GALLERY',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(6)),
+                  child: Text(
+                    'Updated (${product.images.length} ➔ ${imagesList.length} photos)',
+                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 90,
+              child: imagesList.isEmpty
+                  ? Center(child: Text('No photos submitted', style: TextStyle(color: Colors.grey.shade500)))
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: imagesList.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (context, index) {
+                        final url = imagesList[index];
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              CachedNetworkImage(
+                                imageUrl: url,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                              ),
+                              if (index == 0)
+                                Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: const Color(0xFF16A34A), borderRadius: BorderRadius.circular(6)),
+                                    child: const Text(
+                                      'Cover',
+                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.verified_outlined, size: 16, color: Color(0xFF475569)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'All other live product settings (photos, category, pricing) remain unchanged.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewProductDossierCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF16A34A), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'New Product Submission Receipt',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B)),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Complete initial dossier submitted for store approval',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 16),
+
+          const Text(
+            'SUBMITTED PHOTOS GALLERY',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 90,
+            child: product.images.isEmpty
+                ? Center(child: Text('No photos uploaded', style: TextStyle(color: Colors.grey.shade500)))
+                : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: product.images.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final url = product.images[index];
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            CachedNetworkImage(
+                              imageUrl: url,
+                              width: 90,
+                              height: 90,
+                              fit: BoxFit.cover,
+                            ),
+                            if (index == 0)
+                              Positioned(
+                                top: 6,
+                                left: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(color: const Color(0xFF16A34A), borderRadius: BorderRadius.circular(6)),
+                                  child: const Text(
+                                    'Cover',
+                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 16),
+
+          const Text(
+            'SUBMITTED DESCRIPTION',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              product.description.isEmpty ? 'No description provided' : product.description,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          if (product.variants.isNotEmpty) ...[
+            const Text(
+              'SUBMITTED PACK SIZES & PRICING',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: product.variants.map((v) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Text(
+                  '${v.label} - ₹${v.price.toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          Row(
+            children: [
+              _buildMiniScopeChip(Icons.category_outlined, 'Category', product.categoryName),
+              const SizedBox(width: 10),
+              _buildMiniScopeChip(Icons.photo_library_outlined, 'Uploaded Photos', '${product.images.length} photos'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiffRow(String label, String oldVal, String newVal) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569), letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.storefront_outlined, size: 16, color: Color(0xFF64748B)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Live: $oldVal',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), decoration: TextDecoration.lineThrough),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.check_circle, size: 16, color: Color(0xFF16A34A)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'New: $newVal',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniScopeChip(IconData icon, String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF64748B)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                  const SizedBox(height: 2),
+                  Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuditChecklistCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.verified_user_outlined, color: Color(0xFFD97706), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Admin Quality Audit Checklist',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B)),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Avg Turnaround SLA: 2–4 business hours',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 14),
+          _buildChecklistItem('Photo Quality & Guidelines', 'No watermarks, clear lighting, and authentic food images.'),
+          const SizedBox(height: 10),
+          _buildChecklistItem('Pricing & Pack Quantities', 'Accurate pack sizes, MRP, and reasonable homemade pricing.'),
+          const SizedBox(height: 10),
+          _buildChecklistItem('Homemade Standards', 'Authentic ingredient description and hygienic preparation details.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChecklistItem(String title, String subtitle) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF1E293B))),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.3)),
+            ],
           ),
         ),
       ],

@@ -10,6 +10,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onPreview;
   final Function(bool) onToggleVisibility;
   final bool isListView;
+  final bool isLiveSection;
 
   const ProductCard({
     super.key,
@@ -20,6 +21,7 @@ class ProductCard extends StatelessWidget {
     required this.onPreview,
     required this.onToggleVisibility,
     this.isListView = false,
+    this.isLiveSection = false,
   });
 
   String get _priceRange {
@@ -35,6 +37,9 @@ class ProductCard extends StatelessWidget {
   bool get _isUpdatePending => product.status == 'Update Under Review' || product.pendingReviewVersion != null || product.pendingUpdate != null;
 
   VoidCallback get _cardAction {
+    if (isLiveSection) {
+      return onTap;
+    }
     if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Changes Required' || product.status == 'Draft' || product.status == 'Unavailable' || product.status == 'Live + Update Pending') {
       return onTap;
     }
@@ -221,7 +226,7 @@ class ProductCard extends StatelessWidget {
         ],
         
         // Stats
-        if (product.status == 'Live') ...[
+        if (product.status == 'Live' || isLiveSection || product.status.startsWith('Live') || product.lastApprovedAt != null) ...[
           Row(
             children: [
               const Icon(Icons.favorite, size: 16, color: Color(0xFFEF4444)),
@@ -246,9 +251,25 @@ class ProductCard extends StatelessWidget {
     String text;
     Color bgColor;
 
-    if (product.status == 'Live') {
+    if (isLiveSection || product.status == 'Live' || product.status.startsWith('Live') || product.status == 'Approved') {
       text = 'LIVE';
       bgColor = const Color(0xFF16A34A);
+    } else if (product.status == 'Changes Required') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+        ),
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'CHANGES REQ.',
+            style: TextStyle(color: Color(0xFFE11D48), fontSize: 10, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
     } else if (product.status == 'Draft') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -259,22 +280,6 @@ class ProductCard extends StatelessWidget {
         child: const Text(
           'DRAFT',
           style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
-        ),
-      );
-    } else if (product.status == 'Changes Required') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFDC2626).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: const Color(0xFFDC2626).withOpacity(0.2)),
-        ),
-        child: const FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'CHANGES REQ.',
-            style: TextStyle(color: Color(0xFFE11D48), fontSize: 10, fontWeight: FontWeight.w700),
-          ),
         ),
       );
     } else if (product.status == 'Under Review' || product.status == 'Update Under Review' || product.status == 'Submitted') {
@@ -350,6 +355,27 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildDynamicContent() {
     if (product.status == 'Changes Required') {
+      if (isLiveSection) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, size: 14, color: Color(0xFFE11D48)),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Go to Changes Req. section to fix update issues',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFE11D48),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Column(
@@ -410,9 +436,9 @@ class ProductCard extends StatelessWidget {
           ],
         ),
       );
-    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review') {
+    } else if (!isLiveSection && (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Live + Update Pending' || product.pendingUpdate != null || product.pendingReviewVersion != null)) {
       return const SizedBox();
-    } else if (product.status == 'Live') {
+    } else if (product.status == 'Live' || (isLiveSection && product.status.startsWith('Live'))) {
       if (_hasDraftChanges) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,7 +545,7 @@ class ProductCard extends StatelessWidget {
   Widget _buildActionArea() {
     if (product.status == 'Changes Required') {
       return const SizedBox();
-    } else if (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Live + Update Pending') {
+    } else if (!isLiveSection && (product.status == 'Under Review' || product.status == 'Submitted' || product.status == 'Update Under Review' || product.status == 'Live + Update Pending')) {
       return Padding(
         padding: const EdgeInsets.only(top: 16),
         child: SizedBox(
@@ -537,7 +563,7 @@ class ProductCard extends StatelessWidget {
           ),
         ),
       );
-    } else if (product.status == 'Live' && _hasDraftChanges) {
+    } else if ((product.status == 'Live' || (isLiveSection && product.status.startsWith('Live'))) && _hasDraftChanges) {
        return Padding(
         padding: const EdgeInsets.only(top: 16),
         child: SizedBox(
@@ -555,7 +581,7 @@ class ProductCard extends StatelessWidget {
           ),
         ),
       );
-    } else if (product.status == 'Live') {
+    } else if (product.status == 'Live' || (isLiveSection && product.status.startsWith('Live'))) {
       return const SizedBox();
     } else if (product.status == 'Approved') {
        return Padding(

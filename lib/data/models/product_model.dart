@@ -326,9 +326,9 @@ class ProductModel {
     );
   }
 
-  /// Merges draft fields into the product model for the UI editors.
+  /// Merges draft/pending review fields into the product model for the UI editors.
   ProductModel applyDraftUpdates() {
-    final Map<String, dynamic> sourceMap = draftVersion ?? pendingUpdate ?? {};
+    final Map<String, dynamic> sourceMap = pendingReviewVersion ?? draftVersion ?? pendingUpdate ?? {};
     if (sourceMap.isEmpty) return this;
     
     final currentJson = toJson();
@@ -339,7 +339,7 @@ class ProductModel {
 
   /// Legacy support
   ProductModel applyPendingUpdates() {
-    final Map<String, dynamic> sourceMap = pendingReviewVersion ?? pendingUpdate ?? {};
+    final Map<String, dynamic> sourceMap = pendingReviewVersion ?? draftVersion ?? pendingUpdate ?? {};
     if (sourceMap.isEmpty) return this;
     
     final currentJson = toJson();

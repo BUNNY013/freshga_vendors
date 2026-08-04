@@ -40,6 +40,26 @@ class _ProductListContentState extends State<_ProductListContent> {
   Stream<List<ProductModel>>? _productsStream;
   String? _storeId;
 
+  bool _isProductInReview(ProductModel p) {
+    return p.status == 'Under Review' ||
+        p.status == 'Update Under Review' ||
+        p.status == 'Submitted' ||
+        p.status == 'Live + Update Pending' ||
+        p.pendingUpdate != null ||
+        p.pendingReviewVersion != null;
+  }
+
+  bool _isProductLive(ProductModel p) {
+    return p.status.startsWith('Live') ||
+        p.status == 'Approved' ||
+        (p.lastApprovedAt != null &&
+            (p.status == 'Changes Required' ||
+                p.status == 'Under Review' ||
+                p.status == 'Update Under Review' ||
+                p.status == 'Submitted' ||
+                p.status == 'Live + Update Pending'));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -196,28 +216,22 @@ class _ProductListContentState extends State<_ProductListContent> {
               }
 
               final allCount = allProducts.length;
-              final liveCount = allProducts.where((p) => p.status.startsWith('Live')).length;
-              final approvedCount = allProducts.where((p) => p.status == 'Approved').length;
-              final reviewCount = allProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').length;
+              final liveCount = allProducts.where((p) => _isProductLive(p)).length;
+              final reviewCount = allProducts.where((p) => _isProductInReview(p)).length;
               final changesCount = allProducts.where((p) => p.status == 'Changes Required').length;
               final draftCount = allProducts.where((p) => p.status == 'Draft').length;
-              final unavailableCount = allProducts.where((p) => p.status == 'Unavailable' || p.status == 'Hidden').length;
-              final archivedCount = allProducts.where((p) => p.status == 'Archived').length;
+              final unavailableCount = allProducts.where((p) => p.status == 'Unavailable' || p.status == 'Disabled by Admin' || p.status == 'Hidden').length;
 
               // Apply status filter
               var statusProducts = List<ProductModel>.from(allProducts);
               if (_selectedFilter == 'Live') {
-                statusProducts = statusProducts.where((p) => p.status.startsWith('Live')).toList();
-              } else if (_selectedFilter == 'Approved') {
-                statusProducts = statusProducts.where((p) => p.status == 'Approved').toList();
+                statusProducts = statusProducts.where((p) => _isProductLive(p)).toList();
               } else if (_selectedFilter == 'Under Review') {
-                statusProducts = statusProducts.where((p) => p.status == 'Under Review' || p.status == 'Update Under Review' || p.status == 'Submitted' || p.status == 'Live + Update Pending').toList();
+                statusProducts = statusProducts.where((p) => _isProductInReview(p)).toList();
               } else if (_selectedFilter == 'Draft') {
                 statusProducts = statusProducts.where((p) => p.status == 'Draft').toList();
               } else if (_selectedFilter == 'Unavailable') {
-                statusProducts = statusProducts.where((p) => p.status == 'Unavailable' || p.status == 'Hidden').toList();
-              } else if (_selectedFilter == 'Archived') {
-                statusProducts = statusProducts.where((p) => p.status == 'Archived').toList();
+                statusProducts = statusProducts.where((p) => p.status == 'Unavailable' || p.status == 'Disabled by Admin' || p.status == 'Hidden').toList();
               } else {
                 statusProducts = statusProducts.where((p) => p.status == _selectedFilter).toList();
               }
@@ -260,12 +274,10 @@ class _ProductListContentState extends State<_ProductListContent> {
                         runSpacing: 10,
                         children: [
                           _buildFilterChip("Live", liveCount),
-                          _buildFilterChip("Approved", approvedCount),
                           _buildFilterChip("Under Review", reviewCount),
                           _buildFilterChip("Changes Required", changesCount),
                           _buildFilterChip("Draft", draftCount),
                           _buildFilterChip("Unavailable", unavailableCount),
-                          _buildFilterChip("Archived", archivedCount),
                         ],
                       ),
                     ),
@@ -352,13 +364,6 @@ class _ProductListContentState extends State<_ProductListContent> {
           subtitle: "Your active products that customers can buy will appear here.",
           color: AppColors.primary,
         );
-      case 'Approved':
-        return _buildEmptyState(
-          icon: Icons.check_circle_outline_rounded,
-          title: "No Approved Products",
-          subtitle: "Products approved by Admin and ready to go live will appear here.",
-          color: const Color(0xFF16A34A), // Green
-        );
       case 'Under Review':
         return _buildEmptyState(
           icon: Icons.hourglass_empty_rounded,
@@ -386,13 +391,6 @@ class _ProductListContentState extends State<_ProductListContent> {
           title: "Everything is Available",
           subtitle: "None of your products are paused or out of stock.",
           color: const Color(0xFF198754), // Green
-        );
-      case 'Archived':
-        return _buildEmptyState(
-          icon: Icons.archive_outlined,
-          title: "No Archived Products",
-          subtitle: "You don't have any archived products.",
-          color: const Color(0xFF64748B), // Grey
         );
       default:
         return _buildEmptyState(
@@ -476,30 +474,103 @@ class _ProductListContentState extends State<_ProductListContent> {
     return ProductCard(
       product: product,
       isListView: true,
+      isLiveSection: _selectedFilter == 'Live',
       onTap: () {
-        if (product.status == 'Draft') {
-          context.push('/add-product', extra: product);
-        } else if (product.status == 'Under Review' || product.status == 'Update Under Review' || product.status == 'Submitted' || product.status == 'Live + Update Pending') {
-          context.push('/under-review-details', extra: product);
-        } else if (product.status == 'Changes Required') {
-          context.push('/changes-required-details', extra: product);
-        } else {
-          ProductPreviewSheet.show(context, product);
+        if (_selectedFilter == 'Live') {
+          context.push('/edit-product', extra: product);
+          return;
         }
-      },
-      onLongPress: () => _showActions(product),
-      onEdit: () {
+        if (product.status == 'Changes Required') {
+          context.push('/changes-required-details', extra: product);
+          return;
+        }
         if (product.status == 'Draft') {
           context.push('/add-product', extra: product);
+        } else if (_isProductInReview(product)) {
+          context.push('/under-review-details', extra: product);
         } else {
           context.push('/edit-product', extra: product);
         }
       },
+      onLongPress: () => _showActions(product),
+      onEdit: () => _handleEditProduct(product),
       onPreview: () => ProductPreviewSheet.show(context, product),
       onToggleVisibility: (val) async {
         final provider = context.read<ProductProvider>();
-        await provider.updateProductStatus(product.productId, val ? 'Live' : 'Hidden');
+        await provider.updateProductStatus(product.productId, val ? 'Live' : 'Unavailable');
       },
+    );
+  }
+
+  void _handleEditProduct(ProductModel product) {
+    if (_selectedFilter == 'Live') {
+      context.push('/edit-product', extra: product);
+      return;
+    }
+    if (product.status == 'Changes Required') {
+      context.push('/changes-required-details', extra: product);
+      return;
+    }
+    if (_isProductInReview(product)) {
+      _showPendingUpdateCancellationDialog(context, product);
+    } else if (product.status == 'Draft') {
+      context.push('/add-product', extra: product);
+    } else {
+      context.push('/edit-product', extra: product);
+    }
+  }
+
+  void _showPendingUpdateCancellationDialog(BuildContext context, ProductModel product) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF57C00), size: 24),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Update Under Review',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'You already have an update pending review for this Live product. To make new edits, you must first withdraw your pending update.',
+          style: TextStyle(color: AppColors.grey700, height: 1.4, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Keep Waiting', style: TextStyle(color: AppColors.grey600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final provider = context.read<ProductProvider>();
+              final success = await provider.cancelPendingUpdate(product.productId);
+              if (success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pending update withdrawn. Ready to edit!'),
+                    backgroundColor: Color(0xFF4CAF50),
+                  ),
+                );
+                context.push('/edit-product', extra: product.copyWith(status: 'Live'));
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Withdraw & Edit', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -508,9 +579,7 @@ class _ProductListContentState extends State<_ProductListContent> {
     ProductActionsSheet.show(
       context,
       product: product,
-      onEdit: () {
-        context.push('/edit-product', extra: product);
-      },
+      onEdit: () => _handleEditProduct(product),
       onPreview: () => ProductPreviewSheet.show(context, product),
       onDuplicate: () async {
         final success = await provider.duplicateProduct(product);
@@ -519,29 +588,6 @@ class _ProductListContentState extends State<_ProductListContent> {
             SnackBar(
               content: Text(success ? 'Product duplicated successfully' : 'Failed to duplicate product'),
               backgroundColor: success ? const Color(0xFF4CAF50) : AppColors.error,
-            ),
-          );
-        }
-      },
-      onArchive: () async {
-        await provider.updateProductStatus(product.productId, 'Archived');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Product securely archived'),
-              backgroundColor: Color(0xFF4CAF50),
-            ),
-          );
-        }
-      },
-      onToggleVisibility: () async {
-        final newStatus = product.status == 'Hidden' ? 'Live' : 'Hidden';
-        await provider.updateProductStatus(product.productId, newStatus);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(newStatus == 'Live' ? 'Product is now Live. Followers notified!' : 'Product is now Hidden'),
-              backgroundColor: const Color(0xFF4CAF50),
             ),
           );
         }

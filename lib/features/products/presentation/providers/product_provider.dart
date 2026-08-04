@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/models/category_model.dart';
@@ -31,7 +34,16 @@ class ProductProvider extends ChangeNotifier {
   List<SubCategoryModel> _subCategories = [];
   List<SubCategoryModel> get subCategories => _subCategories;
 
-  Future<void> loadCategories() async {
+  final Map<String, List<SubCategoryModel>> _subCategoryCache = {};
+  static List<CategoryModel>? _cachedCategories;
+  static final Map<String, List<SubCategoryModel>> _staticSubCategoryCache = {};
+
+  Future<void> loadCategories({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedCategories != null && _cachedCategories!.isNotEmpty) {
+      _categories = _cachedCategories!;
+      notifyListeners();
+      return;
+    }
     try {
       final snapshot = await _firestore.collection('categories').get();
       List<CategoryModel> loaded = [];
@@ -49,6 +61,7 @@ class ProductProvider extends ChangeNotifier {
       }
       loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
       _categories = loaded;
+      _cachedCategories = loaded;
       debugPrint("Successfully loaded ${_categories.length} active categories from Firebase.");
       notifyListeners();
     } catch (e) {
@@ -57,6 +70,29 @@ class ProductProvider extends ChangeNotifier {
   }
 
   Future<void> loadSubCategories(String categoryId) async {
+    // 1. Instant Cache Check for lightning-fast UI loading
+    if (_subCategoryCache.containsKey(categoryId)) {
+      _errorMessage = null;
+      _subCategories = List.from(_subCategoryCache[categoryId]!);
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+    if (_staticSubCategoryCache.containsKey(categoryId)) {
+      _errorMessage = null;
+      _subCategories = List.from(_staticSubCategoryCache[categoryId]!);
+      _subCategoryCache[categoryId] = _subCategories;
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    // 2. Clear previous category's subcategories immediately and show loading spinner
+    _isLoading = true;
+    _subCategories = [];
+    _errorMessage = null;
+    notifyListeners();
+
     try {
       final snapshot = await _firestore.collection('sub_categories')
           .where('categoryId', isEqualTo: categoryId)
@@ -77,21 +113,53 @@ class ProductProvider extends ChangeNotifier {
       loaded.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
       _errorMessage = null;
       _subCategories = loaded;
+      _subCategoryCache[categoryId] = loaded;
+      _staticSubCategoryCache[categoryId] = loaded;
       debugPrint("Successfully loaded ${_subCategories.length} active subcategories from Firebase for category $categoryId.");
-      notifyListeners();
     } catch (e) {
       _errorMessage = "Failed to load subcategories: $e";
       debugPrint(_errorMessage);
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
   Future<void> pickImages() async {
     final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(imageQuality: 80);
+    final picked = await picker.pickMultiImage(imageQuality: 85);
     if (picked.isNotEmpty) {
-      _selectedImages.addAll(picked.map((e) => File(e.path)));
-      notifyListeners();
+      for (var xFile in picked) {
+        if (_selectedImages.length >= 10) break;
+        final isCover = _selectedImages.isEmpty;
+        final CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: xFile.path,
+          maxWidth: 1080,
+          maxHeight: 1080,
+          compressQuality: 80,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: isCover ? 'Crop Cover Photo (1:1)' : 'Crop Product Photo (1:1)',
+              toolbarColor: AppColors.primary,
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+              hideBottomControls: false,
+            ),
+            IOSUiSettings(
+              title: isCover ? 'Crop Cover Photo (1:1)' : 'Crop Product Photo (1:1)',
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
+            ),
+          ],
+        );
+
+        if (croppedFile != null) {
+          _selectedImages.add(File(croppedFile.path));
+          notifyListeners();
+        }
+      }
     }
   }
 
@@ -114,21 +182,32 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static String? _cachedStoreId;
+  static String? _cachedStoreName;
+
+  Future<void> _ensureStoreInfoLoaded() async {
+    if (_cachedStoreId != null && _cachedStoreName != null && _cachedStoreId!.isNotEmpty) {
+      return;
+    }
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("Not authenticated");
+
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userModel = UserModel.fromJson(userDoc.data()!);
+    if (userModel.storeId.isEmpty) throw Exception("Store not set up");
+      
+    final storeDoc = await _firestore.collection('stores').doc(userModel.storeId).get();
+    _cachedStoreId = userModel.storeId;
+    _cachedStoreName = storeDoc.exists ? (storeDoc.data()?['storeName'] ?? '') : '';
+  }
+
   Future<ProductModel?> addProduct(ProductModel product) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception("Not authenticated");
-
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userModel = UserModel.fromJson(userDoc.data()!);
-      if (userModel.storeId.isEmpty) throw Exception("Store not set up");
-      
-      final storeDoc = await _firestore.collection('stores').doc(userModel.storeId).get();
-      final storeName = storeDoc.exists ? (storeDoc.data()?['storeName'] ?? '') : '';
+      await _ensureStoreInfoLoaded();
 
       final productId = _firestore.collection('products').doc().id;
       
@@ -138,28 +217,29 @@ class ProductProvider extends ChangeNotifier {
         final ref = _storage.ref().child('product_images/$productId/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
         uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
       }
-      List<String> imageUrls = await Future.wait(uploadTasks);
+      List<String> imageUrls = await Future.wait(uploadTasks)
+          .timeout(const Duration(seconds: 25), onTimeout: () => throw TimeoutException('Image upload timed out. Please check your network.'));
 
       final finalProduct = product.copyWith(
         productId: productId,
-        storeId: userModel.storeId,
-        storeName: storeName,
+        storeId: _cachedStoreId!,
+        storeName: _cachedStoreName!,
         images: imageUrls,
         createdAt: DateTime.now().toIso8601String(),
         updatedAt: DateTime.now().toIso8601String(),
       );
 
-      await _firestore.collection('products').doc(productId).set(finalProduct.toJson());
+      await _firestore.collection('products').doc(productId).set(finalProduct.toJson())
+          .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while creating product. Please check your network.'));
 
-      _isLoading = false;
       _selectedImages.clear();
-      notifyListeners();
       return finalProduct;
     } catch (e) {
-      _isLoading = false;
       _errorMessage = e.toString();
-      notifyListeners();
       return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -173,7 +253,8 @@ class ProductProvider extends ChangeNotifier {
       if (user == null) throw Exception("Not authenticated");
 
       // Check for price drop before update
-      final oldDoc = await _firestore.collection('products').doc(product.productId).get();
+      final oldDoc = await _firestore.collection('products').doc(product.productId).get()
+          .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out. Please check your network.'));
       if (oldDoc.exists) {
         final oldProduct = ProductModel.fromJson(oldDoc.data()!);
         final oldEffectivePrice = oldProduct.price;
@@ -190,7 +271,8 @@ class ProductProvider extends ChangeNotifier {
         uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
       }
       
-      final newImageUrls = await Future.wait(uploadTasks);
+      final newImageUrls = await Future.wait(uploadTasks)
+          .timeout(const Duration(seconds: 25), onTimeout: () => throw TimeoutException('Image upload timed out. Please check your network.'));
       imageUrls.addAll(newImageUrls);
 
       final finalProduct = product.copyWith(
@@ -198,17 +280,17 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: DateTime.now().toIso8601String(),
       );
 
-      await _firestore.collection('products').doc(product.productId).update(finalProduct.toJson());
+      await _firestore.collection('products').doc(product.productId).update(finalProduct.toJson())
+          .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while updating product. Please check your network.'));
 
-      _isLoading = false;
       _selectedImages.clear();
-      notifyListeners();
       return true;
     } catch (e) {
-      _isLoading = false;
       _errorMessage = e.toString();
-      notifyListeners();
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -262,10 +344,47 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateOperationalFields(String productId, Map<String, dynamic> updates) async {
+  Future<bool> cancelPendingUpdate(String productId) async {
     try {
+      await _firestore.collection('products').doc(productId).update({
+        'status': 'Live',
+        'pendingReviewVersion': FieldValue.delete(),
+        'pendingUpdate': FieldValue.delete(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint("Cancel pending update failed: $e");
+      return false;
+    }
+  }
+
+  Future<bool> updateOperationalFields(String productId, Map<String, dynamic> updates, {String? clearRequiredFix}) async {
+    _errorMessage = null;
+    try {
+      if (clearRequiredFix != null) {
+        final doc = await _firestore.collection('products').doc(productId).get()
+            .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out. Please check your network.'));
+        if (doc.exists) {
+          List<String> fixes = List<String>.from(doc.data()!['requiredFixes'] ?? []);
+          if (fixes.contains(clearRequiredFix)) {
+            fixes.remove(clearRequiredFix);
+            updates['requiredFixes'] = fixes;
+          }
+          Map<String, dynamic> feedbackMap = Map<String, dynamic>.from(doc.data()!['reviewFeedback'] ?? {});
+          if (feedbackMap.containsKey(clearRequiredFix)) {
+            final sectionMap = Map<String, dynamic>.from(feedbackMap[clearRequiredFix] ?? {});
+            sectionMap['status'] = 'fixed';
+            feedbackMap[clearRequiredFix] = sectionMap;
+            updates['reviewFeedback'] = feedbackMap;
+          }
+        }
+      }
+
       if (updates.containsKey('price')) {
-        final doc = await _firestore.collection('products').doc(productId).get();
+        final doc = await _firestore.collection('products').doc(productId).get()
+            .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out. Please check your network.'));
         if (doc.exists) {
           final oldProduct = ProductModel.fromJson(doc.data()!);
           final oldEffectivePrice = oldProduct.price;
@@ -279,9 +398,11 @@ class ProductProvider extends ChangeNotifier {
       }
 
       updates['updatedAt'] = DateTime.now().toIso8601String();
-      await _firestore.collection('products').doc(productId).update(updates);
+      await _firestore.collection('products').doc(productId).update(updates)
+          .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while updating pricing. Please check your network.'));
       return true;
     } catch (e) {
+      _errorMessage = e.toString();
       debugPrint("Update operational failed: $e");
       return false;
     }
@@ -289,19 +410,45 @@ class ProductProvider extends ChangeNotifier {
 
   Future<ReviewRequirement?> updateDraftContent(ProductModel currentProduct, Map<String, dynamic> draftUpdates, {String? clearRequiredFix}) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
     try {
       List<String> newRequiredFixes = List.from(currentProduct.requiredFixes);
+      Map<String, dynamic> newReviewFeedback = Map<String, dynamic>.from(currentProduct.reviewFeedback ?? {});
       if (clearRequiredFix != null) {
         newRequiredFixes.remove(clearRequiredFix);
+        if (newReviewFeedback.containsKey(clearRequiredFix)) {
+          final sectionMap = Map<String, dynamic>.from(newReviewFeedback[clearRequiredFix] ?? {});
+          sectionMap['status'] = 'fixed';
+          newReviewFeedback[clearRequiredFix] = sectionMap;
+        }
       }
 
       Map<String, dynamic> firestoreUpdates = {
         'requiredFixes': newRequiredFixes,
+        'reviewFeedback': newReviewFeedback,
         'updatedAt': DateTime.now().toIso8601String(),
       };
 
-      bool isLiveOrWasLive = currentProduct.lastApprovedAt != null || currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required';
+      if (currentProduct.status == 'Changes Required') {
+        // Vendor is saving edits to a section while addressing review feedback.
+        // DO NOT change status! Keep it in Changes Required until they explicitly resubmit.
+        bool wasLiveBefore = currentProduct.lastApprovedAt != null || currentProduct.status.startsWith('Live');
+        if (!wasLiveBefore) {
+          // Pure new product never approved: save edits directly to product fields
+          firestoreUpdates.addAll(draftUpdates);
+        } else {
+          // Was previously live: save edits into pendingReviewVersion so live product fields remain untouched
+          final currentPending = currentProduct.pendingReviewVersion ?? currentProduct.draftVersion ?? {};
+          final newPending = Map<String, dynamic>.from(currentPending)..addAll(draftUpdates);
+          firestoreUpdates['pendingReviewVersion'] = newPending;
+        }
+        await _firestore.collection('products').doc(currentProduct.productId).update(firestoreUpdates)
+            .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while saving changes. Please check your network.'));
+        return ReviewRequirement.fullReview;
+      }
+
+      bool isLiveOrWasLive = currentProduct.lastApprovedAt != null || currentProduct.status.startsWith('Live');
       
       if (!isLiveOrWasLive) {
          // Product is a pure Draft. Auto-submit since vendors don't manage drafts manually.
@@ -330,7 +477,7 @@ class ProductProvider extends ChangeNotifier {
             }
          } else {
             // Needs review. Auto-submit as Product Update since it's a live product.
-            String newStatus = currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required'
+            String newStatus = currentProduct.status.startsWith('Live') || (currentProduct.lastApprovedAt != null && currentProduct.status == 'Changes Required')
                 ? 'Live + Update Pending'
                 : 'Under Review';
                 
@@ -341,67 +488,86 @@ class ProductProvider extends ChangeNotifier {
          }
       }
       
-      await _firestore.collection('products').doc(currentProduct.productId).update(firestoreUpdates);
-      
-      _isLoading = false;
-      notifyListeners();
+      await _firestore.collection('products').doc(currentProduct.productId).update(firestoreUpdates)
+          .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while saving changes. Please check your network.'));
       
       if (!isLiveOrWasLive) {
-        return ReviewRequirement.fullReview; // Will trigger "Update submitted" message in UI
-      } else {
-        final currentDraft = currentProduct.draftVersion ?? {};
-        final newDraft = Map<String, dynamic>.from(currentDraft)..addAll(draftUpdates);
-        final editedJson = currentProduct.toJson()..addAll(newDraft);
-        final editedProduct = ProductModel.fromJson(editedJson);
-        final changes = ProductChangeDetector.detectProductChanges(currentProduct, editedProduct);
-        return ProductChangeDetector.determineReviewRequirement(changes);
+        return ReviewRequirement.fullReview;
       }
+      final currentDraft = currentProduct.draftVersion ?? {};
+      final newDraft = Map<String, dynamic>.from(currentDraft)..addAll(draftUpdates);
+      final editedJson = currentProduct.toJson()..addAll(newDraft);
+      final editedProduct = ProductModel.fromJson(editedJson);
+      final changes = ProductChangeDetector.detectProductChanges(currentProduct, editedProduct);
+      return ProductChangeDetector.determineReviewRequirement(changes);
     } catch (e) {
-      _isLoading = false;
       _errorMessage = e.toString();
-      notifyListeners();
       return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<bool> submitDraftForReview(ProductModel currentProduct) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
     try {
-      if (currentProduct.requiredFixes.isNotEmpty) {
-        throw Exception("Cannot submit: outstanding required fixes must be addressed.");
+      if (currentProduct.status == 'Changes Required') {
+        final doc = await _firestore.collection('products').doc(currentProduct.productId).get();
+        final currentFixes = doc.exists ? List<String>.from(doc.data()!['requiredFixes'] ?? []) : currentProduct.requiredFixes;
+        if (currentFixes.isNotEmpty) {
+          _errorMessage = 'Please fix all required changes before resubmitting. Remaining: ${currentFixes.join(", ")}';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
       }
-      
-      final draft = currentProduct.draftVersion;
-      if (currentProduct.lastApprovedAt == null || draft == null || draft.isEmpty) {
-         // New product or no draft overrides
-         await _firestore.collection('products').doc(currentProduct.productId).update({
+      bool isNewProduct = currentProduct.lastApprovedAt == null && !currentProduct.status.startsWith('Live');
+      if (isNewProduct) {
+         Map<String, dynamic> updates = {
            'status': 'Under Review',
+           'requiredFixes': [],
+           'reviewFeedback': {},
            'lastSubmittedAt': DateTime.now().toIso8601String(),
            'updatedAt': DateTime.now().toIso8601String(),
-         });
+         };
+         if (currentProduct.pendingReviewVersion != null && currentProduct.pendingReviewVersion!.isNotEmpty) {
+           updates.addAll(currentProduct.pendingReviewVersion!);
+           updates['pendingReviewVersion'] = FieldValue.delete();
+         }
+         if (currentProduct.draftVersion != null && currentProduct.draftVersion!.isNotEmpty) {
+           updates.addAll(currentProduct.draftVersion!);
+           updates['draftVersion'] = FieldValue.delete();
+         }
+         await _firestore.collection('products').doc(currentProduct.productId).update(updates)
+             .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while resubmitting product. Please check your network.'));
       } else {
-        // Has a draft version to submit
-        String newStatus = currentProduct.status.startsWith('Live') || currentProduct.status == 'Changes Required' 
-            ? 'Live + Update Pending' 
-            : 'Under Review';
-        
-        await _firestore.collection('products').doc(currentProduct.productId).update({
-          'pendingReviewVersion': draft,
-          'status': newStatus,
-          'lastSubmittedAt': DateTime.now().toIso8601String(),
-          'updatedAt': DateTime.now().toIso8601String(),
-        });
+         // Has a draft/pending version to submit for a Live product
+         final draft = currentProduct.draftVersion ?? currentProduct.pendingReviewVersion;
+         String newStatus = 'Live + Update Pending';
+         Map<String, dynamic> updates = {
+           'status': newStatus,
+           'requiredFixes': [],
+           'reviewFeedback': {},
+           'lastSubmittedAt': DateTime.now().toIso8601String(),
+           'updatedAt': DateTime.now().toIso8601String(),
+         };
+         if (draft != null) {
+           updates['pendingReviewVersion'] = draft;
+         }
+         await _firestore.collection('products').doc(currentProduct.productId).update(updates)
+             .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while resubmitting product. Please check your network.'));
       }
       
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
-      _isLoading = false;
       _errorMessage = e.toString();
-      notifyListeners();
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -410,12 +576,18 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
     try {
       String newStatus = 'Draft';
-      if (currentProduct.status == 'Live + Update Pending' || currentProduct.status == 'Update Under Review') {
+      if (currentProduct.lastApprovedAt != null || 
+          currentProduct.status.startsWith('Live') || 
+          currentProduct.status == 'Update Under Review' || 
+          currentProduct.status == 'Changes Required') {
          newStatus = 'Live';
       }
       
       await _firestore.collection('products').doc(currentProduct.productId).update({
         'pendingReviewVersion': FieldValue.delete(),
+        'pendingUpdate': FieldValue.delete(),
+        'reviewFeedback': FieldValue.delete(),
+        'requiredFixes': FieldValue.delete(),
         'status': newStatus,
         'updatedAt': DateTime.now().toIso8601String(),
       });

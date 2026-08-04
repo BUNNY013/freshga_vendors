@@ -272,12 +272,13 @@ class _StoreProductCard extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
+                      height: 1.25,
                     ),
                   ),
                   const SizedBox(height: 3),

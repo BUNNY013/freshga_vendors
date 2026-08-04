@@ -46,7 +46,7 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
   String get _buttonText {
     if (_isSaving) return 'Saving...';
     if (_isLocked) return 'Update Under Review';
-    if (widget.product.status == 'Changes Required') return 'Save & Resubmit';
+    if (widget.product.status == 'Changes Required') return 'Save Changes';
     return 'Save Changes';
   }
 
@@ -65,13 +65,22 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
       final req = await provider.updateDraftContent(
         widget.product,
         {'subCategoryIds': _subCategoryIds},
-        clearRequiredFix: 'categories',
+        clearRequiredFix: 'collections',
       );
 
       if (mounted) {
         setState(() => _isSaving = false);
+        if (req == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.errorMessage ?? 'Failed to save changes. Please try again.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
         context.pop();
-        if (req == ReviewRequirement.noReview) {
+        if (widget.product.status == 'Changes Required' || req == ReviewRequirement.noReview) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved successfully.')));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update submitted for review. Your current live version remains visible until approval.')));

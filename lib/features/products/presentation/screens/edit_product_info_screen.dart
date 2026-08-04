@@ -62,7 +62,7 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
   String get _buttonText {
     if (_isSaving) return 'Saving...';
     if (_isLocked) return 'Update Under Review';
-    if (widget.product.status == 'Changes Required') return 'Save & Resubmit';
+    if (widget.product.status == 'Changes Required') return 'Save Changes';
     return 'Save Changes';
   }
 
@@ -95,9 +95,18 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
 
       if (mounted) {
         setState(() => _isSaving = false);
+        if (req == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.errorMessage ?? 'Failed to save changes. Please try again.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
         context.pop();
         
-        if (req == ReviewRequirement.noReview) {
+        if (widget.product.status == 'Changes Required' || req == ReviewRequirement.noReview) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved successfully.')));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update submitted for review. Your current live version remains visible until approval.')));
@@ -294,11 +303,43 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
             ),
           ],
         ),
-        body: SingleChildScrollView(
+         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.product.requiredFixes.contains('information') || widget.product.reviewFeedback?['information']?['status'] == 'needs_fix') ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFE2E2), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Reviewer Feedback • Action Required',
+                            style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '"${widget.product.reviewFeedback?['information']?['feedback'] ?? (widget.product.adminFeedback.isNotEmpty ? widget.product.adminFeedback : 'Please update your product name or description.')}"',
+                        style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13, height: 1.35, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               _buildInput(
                 title: 'Product Name',
                 controller: _nameCtrl,

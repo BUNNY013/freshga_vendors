@@ -11,6 +11,9 @@ class ProductVariantModel {
   final double lengthCm;
   final double widthCm;
   final double heightCm;
+  final String unitType; // 'weight', 'volume', 'pack', 'custom'
+  final String unit;     // 'g', 'kg', 'ml', 'L', 'Pack', etc.
+  final bool isDefault;
 
   ProductVariantModel({
     required this.variantId,
@@ -25,6 +28,9 @@ class ProductVariantModel {
     this.lengthCm = 0.0,
     this.widthCm = 0.0,
     this.heightCm = 0.0,
+    this.unitType = 'weight',
+    this.unit = 'g',
+    this.isDefault = false,
   });
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +47,9 @@ class ProductVariantModel {
       lengthCm: (json['lengthCm'] ?? 0.0).toDouble(),
       widthCm: (json['widthCm'] ?? 0.0).toDouble(),
       heightCm: (json['heightCm'] ?? 0.0).toDouble(),
+      unitType: json['unitType']?.toString() ?? 'weight',
+      unit: json['unit']?.toString() ?? 'g',
+      isDefault: json['isDefault'] ?? false,
     );
   }
 
@@ -58,6 +67,9 @@ class ProductVariantModel {
       'lengthCm': lengthCm,
       'widthCm': widthCm,
       'heightCm': heightCm,
+      'unitType': unitType,
+      'unit': unit,
+      'isDefault': isDefault,
     };
   }
 
@@ -74,6 +86,9 @@ class ProductVariantModel {
     double? lengthCm,
     double? widthCm,
     double? heightCm,
+    String? unitType,
+    String? unit,
+    bool? isDefault,
   }) {
     return ProductVariantModel(
       variantId: variantId ?? this.variantId,
@@ -88,6 +103,10 @@ class ProductVariantModel {
       lengthCm: lengthCm ?? this.lengthCm,
       widthCm: widthCm ?? this.widthCm,
       heightCm: heightCm ?? this.heightCm,
+      unitType: unitType ?? this.unitType,
+      unit: unit ?? this.unit,
+      isDefault: isDefault ?? this.isDefault,
     );
   }
 }
+
