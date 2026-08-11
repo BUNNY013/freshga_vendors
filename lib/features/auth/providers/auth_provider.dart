@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/models/supplier_application_model.dart';
@@ -196,6 +197,60 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _authService.signOut();
+  }
+
+  Future<bool> deleteAccount() async {
+    _setLoading(true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final db = FirebaseFirestore.instance;
+        
+        // Soft delete user
+        await db.collection('users').doc(user.uid).update({
+          'isBlocked': true,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }).catchError((_) {});
+        
+        // Soft delete store
+        if (_userModel?.storeId != null && _userModel!.storeId.isNotEmpty) {
+          await db.collection('stores').doc(_userModel!.storeId).update({
+            'isActive': false,
+            'status': 'deleted',
+            'updatedAt': DateTime.now().toIso8601String(),
+          }).catchError((_) {});
+        }
+        
+        // Soft delete application
+        final appSnapshot = await db.collection('supplierApplications').where('userId', isEqualTo: user.uid).get();
+        for (var doc in appSnapshot.docs) {
+          await doc.reference.update({
+            'status': 'deleted',
+          }).catchError((_) {});
+        }
+        
+        // Delete Firebase Auth user
+        await user.delete();
+        
+        _setUnauthenticated();
+        return true;
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _errorMessage = 'Please log out and log in again before deleting your account.';
+      } else {
+        _errorMessage = _getFriendlyErrorMessage(e);
+      }
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _errorMessage = 'An error occurred while deleting your account. Please try again.';
+      _setLoading(false);
+      return false;
+    }
+    
+    _setLoading(false);
+    return false;
   }
   
   String _getFriendlyErrorMessage(FirebaseAuthException e) {

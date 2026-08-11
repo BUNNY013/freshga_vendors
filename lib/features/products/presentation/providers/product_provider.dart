@@ -211,14 +211,27 @@ class ProductProvider extends ChangeNotifier {
 
       final productId = _firestore.collection('products').doc().id;
       
-      List<Future<String>> uploadTasks = [];
-      for (int i = 0; i < _selectedImages.length; i++) {
-        final file = _selectedImages[i];
-        final ref = _storage.ref().child('product_images/$productId/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-        uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
+      List<String> imageUrls = [];
+      if (_selectedImages.isNotEmpty) {
+        List<Future<String>> uploadTasks = [];
+        for (int i = 0; i < _selectedImages.length; i++) {
+          final file = _selectedImages[i];
+          final ref = _storage.ref().child('product_images/$productId/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+          uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
+        }
+        
+        try {
+          imageUrls = await Future.wait(uploadTasks)
+              .timeout(const Duration(seconds: 25));
+        } catch (e) {
+          if (product.status == 'Draft') {
+            // Gracefully ignore image upload failure for drafts so they don't lose text data
+            debugPrint("Image upload failed for draft: $e");
+          } else {
+            throw Exception('Image upload timed out. Please check your network and try again.');
+          }
+        }
       }
-      List<String> imageUrls = await Future.wait(uploadTasks)
-          .timeout(const Duration(seconds: 25), onTimeout: () => throw TimeoutException('Image upload timed out. Please check your network.'));
 
       final finalProduct = product.copyWith(
         productId: productId,
@@ -264,16 +277,26 @@ class ProductProvider extends ChangeNotifier {
       // Handle newly selected images
       List<String> imageUrls = List.from(product.images);
       
-      List<Future<String>> uploadTasks = [];
-      for (int i = 0; i < _selectedImages.length; i++) {
-        final file = _selectedImages[i];
-        final ref = _storage.ref().child('product_images/${product.productId}/image_new_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-        uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
+      if (_selectedImages.isNotEmpty) {
+        List<Future<String>> uploadTasks = [];
+        for (int i = 0; i < _selectedImages.length; i++) {
+          final file = _selectedImages[i];
+          final ref = _storage.ref().child('product_images/${product.productId}/image_new_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+          uploadTasks.add(ref.putFile(file).then((snapshot) => snapshot.ref.getDownloadURL()));
+        }
+        
+        try {
+          final newImageUrls = await Future.wait(uploadTasks)
+              .timeout(const Duration(seconds: 25));
+          imageUrls.addAll(newImageUrls);
+        } catch (e) {
+          if (product.status == 'Draft') {
+            debugPrint("Image upload failed for draft update: $e");
+          } else {
+            throw Exception('Image upload timed out. Please check your network and try again.');
+          }
+        }
       }
-      
-      final newImageUrls = await Future.wait(uploadTasks)
-          .timeout(const Duration(seconds: 25), onTimeout: () => throw TimeoutException('Image upload timed out. Please check your network.'));
-      imageUrls.addAll(newImageUrls);
 
       final finalProduct = product.copyWith(
         images: imageUrls,

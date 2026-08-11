@@ -75,9 +75,8 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
                   .map((doc) => OrderModel.fromJson(doc.data() as Map<String, dynamic>))
                   .toList();
 
-              // TEMPORARY: Inject mock data if DB is empty so we can test the UI
               if (allOrders.isEmpty) {
-                allOrders = _generateMockOrders(storeId);
+                return _buildEmptyState();
               }
 
               return _buildAnalyticsBody(allOrders);
@@ -95,19 +94,7 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (allOrders.any((o) => o.orderId.startsWith('mock_')))
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(8)),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.amber),
-                    SizedBox(width: 8),
-                    Expanded(child: Text("Displaying 150 injected Mock Orders for UI testing.", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87))),
-                  ],
-                ),
-              ),
+
             _buildMetricsGrid(allOrders),
             const SizedBox(height: 24),
             _buildRealTimeTrendChartCard(allOrders),
@@ -347,12 +334,44 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
 
   Widget _buildTopCitiesCard(List<OrderModel> orders) {
     // Generate city frequency map from orders
-    Map<String, int> cities = {};
+    Map<String, int> citiesCount = {};
     for (var o in orders) {
       if (o.deliveryAddress.isNotEmpty) {
-        // Just extract the city roughly if it's formatted well, or just show raw text.
-        // For now, we mock the cities logic since extracting city from raw address strings is hard without a structured model.
+        // Try to extract city from address string (e.g. "Hyderabad, India" -> "Hyderabad")
+        // Very basic extraction for MVP
+        List<String> parts = o.deliveryAddress.split(',');
+        String city = parts.isNotEmpty ? parts.first.trim() : 'Unknown';
+        if (city.isNotEmpty) {
+          citiesCount[city] = (citiesCount[city] ?? 0) + 1;
+        }
       }
+    }
+    
+    // Sort and get top 4, rest in 'Others'
+    var sortedCities = citiesCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    
+    List<Widget> cityRows = [];
+    int otherCount = 0;
+    
+    for (int i = 0; i < sortedCities.length; i++) {
+      if (i < 4) {
+        int percentage = (sortedCities[i].value / orders.length * 100).round();
+        cityRows.add(_buildCityRow('0${i + 1}', sortedCities[i].key, '$percentage% (${sortedCities[i].value})'));
+      } else {
+        otherCount += sortedCities[i].value;
+      }
+    }
+    
+    if (otherCount > 0) {
+      int percentage = (otherCount / orders.length * 100).round();
+      cityRows.add(_buildCityRow('05', 'Others', '$percentage% ($otherCount)', isLast: true));
+    }
+    
+    if (cityRows.isEmpty) {
+      cityRows.add(const Text("No address data available yet", style: TextStyle(color: AppColors.textSecondary)));
+    } else {
+      // make sure last row has isLast = true if it wasn't already set by 'Others'
+      // to remove bottom padding
     }
     
     return Container(
@@ -365,13 +384,9 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Top Cities by Orders', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary)),
+          const Text('Top Delivery Locations', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary)),
           const SizedBox(height: 24),
-          _buildCityRow('01', 'Hyderabad', '32% (78)'),
-          _buildCityRow('02', 'Vijayawada', '18% (44)'),
-          _buildCityRow('03', 'Bangalore', '14% (34)'),
-          _buildCityRow('04', 'Chennai', '12% (29)'),
-          _buildCityRow('05', 'Others', '24% (60)', isLast: true),
+          ...cityRows,
         ],
       ),
     );
@@ -391,43 +406,39 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
             child: Text(rank, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text(city, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary))),
+          Expanded(child: Text(city, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
           Text(data, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
         ],
       ),
     );
   }
 
-  List<OrderModel> _generateMockOrders(String storeId) {
-    final now = DateTime.now();
-    List<OrderModel> mockOrders = [];
-    final statuses = ['Delivered', 'Delivered', 'Delivered', 'New', 'Accepted', 'Packed', 'Shipped', 'Cancelled', 'Refunded'];
-    
-    // Using a pseudo-random generator so the chart looks organic
-    for (int i = 0; i < 150; i++) {
-      // More orders recently to show an upward trend
-      int daysAgo = (i < 50) ? (i % 7) : (i % 90); 
-      final orderDate = now.subtract(Duration(days: daysAgo, hours: (i * 7) % 24));
-      final status = statuses[i % statuses.length];
-      
-      mockOrders.add(OrderModel(
-        orderId: 'mock_$i',
-        storeId: storeId,
-        customerId: 'cust_$i',
-        customerName: 'Mock Customer $i',
-        items: [
-          OrderItem(productId: 'p1', productName: 'Spicy Mango Pickle', quantity: (i % 3) + 1, price: 250),
-        ],
-        totalAmount: ((i % 5) + 1) * 250.0,
-        paymentStatus: 'Paid',
-        deliveryAddress: 'Mock Address',
-        orderStatus: status,
-        expiresAt: orderDate.add(const Duration(hours: 24)),
-        maxDispatchDate: orderDate.add(const Duration(days: 2)),
-        createdAt: orderDate,
-        updatedAt: orderDate,
-      ));
-    }
-    return mockOrders;
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.blue.shade300),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "No Orders Yet!", 
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "When customers start placing orders, you will see a full breakdown of statuses, trends, and locations here.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

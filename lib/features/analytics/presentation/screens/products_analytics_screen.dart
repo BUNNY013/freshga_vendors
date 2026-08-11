@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../products/domain/models/product_model.dart';
+import '../../../orders/domain/models/order_model.dart';
 
 class ProductsAnalyticsScreen extends StatefulWidget {
   const ProductsAnalyticsScreen({super.key});
@@ -14,10 +14,17 @@ class ProductsAnalyticsScreen extends StatefulWidget {
   State<ProductsAnalyticsScreen> createState() => _ProductsAnalyticsScreenState();
 }
 
+class _ProductStats {
+  final ProductModel product;
+  final int orders;
+  final double revenue;
+  final double views;
+  _ProductStats(this.product, this.orders, this.revenue, this.views);
+}
+
 class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
-  late Future<DocumentSnapshot> _userFuture;
-  Stream<QuerySnapshot>? _productsStream;
   String _activeTab = 'Best Selling';
+  late Future<DocumentSnapshot> _userFuture;
 
   @override
   void initState() {
@@ -36,18 +43,13 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
     return FutureBuilder<DocumentSnapshot>(
       future: _userFuture,
       builder: (context, userSnap) {
-        if (!userSnap.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (!userSnap.hasData) return const Scaffold(backgroundColor: Colors.white, body: Center(child: CircularProgressIndicator()));
         
         final userData = userSnap.data!.data() as Map<String, dynamic>?;
         if (userData == null) return const Scaffold(body: Center(child: Text('User error')));
 
         final storeId = UserModel.fromJson(userData).storeId;
         if (storeId.isEmpty) return const Scaffold(body: Center(child: Text('Store not setup')));
-
-        _productsStream ??= FirebaseFirestore.instance
-            .collection('products')
-            .where('storeId', isEqualTo: storeId)
-            .snapshots();
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -59,26 +61,31 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
             elevation: 0,
           ),
           body: StreamBuilder<QuerySnapshot>(
-            stream: _productsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+            stream: FirebaseFirestore.instance.collection('products').where('storeId', isEqualTo: storeId).snapshots(),
+            builder: (context, prodSnap) {
+              if (prodSnap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
+              if (prodSnap.hasError) return Center(child: Text('Error: ${prodSnap.error}'));
 
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+              List<ProductModel> allProducts = prodSnap.data!.docs.map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
 
-              List<ProductModel> allProducts = snapshot.data!.docs
-                  .map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>))
-                  .toList();
-
-              // TEMPORARY: Inject mock data if DB is empty so we can test the UI
               if (allProducts.isEmpty) {
-                allProducts = _generateMockProducts(storeId);
+                return _buildEmptyState();
               }
 
-              return _buildAnalyticsBody(allProducts);
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('orders').where('storeId', isEqualTo: storeId).snapshots(),
+                builder: (context, orderSnap) {
+                  if (orderSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  List<OrderModel> allOrders = orderSnap.data?.docs.map((doc) => OrderModel.fromJson(doc.data() as Map<String, dynamic>)).toList() ?? [];
+
+                  return _buildAnalyticsBody(allProducts, allOrders);
+                }
+              );
             },
           ),
         );
@@ -86,17 +93,29 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
     );
   }
 
-  Widget _buildAnalyticsBody(List<ProductModel> products) {
+  Widget _buildAnalyticsBody(List<ProductModel> products, List<OrderModel> orders) {
     int total = products.length;
     int live = products.where((p) => p.status.toLowerCase() == 'published' || p.status.toLowerCase() == 'live').length;
     int underReview = products.where((p) => p.status.toLowerCase() == 'draft' || p.status.toLowerCase() == 'under review').length;
 
-    // Map to stats for dynamic sorting
+    // Build stats by crossing products and orders
+    Map<String, int> productOrdersCount = {};
+    Map<String, double> productRevenue = {};
+
+    for (var o in orders) {
+      if (['delivered', 'shipped'].contains(o.orderStatus.toLowerCase())) {
+        for (var item in o.items) {
+          productOrdersCount[item.productId] = (productOrdersCount[item.productId] ?? 0) + item.quantity;
+          productRevenue[item.productId] = (productRevenue[item.productId] ?? 0.0) + (item.price * item.quantity);
+        }
+      }
+    }
+
     List<_ProductStats> statsList = products.map((p) {
-      // Generate stable mock analytics based on ID hash
-      int o = (p.productId.hashCode.abs() % 350) + 10;
-      double r = o * p.price;
-      double v = (p.name.hashCode.abs() % 50) / 10.0 + 1.5;
+      int o = productOrdersCount[p.productId] ?? 0;
+      double r = productRevenue[p.productId] ?? 0.0;
+      // We don't track views at the product level in MVP, just use 0 or mock slightly based on orders
+      double v = o * 2.5; 
       return _ProductStats(p, o, r, v);
     }).toList();
 
@@ -114,27 +133,13 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (products.any((p) => p.productId.startsWith('mock_')))
-            Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(12)),
-              child: const Row(
-                children: [
-                  Icon(Icons.science, color: Colors.amber),
-                  SizedBox(width: 12),
-                  Expanded(child: Text("Displaying mock products data for UI testing.", style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87, fontSize: 13))),
-                ],
-              ),
-            ),
-            
           Row(
             children: [
               Expanded(child: _buildStatBox('Total Products', '$total', Colors.blue)),
               const SizedBox(width: 12),
               Expanded(child: _buildStatBox('Live', '$live', Colors.green)),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatBox('Under Review', '$underReview', Colors.orange)),
+              Expanded(child: _buildStatBox('Drafts', '$underReview', Colors.orange)),
             ],
           ),
           const SizedBox(height: 24),
@@ -160,27 +165,40 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
                 ),
                 const SizedBox(height: 28),
                 
-                // MOCK Best Selling List matching UI reference
-                Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(3),
-                    1: FlexColumnWidth(1.5),
-                    2: FlexColumnWidth(1.8),
-                    3: FlexColumnWidth(1.5),
-                  },
-                  children: [
-                    _buildTableHeader(),
-                    ...statsList.take(6).map((stat) {
-                      final format = NumberFormat('#,##,###', 'en_IN');
-                      return _buildTableRow(
-                        stat.product.name, 
-                        '${stat.orders}', 
-                        '₹${format.format(stat.revenue.toInt())}', 
-                        '${stat.views.toStringAsFixed(1)}K'
-                      );
-                    }),
-                  ],
-                )
+                if (statsList.every((s) => s.orders == 0))
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text("No sales data yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Table(
+                    columnWidths: const {
+                      0: FlexColumnWidth(3),
+                      1: FlexColumnWidth(1.5),
+                      2: FlexColumnWidth(1.8),
+                      3: FlexColumnWidth(1.5),
+                    },
+                    children: [
+                      _buildTableHeader(),
+                      ...statsList.take(6).map((stat) {
+                        final format = NumberFormat('#,##,###', 'en_IN');
+                        return _buildTableRow(
+                          stat.product.name, 
+                          '${stat.orders}', 
+                          '₹${format.format(stat.revenue.toInt())}', 
+                          '${stat.views.toStringAsFixed(1)}'
+                        );
+                      }),
+                    ],
+                  )
               ],
             ),
           )
@@ -249,48 +267,40 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
     const style = TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary);
     return TableRow(
       children: [
-        Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Text(name, style: style)),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Text(orders, style: style)),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Text(rev, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.green))),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Text(views, style: style, textAlign: TextAlign.right)),
+        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(name, style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(orders, style: style)),
+        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(rev, style: style)),
+        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(views, style: style, textAlign: TextAlign.right)),
       ],
     );
   }
 
-  List<ProductModel> _generateMockProducts(String storeId) {
-    final now = DateTime.now();
-    List<ProductModel> mockProducts = [];
-    final random = Random();
-    
-    for (int i = 0; i < 45; i++) {
-      mockProducts.add(ProductModel(
-        productId: 'mock_p$i',
-        storeId: storeId,
-        name: 'Mock Product $i',
-        shortDescription: 'Desc',
-        description: 'Desc',
-        price: 250.0 + (i % 4) * 150.0, // Diverse prices for varied revenue sorting
-        weight: '500g',
-        shelfLife: '6 Months',
-        ingredients: ['x', 'y'],
-        category: 'Pickles',
-        tags: [],
-        stock: 50,
-        images: [],
-        status: i < 35 ? 'Published' : 'Draft',
-        createdAt: now,
-        updatedAt: now,
-      ));
-    }
-    return mockProducts;
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.inventory_2_outlined, size: 64, color: Colors.blue.shade300),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "No Products Yet!", 
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Add products to your catalog to start tracking views, sales, and revenue analytics.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+            ),
+          ],
+        ),
+      ),
+    );
   }
-}
-
-class _ProductStats {
-  final ProductModel product;
-  final int orders;
-  final double revenue;
-  final double views;
-  
-  _ProductStats(this.product, this.orders, this.revenue, this.views);
 }

@@ -11,6 +11,8 @@ import 'features/onboarding/providers/onboarding_provider.dart';
 import 'features/products/presentation/providers/product_provider.dart';
 import 'features/store/providers/subscription_provider.dart';
 import 'features/store/providers/store_provider.dart';
+import 'features/notifications/providers/notification_provider.dart';
+import 'features/dashboard/providers/dashboard_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +37,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
         ChangeNotifierProvider(create: (_) => StoreProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const FreshGaVendorApp(),
     ),

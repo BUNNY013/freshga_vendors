@@ -7,6 +7,8 @@ import '../../../../data/models/user_model.dart';
 import '../../../../features/store/domain/models/store_model.dart';
 import '../../../../features/store/providers/subscription_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../features/notifications/providers/notification_provider.dart';
+import '../../providers/dashboard_provider.dart';
 
 
 class HomeDashboardView extends StatelessWidget {
@@ -67,6 +69,10 @@ class HomeDashboardView extends StatelessWidget {
             }
 
             final store = StoreModel.fromJson(storeSnap.data!.data() as Map<String, dynamic>);
+            
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<DashboardProvider>().subscribeToStore(store.storeId);
+            });
 
             return Scaffold(
               backgroundColor: Colors.white,
@@ -87,19 +93,14 @@ class HomeDashboardView extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildStoreStatusCard(context, store),
-                                const SizedBox(height: 24),
-                                _buildPayoutMetricsCard(context),
+
+                                _buildPayoutMetricsCard(context, store),
                                 const SizedBox(height: 24),
                                 _buildTodaysOverview(context, store),
                                 const SizedBox(height: 28),
-                                _buildPendingActions(context, store),
-                                const SizedBox(height: 28),
-                                _buildRecentOrders(context, store),
+                                _buildNeedsAttention(context, store),
                                 const SizedBox(height: 28),
                                 _buildQuickActions(context),
-                                const SizedBox(height: 28),
-                                _buildBusinessTip(),
                                 const SizedBox(height: 40),
                               ],
                             ),
@@ -210,65 +211,74 @@ class HomeDashboardView extends StatelessWidget {
     );
   }
 
-  // 1. Greeting Header
   Widget _buildGreetingHeader(BuildContext context, StoreModel store) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green.shade50.withOpacity(0.4), Colors.white],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${_greeting()} 👋",
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    store.storeName,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.orange.shade200, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.background,
+              backgroundImage: store.logo.isNotEmpty ? NetworkImage(store.logo) : null,
+              child: store.logo.isEmpty ? const Icon(Icons.store, color: AppColors.grey500, size: 20) : null,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _greeting(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (store.verified) ...[
-                    const SizedBox(width: 6),
-                    const Icon(Icons.verified_rounded, color: AppColors.primary, size: 20),
-                  ],
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  store.storeName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
           Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
-                  ],
+              GestureDetector(
+                onTap: () => context.push('/notifications'),
+                child: Consumer<NotificationProvider>(
+                  builder: (context, notificationProvider, child) {
+                    final unreadCount = notificationProvider.unreadCount;
+                    return _buildHeaderIcon(
+                      Icons.notifications_none_rounded,
+                      showBadge: unreadCount > 0,
+                      badgeCount: unreadCount > 9 ? "9+" : unreadCount.toString(),
+                    );
+                  },
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary),
-                  onPressed: () {},
-                ),
-              ),
-              const SizedBox(width: 12),
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.grey200,
-                backgroundImage: store.logo.isNotEmpty ? NetworkImage(store.logo) : null,
-                child: store.logo.isEmpty ? const Icon(Icons.store, color: AppColors.grey500) : null,
               ),
             ],
           ),
@@ -277,165 +287,177 @@ class HomeDashboardView extends StatelessWidget {
     );
   }
 
-  // 2. Store Status Card
-  Widget _buildStoreStatusCard(BuildContext context, StoreModel store) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: store.isSuspended
-                          ? Colors.red.shade900
-                          : (store.isActive ? Colors.green : Colors.red),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    store.isSuspended
-                        ? "Store Suspended by Admin"
-                        : (store.isActive ? "Store is Open" : "Store is Paused"),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: store.isSuspended
-                          ? Colors.red.shade900
-                          : (store.isActive ? Colors.green.shade700 : Colors.red.shade700),
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: store.isActive && !store.isSuspended,
-                activeColor: Colors.green,
-                onChanged: store.isSuspended
-                    ? (val) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.red,
-                            content: Text(
-                              "Your store is suspended by Admin due to platform policy. Contact Support for reinstatement.",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }
-                    : (val) {
-                        FirebaseFirestore.instance
-                            .collection('stores')
-                            .doc(store.storeId)
-                            .update({'isActive': val});
-                      },
-              ),
+  Widget _buildHeaderIcon(IconData icon, {bool showBadge = false, String badgeCount = ""}) {
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
             ],
+            border: Border.all(color: Colors.grey.shade100),
           ),
-          if (store.isActive) ...[
-            const Divider(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    const Text("Accepting Orders", style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    const Text("Yes", style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                Container(width: 1, height: 30, color: AppColors.grey200),
-                Column(
-                  children: [
-                    const Text("Next Pickup", style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    const Text("3:00 PM", style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
+          child: Icon(icon, color: AppColors.textPrimary, size: 22),
+        ),
+        if (showBadge)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Text(
+                badgeCount,
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, height: 1),
+              ),
             ),
-          ]
-        ],
-      ),
+          ),
+      ],
     );
   }
+
+
 
   // 2.5 Payout Metrics Card
-  Widget _buildPayoutMetricsCard(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/analytics/earnings'),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade300, width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildPayoutMetricsCard(BuildContext context, StoreModel store) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders')
+        .where('storeId', isEqualTo: store.storeId)
+        .where('payoutStatus', isEqualTo: 'pending')
+        .where('orderStatus', isEqualTo: 'Delivered')
+        .snapshots(),
+      builder: (context, snapshot) {
+        double availableBalance = 0;
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final totalAmount = (data['totalAmount'] ?? 0.0) as num;
+            final platformFee = (data['platformFee'] ?? 0.0) as num;
+            availableBalance += (totalAmount - platformFee);
+          }
+        }
+
+        // Get the next Monday for "Next Payout" date
+        DateTime now = DateTime.now();
+        int daysUntilMonday = 8 - now.weekday;
+        if (daysUntilMonday == 8) daysUntilMonday = 1; // If today is Sunday, next Monday is tomorrow
+        DateTime nextPayoutDate = now.add(Duration(days: daysUntilMonday));
+        String formattedNextPayout = "${_getMonthAbbr(nextPayoutDate.month)} ${nextPayoutDate.day}, ${nextPayoutDate.year}";
+
+        return GestureDetector(
+          onTap: () => context.push('/analytics/earnings'),
+          child: Container(
+            clipBehavior: Clip.hardEdge,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF225732), Color(0xFF163E21)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF163E21).withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
-                      child: Icon(Icons.account_balance_wallet_rounded, color: Colors.green.shade700, size: 20),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4A895C),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      "Earnings & Payouts",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Earnings & Payouts",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Track your earnings and manage payouts",
+                            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.chevron_right, color: Colors.white, size: 16),
                     ),
                   ],
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.grey500),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: AppColors.background),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 16),
+                Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+                const SizedBox(height: 16),
+                Row(
                   children: [
-                    const Text("Next Payout", style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    const Text("₹12,450", style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
-                    Text("Expected Jun 15", style: TextStyle(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.w700)),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Next Payout", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text("₹${availableBalance.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                          const SizedBox(height: 2),
+                          Text("Expected on $formattedNextPayout", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 40, color: Colors.white.withOpacity(0.1)),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Available Balance", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text("₹${availableBalance.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                          const SizedBox(height: 2),
+                          Text("Ready to withdraw", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                Container(width: 1, height: 40, color: AppColors.grey200),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Available Balance", style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    const Text("₹5,200", style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
-                    Text("Ready to withdraw", style: TextStyle(color: Colors.green.shade700, fontSize: 10, fontWeight: FontWeight.w700)),
-                  ],
-                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      }
     );
+  }
+
+  String _getMonthAbbr(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 
   // 3. Today's Overview
@@ -452,10 +474,6 @@ class HomeDashboardView extends StatelessWidget {
               "Today's Overview",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
             ),
-            TextButton(
-              onPressed: () => _showNavSnackbar(context, 'All Analytics'),
-              child: const Text("View All", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-            )
           ],
         ),
         const SizedBox(height: 12),
@@ -486,17 +504,14 @@ class HomeDashboardView extends StatelessWidget {
                   mainAxisSpacing: 12,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.5,
+                  childAspectRatio: 1.3,
                   children: [
-                    _buildOverviewCard(context, "Orders Today", "$todayOrders", Icons.shopping_bag_outlined, Colors.blue, "▲ 20%", '/analytics/orders'),
-                    _buildOverviewCard(context, "Revenue Today", "₹${todayRevenue.toStringAsFixed(0)}", Icons.account_balance_wallet_outlined, Colors.orange, "▲ 18%", '/analytics/revenue'),
-                    _buildOverviewCard(context, "Pending Orders", "$pendingCount", Icons.pending_actions, Colors.red, "↓ 2", '/analytics/orders'),
-                    _buildOverviewCard(context, "Products Live", "$productCount", Icons.inventory_2_outlined, Colors.purple, "▲ 5", '/analytics/products'),
-                    _buildOverviewCard(context, "Followers", "${store.followers}", Icons.favorite_border, Colors.pink, "▲ 12%", '/analytics/followers'),
-                    _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Icons.star_outline, Colors.amber, "▲ 0.2", '/analytics/rating'),
-                    // Mocked Data
-                    _buildOverviewCard(context, "Store Views", "3,420", Icons.visibility_outlined, Colors.teal, "▲ 15%", '/analytics/views'),
-                    _buildOverviewCard(context, "Seller Health", "96%", Icons.health_and_safety_outlined, Colors.green, "Excellent", '/analytics/health'),
+                    _buildOverviewCard(context, "Orders Today", "$todayOrders", Colors.green, "▲ 20%", '/analytics/orders'),
+                    _buildOverviewCard(context, "Revenue Today", "₹${todayRevenue.toStringAsFixed(0)}", Colors.orange, "▲ 18%", '/analytics/revenue'),
+                    _buildOverviewCard(context, "Pending Orders", "$pendingCount", Colors.orange, "↓ 2", '/analytics/orders'),
+                    _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, "▲ 5", '/analytics/products'),
+                    _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, "▲ 12%", '/analytics/followers', showChevron: true),
+                    _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Colors.orange, "▲ 0.2", '/analytics/rating', showChevron: true),
                   ],
                 );
               },
@@ -507,116 +522,268 @@ class HomeDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildOverviewCard(BuildContext context, String title, String value, IconData icon, Color color, String trend, String route) {
+  Widget _buildOverviewCard(BuildContext context, String title, String value, Color color, String trend, String route, {bool showChevron = false}) {
     final isPositive = trend.contains('▲') || trend.contains('+') || trend == 'Excellent';
     final trendColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
     String displayTrend = trend.replaceAll('▲ ', '').replaceAll('↓ ', '').replaceAll('+', '').replaceAll('-', '');
+    final IconData trendIcon = isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
     return GestureDetector(
       onTap: () => context.push(route),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title.replaceAll(' Today', ''),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: -1.0),
-                    ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title.replaceAll(' Today', ''),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6.0),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: -0.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (title == "Products Live")
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Row(
                     children: [
-                      Icon(
-                        isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                        color: trendColor,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 2),
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
+                      const SizedBox(width: 4),
+                      Text("6 Low", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                      const SizedBox(width: 4),
+                      Text("2 Out", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
+              )
+            else 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(trendIcon, color: trendColor, size: 14),
+                      const SizedBox(width: 4),
                       Text(
-                        displayTrend,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: trendColor),
+                        displayTrend.contains('.') ? displayTrend : "$displayTrend%",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: trendColor),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
+                  if (showChevron)
+                    const Icon(Icons.chevron_right, color: Colors.black54, size: 18),
+                ],
+              )
           ],
         ),
       ),
     );
   }
 
-  // 4. Pending Actions
-  Widget _buildPendingActions(BuildContext context, StoreModel store) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Pending Actions",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.orange.shade100, shape: BoxShape.circle),
-                child: Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  // 4. Needs Attention
+  Widget _buildNeedsAttention(BuildContext context, StoreModel store) {
+    return Consumer<DashboardProvider>(
+      builder: (context, dashboard, child) {
+        final pendingCount = dashboard.pendingOrdersCount;
+        final lowStockCount = dashboard.lowStockCount;
+        final outOfStockCount = dashboard.outOfStockCount;
+
+        // If everything is clear, we might want to show a success state or hide it entirely
+        final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Text("4 orders need your attention", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange.shade900)),
-                    Text("Tap to view and process", style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+                    Icon(
+                      allClear ? Icons.check_circle_outline : Icons.notifications_active_outlined, 
+                      color: allClear ? Colors.green : AppColors.textPrimary, 
+                      size: 20
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      allClear ? "All Caught Up!" : "Needs Attention",
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (allClear)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green.shade100),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.green.shade400, size: 32),
+                    const SizedBox(height: 12),
+                    Text(
+                      "You're doing great!",
+                      style: TextStyle(fontWeight: FontWeight.w800, color: Colors.green.shade800, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "No pending orders or stock issues.",
+                      style: TextStyle(color: Colors.green.shade700, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    if (pendingCount > 0) ...[
+                      _buildAttentionRow(
+                        icon: Icons.assignment,
+                        iconColor: Colors.orange.shade700,
+                        title: "$pendingCount orders need processing",
+                        subtitle: "Dispatch as soon as possible",
+                        badgeText: "High Priority",
+                        badgeColor: Colors.red.shade600,
+                      ),
+                    ],
+                    if (pendingCount > 0 && (lowStockCount > 0 || outOfStockCount > 0))
+                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
+                    
+                    if (lowStockCount > 0) ...[
+                      _buildAttentionRow(
+                        icon: Icons.inventory_2,
+                        iconColor: Colors.orange.shade600,
+                        title: "$lowStockCount products running low",
+                        subtitle: "Restock to avoid missed sales",
+                        badgeText: "Medium",
+                        badgeColor: Colors.orange.shade600,
+                      ),
+                    ],
+                    if (lowStockCount > 0 && outOfStockCount > 0)
+                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
+
+                    if (outOfStockCount > 0) ...[
+                      _buildAttentionRow(
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: Colors.red.shade400,
+                        title: "$outOfStockCount products out of stock",
+                        subtitle: "Update availability to continue selling",
+                        badgeText: "Low", // Matching image text visually
+                        badgeColor: Colors.green.shade600, // Matching image color visually
+                      ),
+                    ],
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.orange.shade700),
-            ],
-          ),
-        ),
-      ],
+          ],
+        );
+      }
     );
   }
 
-  // 5. Recent Orders
-  Widget _buildRecentOrders(BuildContext context, StoreModel store) {
+  Widget _buildAttentionRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+  }) {
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: badgeColor),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Colors.black54, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 5. Quick Actions
+  Widget _buildQuickActions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -624,157 +791,91 @@ class HomeDashboardView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              "Recent Orders",
+              "Quick Actions",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text("View All", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              child: Row(
+                children: const [
+                  Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                  SizedBox(width: 4),
+                  Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
+                ],
+              ),
             )
-          ],
-        ),
-        const SizedBox(height: 8),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('orders').where('storeId', isEqualTo: store.storeId).orderBy('createdAt', descending: true).limit(3).snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snapshot.data!.docs;
-            if (docs.isEmpty) return const Text("No recent orders.");
-
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300, width: 1.5),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: docs.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  final orderId = docs[index].id.substring(0, 6).toUpperCase();
-                  final amount = data['totalAmount'] ?? 0.0;
-                  final status = (data['orderStatus'] ?? 'Unknown').toString().toUpperCase();
-                  final createdAtStr = data['createdAt'] as String?;
-                  final timeText = createdAtStr != null ? _timeAgo(DateTime.parse(createdAtStr)) : '';
-
-                  Color statusColor = Colors.grey;
-                  if (status == 'PREPARING' || status == 'ACCEPTED') statusColor = Colors.orange;
-                  if (status == 'PACKED') statusColor = Colors.blue;
-                  if (status == 'DELIVERED') statusColor = Colors.green;
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.receipt_long, color: AppColors.primary, size: 20),
-                    ),
-                    title: Text("#$orderId", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text(timeText, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text("₹${(amount as num).toInt()}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                          child: Text(status, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // 6. Quick Actions
-  Widget _buildQuickActions(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Quick Actions",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(child: _buildActionButton(context, "Add Product", Icons.add_circle_outline, Colors.blue, () => context.push('/add-product'))),
-            const SizedBox(width: 12),
-            Expanded(child: _buildActionButton(context, "Manage", Icons.inventory_2_outlined, Colors.purple, () => context.push('/products'))),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _buildActionButton(context, "Store Settings", Icons.storefront, Colors.orange, () => context.push('/edit-store'))),
-            const SizedBox(width: 12),
-            Expanded(child: _buildActionButton(context, "Analytics", Icons.bar_chart, Colors.teal, () => _showNavSnackbar(context, "All Analytics"))),
+            _buildQuickActionBtn(context, "Add Product", Icons.add_circle, Colors.green, () => context.push('/add-product')),
+            _buildQuickActionBtn(context, "Orders", Icons.assignment, Colors.orange, () => context.push('/analytics/orders'), badge: 4),
+            _buildQuickActionBtn(context, "Store Profile", Icons.store, Colors.green, () => context.push('/edit-store')),
+            _buildQuickActionBtn(context, "Payouts", Icons.account_balance_wallet, Colors.blue, () => context.push('/analytics/earnings')),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          border: Border.all(color: color.withOpacity(0.2)),
-          borderRadius: BorderRadius.circular(16),
+  Widget _buildQuickActionBtn(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap, {int? badge}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+            ],
+          ),
+          child: Column(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  if (badge != null)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Text(
+                          badge.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, height: 1),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+            ],
+          ),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color.withOpacity(0.8))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 7. Business Tip
-  Widget _buildBusinessTip() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lightbulb_outline, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text("Business Tip", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                SizedBox(height: 4),
-                Text("Stores with complete profiles receive 40% more customer visits.", style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              ],
-            ),
-          )
-        ],
       ),
     );
   }

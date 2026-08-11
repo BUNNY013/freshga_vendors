@@ -151,35 +151,27 @@ class _OrderFulfillmentScreenState extends State<OrderFulfillmentScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'How will you dispatch your orders?',
+                        'For now, all vendors handle their own self-delivery.',
                         style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                       ),
                       const SizedBox(height: 16),
                       
                       _buildFulfillmentCard(
-                        title: 'FreshGa Delivery (Shiprocket)',
-                        description: 'We calculate shipping rates automatically and schedule pickups for you.',
-                        icon: Icons.local_shipping_outlined,
-                        isSelected: store.shippingConfig['shippingMode'] != 'self',
-                        onTap: () {
-                           storeProvider.updateShippingMode('freshga');
-                        }
-                      ),
-                      const SizedBox(height: 12),
-                      _buildFulfillmentCard(
                         title: 'Self Shipping',
                         description: 'You handle the delivery and set your own manual shipping rates.',
                         icon: Icons.inventory_2_outlined,
-                        isSelected: store.shippingConfig['shippingMode'] == 'self',
+                        isSelected: true,
                         onTap: () {
-                           storeProvider.updateShippingMode('self');
+                           // Automatically enforced
+                           if (store.shippingConfig['shippingMode'] != 'self') {
+                             storeProvider.updateShippingMode('self');
+                           }
                         }
                       ),
                       
-                      if (store.shippingConfig['shippingMode'] == 'self') ...[
-                        const SizedBox(height: 40),
-                        const Text(
-                          'Manual Delivery Areas',
+                      const SizedBox(height: 40),
+                      const Text(
+                        'Manual Delivery Areas',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A)),
                         ),
                         const SizedBox(height: 8),
@@ -230,9 +222,8 @@ class _OrderFulfillmentScreenState extends State<OrderFulfillmentScreen> {
                             ),
                           ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
     );
   }
 

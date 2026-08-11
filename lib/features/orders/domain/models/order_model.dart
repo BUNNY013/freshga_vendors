@@ -15,6 +15,7 @@ class OrderModel {
   final String deliveryAddress;
   final String customerPhone;
   final String orderStatus; // 'New', 'Accepted', 'Packed', 'Shipped', 'Delivered', 'Declined'
+  final String payoutStatus; // 'pending', 'paid'
   
   // Tracking & Lifecycle
   final String shippingProvider;
@@ -49,6 +50,7 @@ class OrderModel {
     required this.deliveryAddress,
     this.customerPhone = '',
     required this.orderStatus,
+    this.payoutStatus = 'pending',
     this.shippingProvider = '',
     this.trackingId = '',
     this.trackingLink = '',
@@ -83,6 +85,7 @@ class OrderModel {
       deliveryAddress: json['deliveryAddress'] ?? '',
       customerPhone: json['customerPhone'] ?? '',
       orderStatus: json['orderStatus'] ?? 'New',
+      payoutStatus: json['payoutStatus'] ?? 'pending',
       shippingProvider: json['shippingProvider'] ?? '',
       trackingId: json['trackingId'] ?? '',
       trackingLink: json['trackingLink'] ?? '',
@@ -117,6 +120,7 @@ class OrderModel {
       'deliveryAddress': deliveryAddress,
       'customerPhone': customerPhone,
       'orderStatus': orderStatus,
+      'payoutStatus': payoutStatus,
       'shippingProvider': shippingProvider,
       'trackingId': trackingId,
       'trackingLink': trackingLink,
@@ -148,6 +152,7 @@ class OrderModel {
     String? deliveryAddress,
     String? customerPhone,
     String? orderStatus,
+    String? payoutStatus,
     String? shippingProvider,
     String? trackingId,
     String? trackingLink,
@@ -173,6 +178,7 @@ class OrderModel {
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       customerPhone: customerPhone ?? this.customerPhone,
       orderStatus: orderStatus ?? this.orderStatus,
+      payoutStatus: payoutStatus ?? this.payoutStatus,
       shippingProvider: shippingProvider ?? this.shippingProvider,
       trackingId: trackingId ?? this.trackingId,
       trackingLink: trackingLink ?? this.trackingLink,

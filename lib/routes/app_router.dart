@@ -29,20 +29,22 @@ import '../features/store/presentation/screens/editors/store_categories_screen.d
 import '../features/store/presentation/screens/editors/policies_screen.dart';
 import '../features/store/presentation/screens/editors/faq_screen.dart';
 import '../features/store/presentation/screens/editors/social_links_screen.dart';
+import '../features/store/presentation/screens/preview/store_preview_screen.dart';
 import '../data/models/product_model.dart';
+import '../data/models/store_model.dart';
 
 import '../features/analytics/presentation/screens/revenue_analytics_screen.dart';
 import '../features/analytics/presentation/screens/orders_analytics_screen.dart';
 import '../features/analytics/presentation/screens/products_analytics_screen.dart';
 import '../features/analytics/presentation/screens/followers_analytics_screen.dart';
 import '../features/analytics/presentation/screens/ratings_analytics_screen.dart';
-import '../features/analytics/presentation/screens/store_views_analytics_screen.dart';
-import '../features/analytics/presentation/screens/seller_health_screen.dart';
+
 import '../features/analytics/presentation/screens/earnings_payouts_screen.dart';
 import '../features/profile/presentation/screens/customer_feedback_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
+import '../features/notifications/presentation/screens/notifications_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -207,6 +209,13 @@ class AppRouter {
         builder: (context, state) => const SocialLinksScreen(),
       ),
       GoRoute(
+        path: '/store/preview',
+        builder: (context, state) {
+          final store = state.extra as StoreModel;
+          return StorePreviewScreen(store: store);
+        },
+      ),
+      GoRoute(
         path: '/analytics/revenue',
         builder: (context, state) => const RevenueAnalyticsScreen(),
       ),
@@ -226,14 +235,7 @@ class AppRouter {
         path: '/analytics/rating',
         builder: (context, state) => const RatingsAnalyticsScreen(),
       ),
-      GoRoute(
-        path: '/analytics/views',
-        builder: (context, state) => const StoreViewsAnalyticsScreen(),
-      ),
-      GoRoute(
-        path: '/analytics/health',
-        builder: (context, state) => const SellerHealthScreen(),
-      ),
+
       GoRoute(
         path: '/analytics/earnings',
         builder: (context, state) => const EarningsPayoutsScreen(),
@@ -241,6 +243,10 @@ class AppRouter {
       GoRoute(
         path: '/profile/feedback',
         builder: (context, state) => const CustomerFeedbackScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
     redirect: (context, state) {

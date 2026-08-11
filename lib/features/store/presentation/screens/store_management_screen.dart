@@ -272,6 +272,21 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                   child: const Text('Share store', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                height: 34,
+                width: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.remove_red_eye_outlined, size: 18, color: Color(0xFF0F172A)),
+                  onPressed: () => context.push('/store/preview', extra: store),
+                ),
+              ),
             ],
           ),
         ),
@@ -442,39 +457,54 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
           subtitleWidget: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                store.shippingConfig['shippingMode'] == 'self'
-                    ? 'Fulfillment: Self Shipping'
-                    : (store.shippingConfig['shippingMode'] == 'freshga' 
-                        ? 'Fulfillment: FreshGa Delivery' 
-                        : 'Fulfillment: Not configured'),
-                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              const Text(
+                'Fulfillment: Self Shipping',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
-              if (store.shippingConfig['shippingMode'] == 'self' && store.deliveryAreas.isNotEmpty) ...[
+              if (store.deliveryAreas.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 ...store.deliveryAreas.map((area) {
+                  String displayName = area.areaType;
+                  if (area.areaType == 'My State' && store.state.isNotEmpty) {
+                    displayName = store.state;
+                  } else if (area.areaType == 'Local City' && store.city.isNotEmpty) {
+                    displayName = store.city;
+                  }
+
                   String ruleText = '';
                   if (area.ruleType == 'free') {
-                    ruleText = 'Free';
+                    ruleText = 'Free Delivery';
                   } else if (area.ruleType == 'flat') {
                     ruleText = '₹${area.deliveryCharge.toInt()}';
                   } else if (area.ruleType == 'flat_plus_free_above') {
-                    ruleText = '₹${area.deliveryCharge.toInt()} (Free > ₹${area.freeShippingThreshold?.toInt()})';
+                    ruleText = '₹${area.deliveryCharge.toInt()} (Free delivery over ₹${area.freeShippingThreshold?.toInt()})';
                   }
                   
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 12, color: AppColors.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${area.areaType}: ',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.location_on_outlined, size: 14, color: AppColors.primary),
                         ),
-                        Text(
-                          ruleText,
-                          style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                displayName,
+                                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ruleText,
+                                style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

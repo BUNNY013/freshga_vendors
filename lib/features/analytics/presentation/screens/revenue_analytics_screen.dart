@@ -76,9 +76,8 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
                   .map((doc) => OrderModel.fromJson(doc.data() as Map<String, dynamic>))
                   .toList();
 
-              // TEMPORARY: Inject mock data if DB is empty so we can test the UI
               if (allOrders.isEmpty) {
-                allOrders = _generateMockOrders(storeId);
+                return _buildEmptyState();
               }
 
               return _buildAnalyticsBody(allOrders);
@@ -95,19 +94,7 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (allOrders.any((o) => o.orderId.startsWith('mock_')))
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(8)),
-              child: const Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Expanded(child: Text("Displaying 150 injected Mock Orders for UI testing.", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87))),
-                ],
-              ),
-            ),
+
           _buildTotalRevenueCard(allOrders),
           const SizedBox(height: 24),
           _buildRealTimeTrendChartCard(allOrders),
@@ -362,37 +349,32 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
     );
   }
 
-  List<OrderModel> _generateMockOrders(String storeId) {
-    final now = DateTime.now();
-    List<OrderModel> mockOrders = [];
-    final statuses = ['Delivered', 'Delivered', 'Delivered', 'New', 'Accepted', 'Packed', 'Shipped', 'Cancelled', 'Refunded'];
-    final productNames = ['Spicy Mango Pickle', 'Ghee Sweets', 'Organic Honey', 'Homemade Chips'];
-    
-    // Using a pseudo-random generator so the chart looks organic
-    for (int i = 0; i < 150; i++) {
-      int daysAgo = (i < 50) ? (i % 7) : (i % 90); 
-      final orderDate = now.subtract(Duration(days: daysAgo, hours: (i * 7) % 24));
-      final status = statuses[i % statuses.length];
-      
-      mockOrders.add(OrderModel(
-        orderId: 'mock_$i',
-        storeId: storeId,
-        customerId: 'cust_$i',
-        customerName: 'Mock Customer $i',
-        items: [
-          OrderItem(productId: 'p${i%4}', productName: productNames[i % 4], quantity: (i % 3) + 1, price: 250.0 + (i % 3)*50),
-          if (i % 2 == 0) OrderItem(productId: 'p${(i+1)%4}', productName: productNames[(i+1) % 4], quantity: 1, price: 100.0),
-        ],
-        totalAmount: ((i % 5) + 1) * 350.0,
-        paymentStatus: 'Paid',
-        deliveryAddress: 'Mock Address',
-        orderStatus: status,
-        expiresAt: orderDate.add(const Duration(hours: 24)),
-        maxDispatchDate: orderDate.add(const Duration(days: 2)),
-        createdAt: orderDate,
-        updatedAt: orderDate,
-      ));
-    }
-    return mockOrders;
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.orange.shade300),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "No Revenue Yet!", 
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Your revenue analytics will appear here once you start receiving and delivering orders.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

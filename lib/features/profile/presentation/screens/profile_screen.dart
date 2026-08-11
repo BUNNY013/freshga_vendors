@@ -178,6 +178,8 @@ class ProfileScreen extends StatelessWidget {
           _buildDivider(),
           _buildListTile(Icons.account_balance_wallet_outlined, "Bank & Payouts", () {}),
           _buildDivider(),
+          _buildListTile(Icons.card_membership_outlined, "Subscriptions & Billing", () {}),
+          _buildDivider(),
           _buildListTile(Icons.notifications_outlined, "Notification Settings", () {}),
           _buildDivider(),
           _buildListTile(Icons.local_shipping_outlined, "Delivery Settings", () => context.push('/store/order-fulfillment')),
@@ -257,7 +259,57 @@ class ProfileScreen extends StatelessWidget {
             ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             onTap: () {
-              // Delete Account Logic
+              showDialog(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return AlertDialog(
+                    title: const Text("Delete Account"),
+                    content: const Text(
+                      "Are you sure you want to delete your account? This action cannot be undone. "
+                      "Your store and products will be removed from the app.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          // Show loading indicator
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                            },
+                          );
+                          
+                          final success = await context.read<vendor_auth.AuthProvider>().deleteAccount();
+                          
+                          if (context.mounted) {
+                            Navigator.pop(context); // Dismiss loading
+                            if (success) {
+                              context.go('/login');
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    context.read<vendor_auth.AuthProvider>().errorMessage ?? 
+                                    'Failed to delete account'
+                                  ),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text("Delete", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
           ),
         ],

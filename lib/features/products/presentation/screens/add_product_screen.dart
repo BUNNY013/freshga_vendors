@@ -218,7 +218,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _prevPage();
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -307,6 +313,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       )],
       ),
       bottomNavigationBar: _buildStickyBottomBar(),
+      ),
     );
   }
 
@@ -753,7 +760,30 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                   const SizedBox(height: 8),
                                 ],
                               ),
-                            ),
+                             ),
+                            if (isSelected)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${_subCategoryIds.indexOf(sub.subCategoryId) + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -798,6 +828,62 @@ class _AddProductWizardState extends State<_AddProductWizard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Consumer<ProductProvider>(
+              builder: (context, provider, _) {
+                final subCategories = provider.subCategories;
+                final selectedSubs = subCategories.where((s) => _subCategoryIds.contains(s.subCategoryId)).toList();
+                
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.category_rounded, size: 20, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            _categoryName,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
+                            child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                      if (selectedSubs.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedSubs.map((sub) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: const Color(0xFFBBF7D0)),
+                            ),
+                            child: Text(
+                              sub.name,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          )).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
             _buildPhotosSection(),
             const SizedBox(height: 24),
 
@@ -2162,26 +2248,28 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                 ),
               ),
               const SizedBox(height: 22),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleSubmission('Draft');
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Save Draft',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+              if (_currentPage == 2) ...[
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleSubmission('Draft');
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    alignment: Alignment.center,
+                    child: Text(
+                      (widget.product != null && widget.product!.status == 'Draft') ? 'Update Draft' : 'Save Draft',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
               const Divider(height: 1, color: Color(0xFFF1F5F9)),
               InkWell(
                 onTap: () {
