@@ -58,11 +58,11 @@ class ProductCard extends StatelessWidget {
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x0A000000), // ~0.04 opacity
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              color: AppColors.primary.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             )
           ],
         ),
@@ -85,25 +85,28 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildProductImage() {
     return SizedBox(
-      width: 96,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      width: 104,
+      height: 104,
+      child: Stack(
         children: [
-          ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: product.images.isNotEmpty
-              ? Image.network(
-                  product.images.first,
-                  height: 96,
-                  width: 96,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                )
-              : _buildPlaceholder(),
-        ),
-        const SizedBox(height: 8),
-        _buildStatusBadge(),
-      ],
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: product.images.isNotEmpty
+                  ? Image.network(
+                      product.images.first,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                    )
+                  : _buildPlaceholder(),
+            ),
+          ),
+          Positioned(
+            top: 6,
+            left: 6,
+            child: _buildStatusBadge(),
+          ),
+        ],
       ),
     );
   }
@@ -142,11 +145,11 @@ class ProductCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: onPreview,
+              onTap: onEdit,
               behavior: HitTestBehavior.opaque,
               child: const Padding(
                 padding: EdgeInsets.only(bottom: 8.0, left: 8.0),
-                child: Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF64748B)),
+                child: Icon(Icons.edit_outlined, size: 20, color: Color(0xFF64748B)),
               ),
             ),
           ],
@@ -186,9 +189,9 @@ class ProductCard extends StatelessWidget {
         Text(
           _priceRange,
           style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600, // SemiBold
-            color: Color(0xFF111827),
+            fontSize: 16,
+            fontWeight: FontWeight.w800, // ExtraBold
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(height: 8),

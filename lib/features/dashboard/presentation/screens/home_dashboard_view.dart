@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../features/store/domain/models/store_model.dart';
 import '../../../../features/store/providers/subscription_provider.dart';
@@ -78,13 +79,13 @@ class HomeDashboardView extends StatelessWidget {
               backgroundColor: Colors.white,
               body: SafeArea(
                 child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
+                  physics: const ClampingScrollPhysics(),
                   slivers: [
                     SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTrialCountdownBanner(context),
+                          _buildSubscriptionBanner(context),
                           if (store.isSuspended) _buildSuspensionBanner(context),
                           _buildGreetingHeader(context, store),
                           const SizedBox(height: 16),
@@ -101,6 +102,8 @@ class HomeDashboardView extends StatelessWidget {
                                 _buildNeedsAttention(context, store),
                                 const SizedBox(height: 28),
                                 _buildQuickActions(context),
+                                const SizedBox(height: 24),
+                                _buildPremiumFooter(context),
                                 const SizedBox(height: 40),
                               ],
                             ),
@@ -118,47 +121,77 @@ class HomeDashboardView extends StatelessWidget {
     );
   }
 
-  // 0. Trial Countdown Banner
-  Widget _buildTrialCountdownBanner(BuildContext context) {
+  // 0. Subscription Banner
+  Widget _buildSubscriptionBanner(BuildContext context) {
     return Consumer<SubscriptionProvider>(
       builder: (context, subProvider, _) {
         final sub = subProvider.currentSubscription;
-        if (sub == null || !sub.isTrialActive || sub.status != 'trialing') return const SizedBox.shrink();
+        if (sub == null || sub.isPaidActive) return const SizedBox.shrink(); // Don't annoy active paying users
 
-        final daysLeft = sub.trialEndsAt.difference(DateTime.now()).inDays;
+        Color bgColor;
+        Color iconColor;
+        IconData icon;
+        String title;
+        String btnText;
+
+        if (sub.isTrialActive) {
+          final daysLeft = sub.trialEndsAt.difference(DateTime.now()).inDays;
+          
+          // Only show banner if 7 days or less are remaining
+          if (daysLeft > 7) return const SizedBox.shrink();
+          
+          bgColor = const Color(0xFFFDE68A);
+          iconColor = const Color(0xFFD97706);
+          icon = Icons.timer_outlined;
+          title = "$daysLeft Days left in Free Trial";
+          btnText = "View Plans";
+        } else if (sub.isInGracePeriod) {
+          final hoursLeft = sub.currentPeriodEnd!.add(const Duration(days: 3)).difference(DateTime.now()).inHours;
+          bgColor = Colors.orange.shade100;
+          iconColor = Colors.orange.shade900;
+          icon = Icons.warning_amber_rounded;
+          title = "$hoursLeft hours left before your store goes offline. Pay now!";
+          btnText = "Renew";
+        } else if (sub.isCompletelyExpired) {
+          bgColor = Colors.red.shade100;
+          iconColor = Colors.red.shade900;
+          icon = Icons.error_outline;
+          title = "Store Offline. You cannot receive orders.";
+          btnText = "Pay Now";
+        } else {
+          return const SizedBox.shrink();
+        }
         
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFDE68A), // Light amber
-          ),
+          decoration: BoxDecoration(color: bgColor),
           child: Row(
             children: [
-              const Icon(Icons.timer_outlined, color: Color(0xFFD97706), size: 20),
+              Icon(icon, color: iconColor, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "$daysLeft Days left in Growth Trial",
-                  style: const TextStyle(
-                    fontSize: 14,
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF92400E),
+                    color: iconColor,
                   ),
                 ),
               ),
               TextButton(
                 onPressed: () {
-                  // context.push('/subscription-plans');
+                  context.push('/subscription');
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFD97706),
+                  backgroundColor: iconColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   minimumSize: Size.zero,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text("Upgrade Now", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(btnText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               )
             ],
           ),
@@ -214,12 +247,8 @@ class HomeDashboardView extends StatelessWidget {
   Widget _buildGreetingHeader(BuildContext context, StoreModel store) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green.shade50.withOpacity(0.4), Colors.white],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -330,17 +359,25 @@ class HomeDashboardView extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('orders')
         .where('storeId', isEqualTo: store.storeId)
-        .where('payoutStatus', isEqualTo: 'pending')
-        .where('orderStatus', isEqualTo: 'Delivered')
         .snapshots(),
       builder: (context, snapshot) {
+        double pendingSettlement = 0;
         double availableBalance = 0;
         if (snapshot.hasData) {
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final totalAmount = (data['totalAmount'] ?? 0.0) as num;
-            final platformFee = (data['platformFee'] ?? 0.0) as num;
-            availableBalance += (totalAmount - platformFee);
+            final payoutStatus = (data['payoutStatus'] ?? 'pending').toString().toLowerCase();
+            if (payoutStatus != 'pending') continue;
+
+            final status = (data['orderStatus'] ?? '').toString().toLowerCase();
+            final subTotal = (data['subTotal'] ?? 0.0) as num;
+            final deliveryFee = (data['deliveryFee'] ?? 0.0) as num;
+            
+            if (['new', 'accepted', 'packed', 'ready', 'shipped'].contains(status)) {
+              pendingSettlement += (subTotal + deliveryFee);
+            } else if (status == 'delivered') {
+              availableBalance += (subTotal + deliveryFee);
+            }
           }
         }
 
@@ -422,11 +459,11 @@ class HomeDashboardView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Next Payout", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text("Pending Settlement", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
-                          Text("₹${availableBalance.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                          Text("₹${pendingSettlement.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                           const SizedBox(height: 2),
-                          Text("Expected on $formattedNextPayout", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
+                          Text("Orders in progress", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
                         ],
                       ),
                     ),
@@ -489,7 +526,12 @@ class HomeDashboardView extends StatelessWidget {
               final d = doc.data() as Map<String, dynamic>;
               final status = (d['orderStatus'] ?? '').toString().toLowerCase();
               final amount = (d['totalAmount'] ?? 0.0) as num;
-              todayRevenue += amount;
+              
+              // Only count revenue for delivered orders
+              if (status == 'delivered') {
+                todayRevenue += amount;
+              }
+              
               if (status == 'new' || status == 'accepted' || status == 'packed') pendingCount++;
             }
 
@@ -498,21 +540,25 @@ class HomeDashboardView extends StatelessWidget {
               builder: (context, prodSnap) {
                 final productCount = prodSnap.data?.docs.length ?? 0;
 
-                return GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.3,
-                  children: [
-                    _buildOverviewCard(context, "Orders Today", "$todayOrders", Colors.green, "▲ 20%", '/analytics/orders'),
-                    _buildOverviewCard(context, "Revenue Today", "₹${todayRevenue.toStringAsFixed(0)}", Colors.orange, "▲ 18%", '/analytics/revenue'),
-                    _buildOverviewCard(context, "Pending Orders", "$pendingCount", Colors.orange, "↓ 2", '/analytics/orders'),
-                    _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, "▲ 5", '/analytics/products'),
-                    _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, "▲ 12%", '/analytics/followers', showChevron: true),
-                    _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Colors.orange, "▲ 0.2", '/analytics/rating', showChevron: true),
-                  ],
+                return Consumer<DashboardProvider>(
+                  builder: (context, dashboard, _) {
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 1.3,
+                      children: [
+                        _buildOverviewCard(context, "Orders Today", "$todayOrders", Colors.green, '/analytics/orders'),
+                        _buildOverviewCard(context, "Revenue Today", "₹${todayRevenue.toStringAsFixed(0)}", Colors.orange, '/analytics/revenue'),
+                        _buildOverviewCard(context, "Pending Orders", "$pendingCount", Colors.orange, '/analytics/orders'),
+                        _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, '/analytics/products', lowStockCount: dashboard.lowStockCount, outOfStockCount: dashboard.outOfStockCount),
+                        _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, '/analytics/followers', showChevron: true),
+                        _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
+                      ],
+                    );
+                  }
                 );
               },
             );
@@ -522,10 +568,11 @@ class HomeDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildOverviewCard(BuildContext context, String title, String value, Color color, String trend, String route, {bool showChevron = false}) {
-    final isPositive = trend.contains('▲') || trend.contains('+') || trend == 'Excellent';
+  Widget _buildOverviewCard(BuildContext context, String title, String value, Color color, String route, {bool showChevron = false, String? trend, int? lowStockCount, int? outOfStockCount}) {
+    final hasTrend = trend != null && trend.isNotEmpty;
+    final isPositive = hasTrend && (trend.contains('▲') || trend.contains('+') || trend == 'Excellent');
     final trendColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
-    String displayTrend = trend.replaceAll('▲ ', '').replaceAll('↓ ', '').replaceAll('+', '').replaceAll('-', '');
+    String displayTrend = hasTrend ? trend.replaceAll('▲ ', '').replaceAll('↓ ', '').replaceAll('+', '').replaceAll('-', '') : '';
     final IconData trendIcon = isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
     return GestureDetector(
@@ -567,28 +614,38 @@ class HomeDashboardView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            if (title == "Products Live")
+            if (title == "Products Live" && (lowStockCount != null && outOfStockCount != null))
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
-                      const SizedBox(width: 4),
-                      Text("6 Low", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
-                      const SizedBox(width: 4),
-                      Text("2 Out", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                  if (lowStockCount > 0)
+                    Row(
+                      children: [
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
+                        const SizedBox(width: 4),
+                        Text("$lowStockCount Low", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  if (outOfStockCount > 0)
+                    Row(
+                      children: [
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                        const SizedBox(width: 4),
+                        Text("$outOfStockCount Out", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  if (lowStockCount == 0 && outOfStockCount == 0)
+                     Row(
+                      children: [
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                        const SizedBox(width: 4),
+                        Text("All Good", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                 ],
               )
-            else 
+            else if (hasTrend)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -606,6 +663,11 @@ class HomeDashboardView extends StatelessWidget {
                     const Icon(Icons.chevron_right, color: Colors.black54, size: 18),
                 ],
               )
+            else if (showChevron)
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Icon(Icons.chevron_right, color: Colors.black54, size: 18),
+              )
           ],
         ),
       ),
@@ -614,16 +676,22 @@ class HomeDashboardView extends StatelessWidget {
 
   // 4. Needs Attention
   Widget _buildNeedsAttention(BuildContext context, StoreModel store) {
-    return Consumer<DashboardProvider>(
-      builder: (context, dashboard, child) {
-        final pendingCount = dashboard.pendingOrdersCount;
-        final lowStockCount = dashboard.lowStockCount;
-        final outOfStockCount = dashboard.outOfStockCount;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('products').where('storeId', isEqualTo: store.storeId).snapshots(),
+      builder: (context, prodSnap) {
+        final productCount = prodSnap.data?.docs.length ?? 0;
+        
+        return Consumer<DashboardProvider>(
+          builder: (context, dashboard, child) {
+            final pendingCount = dashboard.pendingOrdersCount;
+            final lowStockCount = dashboard.lowStockCount;
+            final outOfStockCount = dashboard.outOfStockCount;
 
         // If everything is clear, we might want to show a success state or hide it entirely
-        final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0;
+            final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0;
+            final isNewStore = productCount == 0 && store.totalOrders == 0;
 
-        return Column(
+            return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -632,13 +700,13 @@ class HomeDashboardView extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      allClear ? Icons.check_circle_outline : Icons.notifications_active_outlined, 
-                      color: allClear ? Colors.green : AppColors.textPrimary, 
+                      isNewStore ? Icons.waving_hand_rounded : (allClear ? Icons.check_circle_outline : Icons.notifications_active_outlined), 
+                      color: isNewStore ? Colors.orange : (allClear ? Colors.green : AppColors.textPrimary), 
                       size: 20
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      allClear ? "All Caught Up!" : "Needs Attention",
+                      isNewStore ? "Welcome!" : (allClear ? "All Caught Up!" : "Needs Attention"),
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                     ),
                   ],
@@ -646,7 +714,32 @@ class HomeDashboardView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (allClear)
+            if (isNewStore)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.shade100),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.storefront_rounded, color: Colors.orange.shade400, size: 36),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Let's get your store ready!",
+                      style: TextStyle(fontWeight: FontWeight.w800, color: Colors.orange.shade800, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Add your first product to start selling.",
+                      style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else if (allClear)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -724,7 +817,9 @@ class HomeDashboardView extends StatelessWidget {
               ),
           ],
         );
-      }
+          },
+        );
+      },
     );
   }
 
@@ -794,16 +889,6 @@ class HomeDashboardView extends StatelessWidget {
               "Quick Actions",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
             ),
-            TextButton(
-              onPressed: () {},
-              child: Row(
-                children: const [
-                  Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-                  SizedBox(width: 4),
-                  Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
-                ],
-              ),
-            )
           ],
         ),
         const SizedBox(height: 12),
@@ -811,8 +896,8 @@ class HomeDashboardView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildQuickActionBtn(context, "Add Product", Icons.add_circle, Colors.green, () => context.push('/add-product')),
-            _buildQuickActionBtn(context, "Orders", Icons.assignment, Colors.orange, () => context.push('/analytics/orders'), badge: 4),
-            _buildQuickActionBtn(context, "Store Profile", Icons.store, Colors.green, () => context.push('/edit-store')),
+            _buildQuickActionBtn(context, "Orders", Icons.assignment, Colors.orange, () => context.push('/analytics/orders')),
+            _buildQuickActionBtn(context, "Subscription", Icons.workspace_premium, Colors.purple, () => context.push('/subscription')),
             _buildQuickActionBtn(context, "Payouts", Icons.account_balance_wallet, Colors.blue, () => context.push('/analytics/earnings')),
           ],
         ),
@@ -877,6 +962,93 @@ class HomeDashboardView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildPremiumFooter(BuildContext context) {
+    return Consumer<SubscriptionProvider>(
+      builder: (context, subProvider, _) {
+        final sub = subProvider.currentSubscription;
+        if (sub == null || !sub.isPaidActive) return const SizedBox.shrink();
+        
+        final formattedDate = DateFormat('MMMM d, yyyy').format(sub.currentPeriodEnd!);
+        
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.purple.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF9333EA), Color(0xFFC084FC)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF9333EA).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "FreshGa Premium Member",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF9333EA),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Renews on $formattedDate",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.push('/subscription'),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF9333EA)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

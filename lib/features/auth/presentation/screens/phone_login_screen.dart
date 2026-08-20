@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -12,15 +14,41 @@ class PhoneLoginScreen extends StatefulWidget {
   State<PhoneLoginScreen> createState() => _PhoneLoginScreenState();
 }
 
-class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
+class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _phoneController = TextEditingController();
   final FocusNode _phoneFocus = FocusNode();
   String? _localError;
+  
+  late AnimationController _animController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeIn),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _animController.forward();
+    });
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
     _phoneFocus.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
@@ -62,208 +90,269 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 60),
-                // Branding
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.stars_rounded, color: AppColors.primary, size: 40),
-                ),
-                const SizedBox(height: 32),
-                
-                Text(
-                  'Start Your\nHomemade Brand 🚀',
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    height: 1.2,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'FreshGa HomeMades\nIndia\'s Homemade Food Marketplace ❤️',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                
-                // Phone Input Area
-                Text(
-                  'Mobile Number',
-                  style: AppTextStyles.subtitle.copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: errorMessage != null ? AppColors.error : AppColors.grey300,
-                      width: errorMessage != null ? 1.5 : 1.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Image.network(
-                              'https://flagcdn.com/w40/in.png',
-                              width: 24,
-                              errorBuilder: (context, error, stackTrace) => 
-                                  const Icon(Icons.flag, size: 24, color: AppColors.grey500),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              '+91',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: AppColors.grey300,
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          focusNode: _phoneFocus,
-                          keyboardType: TextInputType.number,
-                          maxLength: 10,
-                          style: const TextStyle(
-                            fontSize: 18, 
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.5,
-                          ),
-                          decoration: InputDecoration(
-                            counterText: '',
-                            hintText: '00000 00000',
-                            hintStyle: TextStyle(
-                              color: AppColors.grey400,
-                              fontSize: 18,
-                              letterSpacing: 1.5,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          onChanged: (val) {
-                            if (_localError != null) setState(() => _localError = null);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Error message
-                if (errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline, color: AppColors.error, size: 16),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            errorMessage,
-                            style: const TextStyle(color: AppColors.error, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                const SizedBox(height: 40),
-                
-                // Continue Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _onContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: isLoading ? 0 : 4,
-                      shadowColor: AppColors.primary.withOpacity(0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                  ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Terms
-                Center(
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: const TextStyle(color: AppColors.grey500, fontSize: 12, height: 1.5),
-                      children: [
-                        const TextSpan(text: 'By continuing, you agree to our\n'),
-                        TextSpan(
-                          text: 'Terms of Service',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-                        ),
-                        const TextSpan(text: ' and '),
-                        TextSpan(
-                          text: 'Privacy Policy',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/vendor_login_bg.png',
+              fit: BoxFit.cover,
             ),
           ),
-        ),
+          
+          // Content
+          Positioned.fill(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+                child: IntrinsicHeight(
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        const Spacer(),
+                        
+                        // Slide Up Card
+                        SlideTransition(
+                          position: _slideAnimation,
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(32),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 40,
+                                    offset: const Offset(0, 20),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Branding
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 32),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  
+                                  Text(
+                                    'FreshGa',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Vendor Portal',
+                                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                      height: 1.2,
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Enter your registered mobile number to access your store.',
+                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppColors.textSecondary,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+                                  
+                                  // Phone Input Area
+                                  Container(
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.inputBackground,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: errorMessage != null ? AppColors.error : Colors.transparent,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.03),
+                                                blurRadius: 10,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Image.network(
+                                                'https://flagcdn.com/w40/in.png',
+                                                width: 24,
+                                                errorBuilder: (context, error, stackTrace) => 
+                                                    const Icon(Icons.flag, size: 24, color: AppColors.grey500),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text(
+                                                '+91',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _phoneController,
+                                            focusNode: _phoneFocus,
+                                            keyboardType: TextInputType.number,
+                                            maxLength: 10,
+                                            style: const TextStyle(
+                                              fontSize: 18, 
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 2.0,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                            decoration: InputDecoration(
+                                              counterText: '',
+                                              hintText: '00000 00000',
+                                              hintStyle: TextStyle(
+                                                color: AppColors.grey400,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.normal,
+                                                letterSpacing: 1.0,
+                                              ),
+                                              border: InputBorder.none,
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                            onChanged: (val) {
+                                              if (_localError != null) setState(() => _localError = null);
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  
+                                  // Error message
+                                  if (errorMessage != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.info_outline, color: AppColors.error, size: 16),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              errorMessage,
+                                              style: const TextStyle(color: AppColors.error, fontSize: 13),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    
+                                  const SizedBox(height: 32),
+                                  
+                                  // Continue Button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      onPressed: isLoading ? null : _onContinue,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: isLoading ? 0 : 4,
+                                        shadowColor: AppColors.primary.withOpacity(0.5),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      child: isLoading
+                                          ? const SizedBox(
+                                              height: 24,
+                                              width: 24,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2.5,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Get Started',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  
+                                  const SizedBox(height: 24),
+                                  
+                                  // Terms
+                                  Center(
+                                    child: RichText(
+                                      textAlign: TextAlign.center,
+                                      text: TextSpan(
+                                        style: const TextStyle(color: AppColors.grey500, fontSize: 12, height: 1.5),
+                                        children: [
+                                          const TextSpan(text: 'By continuing, you agree to our\n'),
+                                          TextSpan(
+                                            text: 'Terms of Service',
+                                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () {
+                                                launchUrl(Uri.parse('https://sites.google.com/view/freshaga/home'));
+                                              },
+                                          ),
+                                          const TextSpan(text: ' and '),
+                                          TextSpan(
+                                            text: 'Privacy Policy',
+                                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () {
+                                                launchUrl(Uri.parse('https://sites.google.com/view/freshaga/home'));
+                                              },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

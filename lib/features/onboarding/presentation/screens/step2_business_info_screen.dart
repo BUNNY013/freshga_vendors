@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -161,18 +162,25 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+          color: AppColors.background,
+          border: Border.all(color: AppColors.grey300, width: 1.5),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.camera_alt, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            const Text('Tap to take a photo or select from gallery', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           ],
         ),
       ),
@@ -198,28 +206,37 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Legal & Tax Compliance ⚖️',
+                        'Legal & Tax Details',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('This information is required by the Government of India.', style: TextStyle(color: Colors.grey.shade600)),
+                      Text(
+                        'This information is required by the Government of India.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                        ),
+                      ),
                       const SizedBox(height: 32),
                       
                       // PAN CARD (Mandatory)
                       Text('PAN Card Details', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       CustomTextField(
                         label: 'PAN Number',
                         controller: provider.panNumberController,
                         hintText: 'Enter 10-digit PAN',
-                        maxLength: 10,
+                        prefixIcon: const Icon(Icons.credit_card_outlined, size: 20, color: AppColors.grey400),
                         textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseTextFormatter()],
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(10),
+                          UpperCaseTextFormatter(),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       _buildPhotoUploadButton(context, 'Upload PAN Card Photo', 'pan', provider),
                       
                       const SizedBox(height: 32),
@@ -228,28 +245,52 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
 
                       // GST / Enrolment
                       Text('Tax Registration', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: provider.taxRegistrationType,
-                        decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Do you have a GST Number?'),
-                        items: const [
-                          DropdownMenuItem(value: 'GSTIN', child: Text('Yes, I have a GST Number')),
-                          DropdownMenuItem(value: 'EnrolmentNumber', child: Text('No, I have an Enrolment ID')),
-                          DropdownMenuItem(value: 'NeedsHelp', child: Text('No, I need help getting one')),
+                      const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4.0, bottom: 4.0),
+                            child: Text(
+                              'Do you have a GST Number?',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
+                            ),
+                          ),
+                          DropdownButtonFormField<String>(
+                            value: provider.taxRegistrationType,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'GSTIN', child: Text('Yes, I have a GST Number', style: TextStyle(fontSize: 14))),
+                              DropdownMenuItem(value: 'EnrolmentNumber', child: Text('No, I have an Enrolment ID', style: TextStyle(fontSize: 14))),
+                              DropdownMenuItem(value: 'NeedsHelp', child: Text('No, I need help getting one', style: TextStyle(fontSize: 14))),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) provider.setTaxRegistrationType(val);
+                            },
+                          ),
                         ],
-                        onChanged: (val) {
-                          if (val != null) provider.setTaxRegistrationType(val);
-                        },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       if (provider.taxRegistrationType != 'NeedsHelp') ...[
                         CustomTextField(
                           label: provider.taxRegistrationType == 'GSTIN' ? 'GST Number' : 'Enrolment ID',
                           controller: provider.taxNumberController,
                           hintText: 'Enter Document Number',
-                          maxLength: provider.taxRegistrationType == 'GSTIN' ? 15 : null,
+                          prefixIcon: const Icon(Icons.receipt_long_outlined, size: 20, color: AppColors.grey400),
+                          textCapitalization: TextCapitalization.characters,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(provider.taxRegistrationType == 'GSTIN' ? 15 : 20),
+                            UpperCaseTextFormatter(),
+                          ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         _buildPhotoUploadButton(
                           context, 
                           'Upload ${provider.taxRegistrationType == 'GSTIN' ? 'GST' : 'Enrolment'} Certificate', 
@@ -276,28 +317,51 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
 
                       // FSSAI
                       Text('Food Safety (FSSAI)', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: provider.fssaiStatus,
-                        decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Do you have an FSSAI Certificate?'),
-                        items: const [
-                          DropdownMenuItem(value: 'Have', child: Text('Yes, I have FSSAI Registration')),
-                          DropdownMenuItem(value: 'NeedsHelp', child: Text('No, I need help getting one')),
+                      const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4.0, bottom: 4.0),
+                            child: Text(
+                              'Do you have an FSSAI Certificate?',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
+                            ),
+                          ),
+                          DropdownButtonFormField<String>(
+                            value: provider.fssaiStatus,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'Have', child: Text('Yes, I have FSSAI Registration', style: TextStyle(fontSize: 14))),
+                              DropdownMenuItem(value: 'NeedsHelp', child: Text('No, I need help getting one', style: TextStyle(fontSize: 14))),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) provider.setFssaiStatus(val);
+                            },
+                          ),
                         ],
-                        onChanged: (val) {
-                          if (val != null) provider.setFssaiStatus(val);
-                        },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       if (provider.fssaiStatus == 'Have') ...[
                         CustomTextField(
                           label: '14-Digit FSSAI Number',
                           controller: provider.fssaiNumberController,
                           hintText: 'Enter FSSAI Number',
-                          maxLength: 14,
+                          prefixIcon: const Icon(Icons.verified_user_outlined, size: 20, color: AppColors.grey400),
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(14),
+                          ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         _buildPhotoUploadButton(context, 'Upload FSSAI Certificate', 'fssai', provider),
                       ] else ...[
                         Container(

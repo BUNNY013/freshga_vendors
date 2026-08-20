@@ -266,15 +266,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
               icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A)),
               onPressed: () => context.pop(),
             ),
-            title: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Manage Product', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 19, height: 1.2)),
-                SizedBox(height: 2),
-                Text('View, edit & manage your product', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w400, fontSize: 13, height: 1.2)),
-              ],
-            ),
             actions: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -323,10 +314,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
             ],
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text('Manage Product', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.5)),
+                const SizedBox(height: 4),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 24),
+                  child: Text('View, edit & manage your product', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500, fontSize: 14)),
+                ),
                 _buildProductHeroHeader(),
                 const SizedBox(height: 16),
                 _buildPerformanceRibbon(),

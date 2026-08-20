@@ -274,32 +274,45 @@ class _StoreInfoScreenState extends State<StoreInfoScreen> {
                         height: 220,
                         child: Stack(
                           alignment: Alignment.topCenter,
+                          clipBehavior: Clip.none,
                           children: [
                             // Banner
                             GestureDetector(
                               onTap: () => _pickImage(false),
-                              child: Container(
-                                height: 160,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  image: _newBannerFile != null 
-                                      ? DecorationImage(image: FileImage(_newBannerFile!), fit: BoxFit.cover)
-                                      : DecorationImage(
-                                          image: NetworkImage(_originalBanner.isNotEmpty 
-                                              ? _originalBanner 
-                                              : 'https://images.unsplash.com/photo-1505253758473-96b7015fcd40'),
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Container(color: Colors.black.withOpacity(0.2)), // Slight dark overlay for the icon to pop
-                                    const Center(
-                                      child: Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 28),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 160,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      image: _newBannerFile != null 
+                                          ? DecorationImage(image: FileImage(_newBannerFile!), fit: BoxFit.cover)
+                                          : (_originalBanner.isNotEmpty
+                                              ? DecorationImage(image: NetworkImage(_originalBanner), fit: BoxFit.cover)
+                                              : null),
                                     ),
-                                  ],
-                                ),
+                                    child: (_newBannerFile == null && _originalBanner.isEmpty)
+                                        ? const Center(child: Icon(Icons.image_outlined, color: Color(0xFFCBD5E1), size: 40))
+                                        : null,
+                                  ),
+                                  // Floating Camera Badge for Banner
+                                  Positioned(
+                                    right: 16,
+                                    bottom: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                                        ],
+                                      ),
+                                      child: const Icon(Icons.camera_alt_outlined, size: 18, color: Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             // Logo
@@ -308,34 +321,50 @@ class _StoreInfoScreenState extends State<StoreInfoScreen> {
                               child: GestureDetector(
                                 onTap: () => _pickImage(true),
                                 child: Stack(
+                                  clipBehavior: Clip.none,
                                   alignment: Alignment.center,
                                   children: [
                                     Container(
                                       height: 100,
                                       width: 100,
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: _newLogoFile == null && _originalLogo.isEmpty ? const Color(0xFFF0FDF4) : Colors.white,
                                         shape: BoxShape.circle,
                                         border: Border.all(color: Colors.white, width: 4),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.06),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
                                         image: _newLogoFile != null 
                                             ? DecorationImage(image: FileImage(_newLogoFile!), fit: BoxFit.cover)
-                                            : DecorationImage(
-                                                image: NetworkImage(_originalLogo.isNotEmpty 
-                                                    ? _originalLogo 
-                                                    : 'https://images.unsplash.com/photo-1606787366850-de6330128bfc'),
-                                                fit: BoxFit.cover,
-                                              ),
+                                            : (_originalLogo.isNotEmpty
+                                                ? DecorationImage(image: NetworkImage(_originalLogo), fit: BoxFit.cover)
+                                                : null),
+                                      ),
+                                      child: (_newLogoFile == null && _originalLogo.isEmpty)
+                                          ? const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primary)
+                                          : null,
+                                    ),
+                                    // Floating Camera Badge for Logo
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4, offset: const Offset(0, 2)),
+                                          ],
+                                          border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                                        ),
+                                        child: const Icon(Icons.camera_alt_outlined, size: 14, color: Color(0xFF0F172A)),
                                       ),
                                     ),
-                                    Container(
-                                      height: 100,
-                                      width: 100,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.3),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 24),
                                   ],
                                 ),
                               ),
@@ -344,11 +373,22 @@ class _StoreInfoScreenState extends State<StoreInfoScreen> {
                         ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                       
-                      const Text(
-                        'Edit picture or banner',
-                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                      GestureDetector(
+                        onTap: () => _pickImage(true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: const Text(
+                            'Edit picture or banner',
+                            style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
                       ),
                       
                       const SizedBox(height: 32),
@@ -359,20 +399,23 @@ class _StoreInfoScreenState extends State<StoreInfoScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Store Story', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                            const Text('Store Story', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                            const SizedBox(height: 8),
                             TextFormField(
                               controller: _descController,
                               maxLines: 5,
                               maxLength: 1000,
-                              style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), height: 1.4),
-                              decoration: const InputDecoration(
+                              style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), height: 1.5),
+                              decoration: InputDecoration(
                                 hintText: 'Tell your story...',
-                                hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-                                border: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
-                                contentPadding: EdgeInsets.symmetric(vertical: 12),
-                                counterStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFF1F5F9))),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                                contentPadding: const EdgeInsets.all(16),
+                                counterStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                               ),
                               validator: (val) {
                                 if (val == null || val.trim().isEmpty) return 'Story cannot be empty';

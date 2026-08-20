@@ -25,12 +25,37 @@ class OrderDetailsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          if (order.orderStatus.toLowerCase() == 'accepted' || order.orderStatus.toLowerCase() == 'packed')
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'cancel') {
+                  _showDeclineDialog(context);
+                }
+              },
+              icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+              color: Colors.white,
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'cancel',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cancel_outlined, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Cancel Order', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildAlertBanners(),
             _buildHeaderCard(),
             const SizedBox(height: 16),
             _buildCustomerCard(),
@@ -50,6 +75,64 @@ class OrderDetailsScreen extends StatelessWidget {
       ),
       bottomSheet: _buildBottomActions(context),
     );
+  }
+
+  Widget _buildAlertBanners() {
+    final List<Widget> banners = [];
+
+    if (order.orderStatus.toLowerCase() == 'declined' && order.rejectionReason.isNotEmpty) {
+      banners.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Order Declined', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                    Text(order.rejectionReason, style: TextStyle(color: Colors.red.shade900, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (order.isIssueReported) {
+      banners.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Customer Reported Issue', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    Text(order.issueStatus.isNotEmpty ? order.issueStatus : 'Please check customer support tickets.', style: TextStyle(color: Colors.orange.shade900, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (banners.isEmpty) return const SizedBox.shrink();
+
+    return Column(children: banners);
   }
 
   Widget _buildHeaderCard() {
@@ -88,7 +171,7 @@ class OrderDetailsScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Order #${order.orderId.substring(0, 8).toUpperCase()}',
+                'Order #${order.orderId.toUpperCase()}',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               Container(
@@ -176,15 +259,15 @@ class OrderDetailsScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('${item.quantity}x', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: item.imageUrl.isNotEmpty
+                      ? Image.network(item.imageUrl, width: 48, height: 48, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(width: 48, height: 48, color: AppColors.background, child: const Icon(Icons.image, color: Colors.grey)))
+                      : Container(
+                          width: 48, height: 48, color: AppColors.background, 
+                          child: const Icon(Icons.image, color: Colors.grey, size: 24)
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -192,8 +275,22 @@ class OrderDetailsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text('₹${item.price.toStringAsFixed(2)} each', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      if (item.variantLabel.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(item.variantLabel, style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                         children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                              child: Text('Qty: ${item.quantity}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('₹${item.price.toStringAsFixed(2)} each', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                         ],
+                      ),
                     ],
                   ),
                 ),
@@ -297,14 +394,14 @@ class OrderDetailsScreen extends StatelessWidget {
             children: [
               const Text('Payment Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: order.paymentStatus.toLowerCase() == 'paid' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  order.paymentStatus.toUpperCase(),
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: order.paymentStatus.toLowerCase() == 'paid' ? Colors.green : Colors.orange),
+                  order.paymentMethod.toUpperCase(),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
                 ),
               ),
             ],
@@ -318,10 +415,6 @@ class OrderDetailsScreen extends StatelessWidget {
           if (order.taxes > 0) ...[
             const SizedBox(height: 8),
             _buildSummaryRow('Taxes', order.taxes),
-          ],
-          if (order.platformFee > 0) ...[
-            const SizedBox(height: 8),
-            _buildSummaryRow('Platform Fee', -order.platformFee, isDeduction: true),
           ],
           const Divider(height: 24),
           Row(
@@ -484,7 +577,9 @@ class OrderDetailsScreen extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => onStatusUpdate('Accepted', null),
+                  onPressed: () {
+                    _processAction(context, 'Accepted');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -495,32 +590,38 @@ class OrderDetailsScreen extends StatelessWidget {
               ),
             ] else if (status == 'accepted') ...[
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () => onStatusUpdate('Packed', null),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _processAction(context, 'Packed');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Mark as Packed', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  icon: const Icon(Icons.inventory_2_rounded, size: 20, color: Colors.white),
+                  label: const Text('Mark as Packed', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
             ] else if (status == 'packed') ...[
               Expanded(
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: () => _showDispatchSheet(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Dispatch Order', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  icon: const Icon(Icons.local_shipping_rounded, size: 20, color: Colors.white),
+                  label: const Text('Dispatch Order', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
             ] else if (status == 'shipped') ...[
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => onStatusUpdate('Delivered', null),
+                  onPressed: () {
+                    _processAction(context, 'Delivered');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -537,31 +638,23 @@ class OrderDetailsScreen extends StatelessWidget {
   }
 
   void _showDeclineDialog(BuildContext context) {
-    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Decline Order'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Reason for declining (optional)',
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 3,
-        ),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Decline Order?'),
+        content: Text('Are you sure you want to decline Order #${order.orderId}? This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              onStatusUpdate('Declined', {'rejectionReason': controller.text});
+              Navigator.pop(dialogContext); // Close dialog
+              _processAction(context, 'Declined', payload: {'rejectionReason': 'Vendor declined'});
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Decline', style: TextStyle(color: Colors.white)),
+            child: const Text('Yes, Decline', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -574,13 +667,43 @@ class OrderDetailsScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => DispatchBottomSheet(
+      builder: (sheetContext) => DispatchBottomSheet(
         orderId: order.orderId,
-        onDispatch: (payload) {
-          Navigator.pop(context);
-          onStatusUpdate('Shipped', payload);
+        onDispatch: (payload) async {
+          Navigator.pop(sheetContext); // Close bottom sheet
+          _processAction(context, 'Shipped', payload: payload);
         },
       ),
     );
+  }
+
+  void _processAction(BuildContext context, String newStatus, {Map<String, dynamic>? payload, bool closeDetails = true}) async {
+    final statusText = newStatus.toLowerCase() == 'declined' ? 'Order #${order.orderId} Declined' : 'Order #${order.orderId} moved to $newStatus';
+    final bgColor = newStatus.toLowerCase() == 'declined' ? Colors.red : const Color(0xFF16A34A);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(newStatus.toLowerCase() == 'declined' ? Icons.cancel : Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(statusText, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: bgColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (context.mounted) {
+      onStatusUpdate(newStatus, payload);
+      if (closeDetails) {
+        Navigator.pop(context); // Close details screen
+      }
+    }
   }
 }

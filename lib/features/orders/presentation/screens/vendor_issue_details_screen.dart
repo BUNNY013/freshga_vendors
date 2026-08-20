@@ -161,62 +161,78 @@ class _VendorIssueDetailsScreenState extends State<VendorIssueDetailsScreen> {
             // Customer Details
             const Text('Customer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: const Icon(Icons.person, color: AppColors.primary),
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('orders').doc(issue.orderId).get(),
+              builder: (context, snapshot) {
+                String cName = issue.customerName;
+                String cPhone = issue.customerPhone;
+                String cAddress = issue.customerAddress;
+
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
+                  cName = data['customerName'] ?? cName;
+                  cPhone = data['customerPhone'] ?? cPhone;
+                  cAddress = data['deliveryAddress'] ?? cAddress;
+                }
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(issue.customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        if (issue.customerPhone.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(issue.customerPhone, style: TextStyle(color: Colors.grey.shade600)),
-                        ],
-                        if (issue.customerAddress.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(issue.customerAddress, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        child: Text(cName.isNotEmpty ? cName[0].toUpperCase() : 'C', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(cName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            if (cPhone.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(cPhone, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                            ],
+                            if (cAddress.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(cAddress, style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.3)),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (issue.customerPhone.isNotEmpty)
-                    IconButton(
-                      onPressed: () async {
-                        final uri = Uri.parse('tel:${issue.customerPhone}');
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
-                        } else {
-                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
-                        }
-                      },
-                      icon: const Icon(Icons.phone, color: AppColors.primary),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
-              ),
+                      if (cPhone.isNotEmpty)
+                        IconButton(
+                          onPressed: () async {
+                            final uri = Uri.parse('tel:$cPhone');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            } else {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
+                            }
+                          },
+                          icon: const Icon(Icons.call, color: Colors.green),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.green.withOpacity(0.1),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
 

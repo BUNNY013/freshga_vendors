@@ -553,32 +553,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.lightbulb_outline, color: Color(0xFF16A34A), size: 24),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tips for better results', style: TextStyle(color: Color(0xFF16A34A), fontSize: 14, fontWeight: FontWeight.w600)),
-                        SizedBox(height: 4),
-                        Text('Good lighting, clean background and multiple angles help customers trust your product.', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: Color(0xFF64748B)),
-                ],
-              ),
-            ),
+
             const SizedBox(height: 40),
           ],
         ),

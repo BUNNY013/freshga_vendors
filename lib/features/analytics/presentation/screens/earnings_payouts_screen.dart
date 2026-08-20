@@ -17,6 +17,7 @@ class EarningsPayoutsScreen extends StatefulWidget {
 class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
   String _chartFilter = '30D';
   late Future<DocumentSnapshot> _userFuture;
+  late Future<QuerySnapshot> _bankFuture;
 
   @override
   void initState() {
@@ -24,6 +25,7 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userFuture = FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      _bankFuture = FirebaseFirestore.instance.collection('supplierApplications').where('userId', isEqualTo: user.uid).limit(1).get();
     }
   }
 
@@ -57,24 +59,24 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
             final docs = snapshot.data?.docs ?? [];
             List<OrderModel> allOrders = docs.map((doc) => OrderModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
 
-            return _buildScaffold(allOrders);
+            return _buildScaffold(allOrders, storeId);
           },
         );
       }
     );
   }
 
-  Widget _buildScaffold(List<OrderModel> allOrders) {
+  Widget _buildScaffold(List<OrderModel> allOrders, String storeId) {
     // 1. Calculate Balances
     double availableBalance = 0;
     double pendingSettlement = 0;
     
     for (var o in allOrders) {
       if (o.payoutStatus.toLowerCase() == 'pending') {
-        final amount = o.totalAmount - o.platformFee;
+        final amount = o.subTotal + o.deliveryFee;
         if (o.orderStatus.toLowerCase() == 'delivered') {
           availableBalance += amount;
-        } else if (['new', 'accepted', 'packed', 'shipped'].contains(o.orderStatus.toLowerCase())) {
+        } else if (['new', 'accepted', 'packed', 'ready', 'shipped'].contains(o.orderStatus.toLowerCase())) {
           pendingSettlement += amount;
         }
       }
@@ -117,13 +119,13 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
       if (o.orderStatus.toLowerCase() == 'delivered' || o.orderStatus.toLowerCase() == 'shipped') {
         orderAmount += o.subTotal;
         shipping += o.deliveryFee;
-        commission += o.platformFee;
-        totalEarnings += (o.totalAmount - o.platformFee);
+        commission += 0; // Vendor pays 0 commission
+        totalEarnings += (o.subTotal + o.deliveryFee);
 
         if (days <= 30) {
           String key = DateFormat('MMM d').format(o.createdAt);
           if (groupedData.containsKey(key)) {
-            groupedData[key] = groupedData[key]! + (o.totalAmount - o.platformFee);
+            groupedData[key] = groupedData[key]! + (o.subTotal + o.deliveryFee);
           }
         }
       } else if (o.orderStatus.toLowerCase() == 'declined' || o.orderStatus.toLowerCase() == 'cancelled') {
@@ -157,6 +159,8 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            _buildBankCardSection(storeId),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(child: _buildTopStatBox('Available Balance', '₹${_format(availableBalance)}', 'Ready for payout')),
@@ -175,12 +179,6 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
               children: [
                 Expanded(child: _buildBreakdownBox('Order Amount', '₹${_format(orderAmount)}', Colors.black87)),
                 const SizedBox(width: 8),
-                Expanded(child: _buildBreakdownBox('Platform Fee', '-₹${_format(commission)}', Colors.black87)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
                 Expanded(child: _buildBreakdownBox('Shipping Collected', '₹${_format(shipping)}', Colors.black87)),
                 const SizedBox(width: 8),
                 Expanded(child: _buildBreakdownBox('Refunds', '-₹${_format(refunds)}', Colors.red.shade700)),
@@ -188,30 +186,7 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
             ),
             const SizedBox(height: 24),
             
-            _buildPayoutHistory(allOrders),
-            const SizedBox(height: 24),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    'Download Statement', 
-                    Icons.download_rounded, 
-                    Colors.green.shade700, 
-                    Colors.green.shade50
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionButton(
-                    'See All Transactions', 
-                    Icons.chevron_right_rounded, 
-                    Colors.green.shade700, 
-                    Colors.green.shade50
-                  ),
-                ),
-              ],
-            ),
+            _buildPayoutHistory(storeId),
             const SizedBox(height: 40),
           ],
         ),
@@ -393,10 +368,7 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
     );
   }
 
-  Widget _buildPayoutHistory(List<OrderModel> orders) {
-    // Only show paid orders
-    final paidOrders = orders.where((o) => o.payoutStatus.toLowerCase() == 'paid').toList();
-    
+  Widget _buildPayoutHistory(String storeId) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -411,34 +383,52 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Payout History', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              Text('View all', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.green.shade700)),
             ],
           ),
           const SizedBox(height: 24),
-          if (paidOrders.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    Icon(Icons.history_rounded, size: 48, color: Colors.grey.shade300),
-                    const SizedBox(height: 12),
-                    Text("No payouts yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: paidOrders.length > 5 ? 5 : paidOrders.length,
-              separatorBuilder: (context, index) => const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.background)),
-              itemBuilder: (context, index) {
-                final o = paidOrders[index];
-                return _buildPayoutRow(DateFormat('dd MMM yyyy').format(o.updatedAt), '₹${_format(o.totalAmount - o.platformFee)}', 'Paid', Colors.green);
-              },
-            ),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('payouts')
+                .where('storeId', isEqualTo: storeId)
+                .where('status', isEqualTo: 'completed')
+                .orderBy('createdAt', descending: true)
+                .limit(5)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        Icon(Icons.history_rounded, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        Text("No payouts yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: docs.length,
+                separatorBuilder: (context, index) => const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.background)),
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final amount = data['amount'] ?? 0;
+                  final date = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                  return _buildPayoutRow(DateFormat('dd MMM yyyy').format(date), '₹${_format(amount.toDouble())}', 'Paid', Colors.green);
+                },
+              );
+            },
+          ),
         ],
       ),
     );
@@ -464,22 +454,194 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color textColor, Color bgColor) {
+  Widget _buildBankCardSection(String storeId) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<QuerySnapshot>(
+      future: _bankFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 160,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+        final bankDetails = data['bankDetails'] as Map<String, dynamic>?;
+
+        if (bankDetails == null) {
+          return const SizedBox.shrink();
+        }
+
+        final bankName = bankDetails['bankName'] ?? 'Unknown Bank';
+        final accountHolder = bankDetails['accountHolderName'] ?? 'Unknown Bank';
+        final accountNumber = bankDetails['accountNumber']?.toString() ?? '';
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('bankUpdateRequests')
+              .where('userId', isEqualTo: user.uid)
+              .where('status', isEqualTo: 'pending')
+              .limit(1)
+              .snapshots(),
+          builder: (context, pendingSnapshot) {
+            final hasPendingRequest = pendingSnapshot.hasData && pendingSnapshot.data!.docs.isNotEmpty;
+            final pendingData = hasPendingRequest ? pendingSnapshot.data!.docs.first.data() as Map<String, dynamic> : null;
+            final pendingId = hasPendingRequest ? pendingSnapshot.data!.docs.first.id : null;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Linked Bank Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                const SizedBox(height: 12),
+                Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          bankName, 
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      accountNumber, 
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2)
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('ACCOUNT HOLDER', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          const SizedBox(height: 4),
+                          Text(accountHolder.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      const Icon(Icons.verified, color: Color(0xFF10B981), size: 20),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            if (hasPendingRequest && pendingData != null) ...[
+              const SizedBox(height: 16),
+              _buildPendingReviewCard(pendingData['requestedBankDetails'] as Map<String, dynamic>, pendingId!),
+            ],
+          ],
+        );
+      },
+    );
+      },
+    );
+  }
+
+  Widget _buildPendingReviewCard(Map<String, dynamic> details, String requestId) {
+    final bankName = details['bankName'] ?? 'Unknown Bank';
+    final accountNumber = details['accountNumber']?.toString() ?? '';
+    final maskedAccount = accountNumber.length > 4 ? '•••• ${accountNumber.substring(accountNumber.length - 4)}' : '••••';
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber.shade200, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (icon == Icons.download_rounded) ...[
-            Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w800, fontSize: 12)),
-            const SizedBox(width: 8),
-            Icon(icon, color: textColor, size: 18),
-          ] else ...[
-            Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w800, fontSize: 12)),
-            const SizedBox(width: 4),
-            Icon(icon, color: textColor, size: 18),
-          ]
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.pending_actions_rounded, size: 14, color: Colors.amber.shade800),
+                    const SizedBox(width: 4),
+                    Text('Pending Approval', style: TextStyle(color: Colors.amber.shade900, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () async {
+                  await FirebaseFirestore.instance.collection('bankUpdateRequests').doc(requestId).delete();
+                },
+                child: Text('Cancel Request', style: TextStyle(color: Colors.red.shade700, fontSize: 12, fontWeight: FontWeight.w700)),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.amber.shade200)),
+                child: Icon(Icons.account_balance, color: Colors.amber.shade700, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(bankName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                    Text(maskedAccount, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );

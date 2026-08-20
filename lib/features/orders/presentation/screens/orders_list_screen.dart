@@ -37,164 +37,93 @@ class OrdersListScreen extends StatelessWidget {
           return const Scaffold(body: Center(child: Text('Store not set up')));
         }
 
-        return DefaultTabController(
-          length: 5,
-          child: Scaffold(
-            backgroundColor: AppColors.background,
-            appBar: AppBar(
-              title: const Text(
-                'Orders',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              backgroundColor: Colors.white,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const VendorIssuesScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
-              bottom: const TabBar(
-                isScrollable: false,
-                labelPadding: EdgeInsets.zero,
-                labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: -0.3),
-                unselectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: -0.3),
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 3,
-                tabs: [
-                  Tab(text: 'New'),
-                  Tab(text: 'Preparing'),
-                  Tab(text: 'Ready'),
-                  Tab(text: 'Shipped'),
-                  Tab(text: 'Delivered'),
-                ],
-              ),
-            ),
-            body: TabBarView(
-              children: [
-                _OrderListTab(storeId: storeId, statusFilter: const ['New']),
-                _OrderListTab(storeId: storeId, statusFilter: const ['Accepted']),
-                _OrderListTab(storeId: storeId, statusFilter: const ['Packed']),
-                _OrderListTab(storeId: storeId, statusFilter: const ['Shipped']),
-                _OrderListTab(storeId: storeId, statusFilter: const ['Delivered']),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('orders').where('storeId', isEqualTo: storeId).snapshots(),
+          builder: (context, ordersSnap) {
+            final ordersList = ordersSnap.data?.docs.map((d) => OrderModel.fromJson(d.data() as Map<String, dynamic>)).toList() ?? [];
+            final newCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'new').length;
+            final prepCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'accepted').length;
+            final readyCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'packed').length;
+            final shippedCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'shipped').length;
 
-class _OrderListTab extends StatelessWidget {
-  final String storeId;
-  final List<String> statusFilter;
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('refund_requests').where('storeId', isEqualTo: storeId).snapshots(),
+              builder: (context, issuesSnap) {
+                final issuesList = issuesSnap.data?.docs.map((d) => d.data() as Map<String, dynamic>).toList() ?? [];
+                final issuesCount = issuesList.where((i) => i['status'] != 'Refund Processed' && i['status'] != 'Rejected').length;
 
-  const _OrderListTab({required this.storeId, required this.statusFilter});
-
-  @override
-  Widget build(BuildContext context) {
-    // Fetch ALL orders for this store (only storeId filter = no composite index needed)
-    // then filter by status client-side. This avoids needing whereIn + orderBy indexes.
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('orders')
-          .where('storeId', isEqualTo: storeId)
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.wifi_off_rounded,
-                      size: 48, color: AppColors.grey400),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Could not load orders.\n${snapshot.error}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
+                return DefaultTabController(
+                  length: 6,
+                  child: Scaffold(
+                    backgroundColor: AppColors.background,
+                    appBar: AppBar(
+                      centerTitle: false,
+                      title: const Text(
+                        'Orders',
+                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 28, letterSpacing: -1.0),
+                      ),
+                      backgroundColor: Colors.white,
+                      elevation: 0,
+                      surfaceTintColor: Colors.transparent,
+                      actions: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorIssuesScreen()));
+                              },
+                            ),
+                            if (issuesCount > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  child: Text(
+                                    '$issuesCount',
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      bottom: TabBar(
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: -0.3),
+                        unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: -0.3),
+                        labelColor: AppColors.primary,
+                        unselectedLabelColor: AppColors.textSecondary,
+                        indicatorColor: AppColors.primary,
+                        indicatorWeight: 3,
+                        tabs: [
+                          Tab(text: newCount > 0 ? 'New ($newCount)' : 'New'),
+                          Tab(text: prepCount > 0 ? 'Preparing ($prepCount)' : 'Preparing'),
+                          Tab(text: readyCount > 0 ? 'Ready ($readyCount)' : 'Ready'),
+                          Tab(text: shippedCount > 0 ? 'Shipped ($shippedCount)' : 'Shipped'),
+                          const Tab(text: 'Delivered'),
+                          const Tab(text: 'Cancelled'),
+                        ],
+                      ),
+                    ),
+                    body: TabBarView(
+                      children: [
+                        _OrderListTab(orders: ordersList, statusFilter: const ['New']),
+                        _OrderListTab(orders: ordersList, statusFilter: const ['Accepted']),
+                        _OrderListTab(orders: ordersList, statusFilter: const ['Packed']),
+                        _OrderListTab(orders: ordersList, statusFilter: const ['Shipped']),
+                        _OrderListTab(orders: ordersList, statusFilter: const ['Delivered']),
+                        _OrderListTab(orders: ordersList, statusFilter: const ['Cancelled', 'Rejected', 'Declined']),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (!snapshot.hasData) return _buildEmptyState();
-
-        // Client-side filter by status (case-insensitive)
-        final orders = snapshot.data!.docs
-            .map((doc) =>
-                OrderModel.fromJson(doc.data() as Map<String, dynamic>))
-            .where((order) => statusFilter.any(
-                (s) => s.toLowerCase() == order.orderStatus.toLowerCase()))
-            .toList();
-
-        if (orders.isEmpty) return _buildEmptyState();
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            return OrderCard(
-              order: orders[index],
-              onStatusUpdate: (newStatus, payload) {
-                final order = orders[index];
-                final timeline = List<Map<String, dynamic>>.from(order.timeline);
-
-                String? note;
-                if (payload != null && payload.containsKey('shippingMethod')) {
-                  final method = payload['shippingMethod'];
-                  if (method == 'Courier') note = 'Shipped via ${payload['shippingProvider']} (Tracking: ${payload['trackingId']})';
-                  if (method == 'Hyperlocal') note = 'Dispatched via ${payload['shippingProvider']}';
-                  if (method == 'Local Transport') note = 'Sent via ${payload['shippingProvider']} (LR: ${payload['receiptNumber']})';
-                  if (method == 'Self Delivery') note = 'Vendor delivering directly by ${payload['deliveryTime']}';
-                } else if (payload != null && payload.containsKey('rejectionReason')) {
-                  note = 'Reason: ${payload['rejectionReason']}';
-                }
-
-                timeline.add({
-                  'status': newStatus,
-                  'time': DateTime.now().toIso8601String(),
-                  if (note != null) 'note': note,
-                });
-
-                final updates = <String, dynamic>{
-                  'orderStatus': newStatus,
-                  'timeline': timeline,
-                  'updatedAt': DateTime.now().toIso8601String(),
-                };
-                if (payload != null) {
-                  if (payload.containsKey('shippingMethod')) updates['shippingDetails'] = payload;
-                  if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
-                }
-
-                FirebaseFirestore.instance
-                    .collection('orders')
-                    .doc(order.orderId)
-                    .update(updates);
+                );
               },
             );
           },
@@ -202,31 +131,127 @@ class _OrderListTab extends StatelessWidget {
       },
     );
   }
+}
+
+class _OrderListTab extends StatelessWidget {
+  final List<OrderModel> orders;
+  final List<String> statusFilter;
+
+  const _OrderListTab({required this.orders, required this.statusFilter});
+
+  @override
+  Widget build(BuildContext context) {
+    // Client-side filter by status (case-insensitive)
+    final filteredOrders = orders
+        .where((order) => statusFilter.any((s) => s.toLowerCase() == order.orderStatus.toLowerCase()))
+        .toList();
+
+    // Sort by createdAt descending
+    filteredOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (filteredOrders.isEmpty) return _buildEmptyState();
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredOrders.length,
+      itemBuilder: (context, index) {
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: Duration(milliseconds: 300 + (index * 50).clamp(0, 500)), // staggered effect
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: Opacity(
+                opacity: value,
+                child: child,
+              ),
+            );
+          },
+          child: OrderCard(
+            order: filteredOrders[index],
+            onStatusUpdate: (newStatus, payload) {
+            final order = filteredOrders[index];
+            final timeline = List<Map<String, dynamic>>.from(order.timeline);
+
+            String? note;
+            if (payload != null && payload.containsKey('shippingMethod')) {
+              final method = payload['shippingMethod'];
+              if (method == 'Courier') note = 'Shipped via ${payload['shippingProvider']} (Tracking: ${payload['trackingId']})';
+              if (method == 'Hyperlocal') note = 'Dispatched via ${payload['shippingProvider']}';
+              if (method == 'Local Transport') note = 'Sent via ${payload['shippingProvider']} (LR: ${payload['receiptNumber']})';
+              if (method == 'Self Delivery') note = 'Vendor delivering directly by ${payload['deliveryTime']}';
+            } else if (payload != null && payload.containsKey('rejectionReason')) {
+              note = 'Reason: ${payload['rejectionReason']}';
+            }
+
+            timeline.add({
+              'status': newStatus,
+              'time': DateTime.now().toIso8601String(),
+              if (note != null) 'note': note,
+            });
+
+            final updates = <String, dynamic>{
+              'orderStatus': newStatus,
+              'timeline': timeline,
+              'updatedAt': DateTime.now().toIso8601String(),
+            };
+            if (payload != null) {
+              if (payload.containsKey('shippingMethod')) updates['shippingDetails'] = payload;
+              if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
+            }
+
+            FirebaseFirestore.instance
+                .collection('orders')
+                .doc(order.orderId)
+                .update(updates);
+          },
+        ),
+      );
+    },
+  );
+  }
 
   Widget _buildEmptyState() {
-    String emoji;
-    String message;
+    IconData iconData;
+    String title;
+    String subtitle;
+    
     switch (statusFilter.first.toLowerCase()) {
       case 'new':
+        iconData = Icons.receipt_long_rounded;
+        title = 'No new orders yet';
+        subtitle = 'Share your store to get your first order!';
+        break;
       case 'accepted':
-        emoji = '📬';
-        message = 'No new orders yet.\nShare your store to get your first order!';
+        iconData = Icons.soup_kitchen_rounded;
+        title = 'No orders preparing';
+        subtitle = 'Orders you have accepted will appear here while you prepare them.';
         break;
       case 'packed':
-        emoji = '📦';
-        message = 'No orders being prepared right now.';
+        iconData = Icons.inventory_2_rounded;
+        title = 'No orders ready';
+        subtitle = 'Packed orders ready for dispatch will appear here.';
         break;
       case 'shipped':
-        emoji = '🚚';
-        message = 'No orders out for delivery.';
+        iconData = Icons.local_shipping_rounded;
+        title = 'No orders in transit';
+        subtitle = 'Orders out for delivery will be shown here.';
         break;
       case 'delivered':
-        emoji = '✅';
-        message = 'No delivered orders yet.';
+        iconData = Icons.check_circle_outline_rounded;
+        title = 'No delivered orders';
+        subtitle = 'Successfully completed orders will appear here.';
+        break;
+      case 'cancelled':
+        iconData = Icons.cancel_outlined;
+        title = 'No cancelled orders';
+        subtitle = 'Orders that were declined or cancelled will appear here.';
         break;
       default:
-        emoji = '🗂️';
-        message = 'No orders here.';
+        iconData = Icons.folder_open_rounded;
+        title = 'No orders found';
+        subtitle = 'Check back later for updates.';
     }
 
     return Center(
@@ -235,16 +260,32 @@ class _OrderListTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 56)),
-            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(iconData, size: 56, color: AppColors.primary),
+            ),
+            const SizedBox(height: 24),
             Text(
-              message,
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 color: AppColors.textSecondary,
-                height: 1.6,
-                fontWeight: FontWeight.w500,
+                height: 1.5,
               ),
             ),
           ],

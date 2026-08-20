@@ -34,6 +34,7 @@ class _ProductListContent extends StatefulWidget {
 class _ProductListContentState extends State<_ProductListContent> {
   String _selectedFilter = 'Live';
   String? _selectedCategory;
+  String? _selectedSubCategory;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<DocumentSnapshot> _userFuture;
@@ -258,6 +259,15 @@ class _ProductListContentState extends State<_ProductListContent> {
               if (_selectedCategory != null) {
                 finalProducts = finalProducts.where((p) => p.categoryName == _selectedCategory).toList();
               }
+              
+              final Set<String> availableSubCategoryIds = {};
+              for (var p in finalProducts) {
+                availableSubCategoryIds.addAll(p.subCategoryIds);
+              }
+
+              if (_selectedSubCategory != null) {
+                finalProducts = finalProducts.where((p) => p.subCategoryIds.contains(_selectedSubCategory)).toList();
+              }
 
               final providerCategories = context.watch<ProductProvider>().categories;
 
@@ -309,6 +319,17 @@ class _ProductListContentState extends State<_ProductListContent> {
                     ),
 
 
+                  // Subcategory Row (AnimatedSize)
+                  SliverToBoxAdapter(
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: _selectedCategory != null
+                          ? _buildSubCategoryRow(availableSubCategoryIds)
+                          : const SizedBox(height: 0),
+                    ),
+                  ),
+
                   // Products List
                   if (finalProducts.isEmpty)
                     SliverFillRemaining(
@@ -324,7 +345,7 @@ class _ProductListContentState extends State<_ProductListContent> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            return _buildProductCard(finalProducts[index]);
+                            return _buildProductCard(finalProducts[index], index);
                           },
                           childCount: finalProducts.length,
                         ),
@@ -470,11 +491,24 @@ class _ProductListContentState extends State<_ProductListContent> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product) {
-    return ProductCard(
-      product: product,
-      isListView: true,
-      isLiveSection: _selectedFilter == 'Live',
+  Widget _buildProductCard(ProductModel product, int index) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + (index * 50).clamp(0, 500)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - value)),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: ProductCard(
+        product: product,
+        isListView: true,
+        isLiveSection: _selectedFilter == 'Live',
       onTap: () {
         if (_selectedFilter == 'Live') {
           context.push('/edit-product', extra: product);
@@ -499,8 +533,9 @@ class _ProductListContentState extends State<_ProductListContent> {
         final provider = context.read<ProductProvider>();
         await provider.updateProductStatus(product.productId, val ? 'Live' : 'Unavailable');
       },
-    );
-  }
+    ),
+  );
+}
 
   void _handleEditProduct(ProductModel product) {
     if (_selectedFilter == 'Live') {
@@ -626,8 +661,15 @@ class _ProductListContentState extends State<_ProductListContent> {
         setState(() {
           if (_selectedCategory == catName) {
             _selectedCategory = null; // Toggle off
+            _selectedSubCategory = null;
           } else {
             _selectedCategory = catName;
+            _selectedSubCategory = null;
+            final provider = context.read<ProductProvider>();
+            try {
+              final catId = provider.categories.firstWhere((c) => c.name == catName).categoryId;
+              provider.loadSubCategories(catId);
+            } catch (_) {}
           }
         });
       },
@@ -636,16 +678,27 @@ class _ProductListContentState extends State<_ProductListContent> {
         width: 72,
         child: Column(
           children: [
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
               width: 64,
               height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey.shade200,
+                  color: isSelected ? AppColors.primary.withOpacity(0.5) : Colors.grey.shade200,
                   width: isSelected ? 2 : 1,
                 ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : [],
               ),
               child: ClipOval(
                 child: (imageUrl != null && imageUrl.isNotEmpty)
@@ -720,6 +773,70 @@ class _ProductListContentState extends State<_ProductListContent> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubCategoryRow(Set<String> availableSubCategoryIds) {
+    final provider = context.watch<ProductProvider>();
+    
+    if (provider.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
+      );
+    }
+    
+    final availableSubCats = provider.subCategories.where((subCat) => availableSubCategoryIds.contains(subCat.subCategoryId)).toList();
+    
+    if (availableSubCats.isEmpty) {
+      return const SizedBox(height: 0);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      child: SizedBox(
+        height: 36,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          children: [
+            _buildSubCategoryPill('All', null),
+            ...availableSubCats.map((subCat) => _buildSubCategoryPill(subCat.name, subCat.subCategoryId)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubCategoryPill(String name, String? subCategoryId) {
+    final isSelected = _selectedSubCategory == subCategoryId;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedSubCategory = subCategoryId;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+          ),
+        ),
+        child: Text(
+          name,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 13,
+          ),
         ),
       ),
     );

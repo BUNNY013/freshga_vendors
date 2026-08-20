@@ -67,6 +67,13 @@ class ProfileScreen extends StatelessWidget {
                           _buildSupportList(context),
                           const SizedBox(height: 24),
                           _buildAccountActions(context),
+                          const SizedBox(height: 32),
+                          const Center(
+                            child: Text(
+                              'Version 1.0.0',
+                              style: TextStyle(color: AppColors.grey400, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ),
                           const SizedBox(height: 48),
                         ],
                       ),
@@ -88,7 +95,15 @@ class ProfileScreen extends StatelessWidget {
             height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.grey200,
+              color: store == null || store.logo.isEmpty ? const Color(0xFFF0FDF4) : Colors.white,
+              border: store != null && store.logo.isNotEmpty ? Border.all(color: Colors.white, width: 2) : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
               image: store != null && store.logo.isNotEmpty
                   ? DecorationImage(
                       image: NetworkImage(store.logo),
@@ -97,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                   : null,
             ),
             child: store == null || store.logo.isEmpty
-                ? const Icon(Icons.storefront, size: 30, color: AppColors.primary)
+                ? const Icon(Icons.storefront_rounded, size: 30, color: AppColors.primary)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -118,10 +133,7 @@ class ProfileScreen extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (store?.verified ?? false) ...[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.verified, color: Color(0xFF1DA1F2), size: 16),
-                    ],
+                    // Blue tick removed
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -162,27 +174,27 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          _buildListTile(Icons.storefront_outlined, "Edit Store Info", () => context.push('/edit-store')),
+          _buildListTile(Icons.star_rounded, "Customer Feedback", () => context.push('/profile/feedback')),
           _buildDivider(),
-          _buildListTile(Icons.star_outline, "Customer Feedback", () => context.push('/profile/feedback')),
+          _buildListTile(Icons.account_balance_wallet_rounded, "Bank Details", () => context.push('/profile/payouts')),
           _buildDivider(),
-          _buildListTile(Icons.account_balance_wallet_outlined, "Bank & Payouts", () {}),
+          _buildListTile(Icons.storefront_rounded, "Business Details", () => context.push('/store/business-details')),
           _buildDivider(),
-          _buildListTile(Icons.card_membership_outlined, "Subscriptions & Billing", () {}),
+          _buildListTile(Icons.card_membership_rounded, "Subscriptions & Billing", () => context.push('/subscription')),
           _buildDivider(),
-          _buildListTile(Icons.notifications_outlined, "Notification Settings", () {}),
+          _buildListTile(Icons.notifications_rounded, "Notification Settings", () => context.push('/profile/notifications')),
           _buildDivider(),
-          _buildListTile(Icons.local_shipping_outlined, "Delivery Settings", () => context.push('/store/order-fulfillment')),
+          _buildListTile(Icons.local_shipping_rounded, "Delivery Settings", () => context.push('/store/order-fulfillment')),
         ],
       ),
     );
@@ -194,21 +206,21 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          _buildListTile(Icons.help_outline_rounded, "Help & Support", () {}),
+          _buildListTile(Icons.help_outline_rounded, "Help & Support", () => context.push('/profile/support')),
           _buildDivider(),
-          _buildListTile(Icons.policy_outlined, "Terms & Policies", () {}),
+          _buildListTile(Icons.policy_rounded, "Terms & Policies", () {}),
           _buildDivider(),
-          _buildListTile(Icons.privacy_tip_outlined, "Privacy Policy", () {}),
+          _buildListTile(Icons.privacy_tip_rounded, "Privacy Policy", () {}),
         ],
       ),
     );
@@ -220,11 +232,11 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -245,71 +257,6 @@ class ProfileScreen extends StatelessWidget {
               if (context.mounted) {
                 context.go('/login');
               }
-            },
-          ),
-          _buildDivider(),
-          ListTile(
-            leading: const Icon(Icons.person_remove_outlined, color: AppColors.error),
-            title: const Text(
-              "Delete Account",
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext dialogContext) {
-                  return AlertDialog(
-                    title: const Text("Delete Account"),
-                    content: const Text(
-                      "Are you sure you want to delete your account? This action cannot be undone. "
-                      "Your store and products will be removed from the app.",
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          Navigator.pop(dialogContext);
-                          // Show loading indicator
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (BuildContext context) {
-                              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                            },
-                          );
-                          
-                          final success = await context.read<vendor_auth.AuthProvider>().deleteAccount();
-                          
-                          if (context.mounted) {
-                            Navigator.pop(context); // Dismiss loading
-                            if (success) {
-                              context.go('/login');
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    context.read<vendor_auth.AuthProvider>().errorMessage ?? 
-                                    'Failed to delete account'
-                                  ),
-                                  backgroundColor: AppColors.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text("Delete", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  );
-                },
-              );
             },
           ),
         ],

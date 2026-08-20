@@ -204,14 +204,21 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827))),
+        RichText(
+          text: TextSpan(
+            text: title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+            children: const [
+              TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 4, offset: const Offset(0, 2))],
+            border: Border.all(color: const Color(0xFFF1F5F9)),
           ),
           child: TextField(
             controller: controller,
@@ -292,16 +299,6 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
               ),
             ],
           ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton.icon(
-                onPressed: _showPreviewModal,
-                icon: const Icon(Icons.remove_red_eye_outlined, size: 18, color: AppColors.primary),
-                label: const Text('Preview', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
         ),
          body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

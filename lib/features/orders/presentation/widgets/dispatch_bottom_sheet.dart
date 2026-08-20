@@ -31,9 +31,20 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
   File? _receiptImage;
   bool _isUploading = false;
 
-  final List<String> _courierProviders = ['Delhivery', 'DTDC', 'BlueDart', 'Ecom Express', 'Shadowfax', 'XpressBees', 'India Post', 'Other'];
-  final List<String> _hyperlocalProviders = ['Rapido', 'Uber Connect', 'Dunzo', 'Porter', 'Swiggy Genie', 'Borzo', 'Other'];
-  final List<String> _transportProviders = ['State Transport Bus (RTC)', 'Private Bus', 'Train / Railway', 'Auto / Cab', 'Other'];
+  final List<String> _courierProviders = [
+    'Delhivery', 'DTDC', 'BlueDart', 'Ecom Express', 'Shadowfax', 'XpressBees',
+    'India Post', 'Amazon Shipping', 'FedEx', 'DHL', 'Smartr Logistics',
+    'Trackon', 'Shree Maruti Courier', 'Professional Courier', 'Gati',
+    'SafeExpress', 'Ekart Logistics', 'Other'
+  ];
+  final List<String> _hyperlocalProviders = [
+    'Rapido', 'Uber Connect', 'Ola Parcel', 'Dunzo', 'Porter', 'Swiggy Genie',
+    'Borzo', 'Zomato Xtreme', 'Lalamove', 'Zepto', 'Blinkit', 'Other'
+  ];
+  final List<String> _transportProviders = [
+    'State Transport Bus (RTC)', 'Private Bus (VRL, SRS, etc.)',
+    'Train / Railway Parcel', 'Auto / Cab', 'Mini Truck (Tata Ace, Dost)', 'Other'
+  ];
 
   @override
   void initState() {
@@ -42,12 +53,40 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (pickedFile != null) {
-      setState(() {
-        _receiptImage = File(pickedFile.path);
-      });
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Upload Photo Proof', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Take a Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source != null) {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source, imageQuality: 70);
+      if (pickedFile != null) {
+        setState(() {
+          _receiptImage = File(pickedFile.path);
+        });
+      }
     }
   }
 
@@ -119,6 +158,39 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
     }
   }
 
+  InputDecoration _buildInputDecoration(String labelText, IconData icon, {String? helper, bool isRequired = false}) {
+    return InputDecoration(
+      label: RichText(
+        text: TextSpan(
+          text: labelText,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w500),
+          children: isRequired 
+              ? const [TextSpan(text: ' *', style: TextStyle(color: Colors.red))]
+              : null,
+        ),
+      ),
+      prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+      helperText: helper,
+      helperStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1F5F9)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1F5F9)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      counterText: '',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -139,18 +211,16 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Dispatch Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text('Select how you are shipping this order to the customer.', style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 24),
+              const Text('Dispatch Details', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              const Text('Select how you are shipping this order to the customer.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+              const SizedBox(height: 28),
               
               DropdownButtonFormField<String>(
                 value: _selectedMethod,
-                decoration: InputDecoration(
-                  labelText: 'Shipping Method',
-                  prefixIcon: const Icon(Icons.local_shipping, color: AppColors.primary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                decoration: _buildInputDecoration('Shipping Method', Icons.local_shipping, isRequired: true),
                 items: const [
                   DropdownMenuItem(value: 'Courier', child: Text('Courier / Parcel Service')),
                   DropdownMenuItem(value: 'Hyperlocal', child: Text('Hyperlocal (Rapido, Uber)')),
@@ -176,16 +246,14 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                   }
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               if (_selectedMethod == 'Courier') ...[
                 DropdownButtonFormField<String>(
                   value: _selectedProvider,
-                  decoration: InputDecoration(
-                    labelText: 'Courier Name',
-                    prefixIcon: const Icon(Icons.business),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  decoration: _buildInputDecoration('Courier Name', Icons.business, isRequired: true),
                   items: _courierProviders.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                   onChanged: (val) => setState(() {
                     _selectedProvider = val!;
@@ -196,42 +264,30 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                 if (_selectedProvider == 'Other') ...[
                   TextFormField(
                     controller: _customProviderController,
+                    maxLength: 40,
                     validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                    decoration: InputDecoration(
-                      labelText: 'Custom Courier Name',
-                      prefixIcon: const Icon(Icons.edit),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    decoration: _buildInputDecoration('Custom Courier Name', Icons.edit, isRequired: true),
                   ),
                   const SizedBox(height: 16),
                 ],
                 TextFormField(
                   controller: _trackingIdController,
+                  maxLength: 40,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: InputDecoration(
-                    labelText: 'Tracking ID',
-                    prefixIcon: const Icon(Icons.tag),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  decoration: _buildInputDecoration('Tracking ID', Icons.tag, isRequired: true),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _trackingLinkController,
-                  decoration: InputDecoration(
-                    labelText: 'Tracking Link (Optional)',
-                    prefixIcon: const Icon(Icons.link),
-                    helperText: 'Paste link so customers can track instantly.',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  maxLength: 250,
+                  decoration: _buildInputDecoration('Tracking Link (Optional)', Icons.link, helper: 'Paste link so customers can track instantly.'),
                 ),
               ] else if (_selectedMethod == 'Hyperlocal') ...[
                 DropdownButtonFormField<String>(
                   value: _selectedProvider,
-                  decoration: InputDecoration(
-                    labelText: 'Service Name',
-                    prefixIcon: const Icon(Icons.two_wheeler),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  decoration: _buildInputDecoration('Service Name', Icons.two_wheeler, isRequired: true),
                   items: _hyperlocalProviders.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                   onChanged: (val) => setState(() {
                     _selectedProvider = val!;
@@ -242,85 +298,60 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                 if (_selectedProvider == 'Other') ...[
                   TextFormField(
                     controller: _customProviderController,
+                    maxLength: 40,
                     validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                    decoration: InputDecoration(
-                      labelText: 'Custom Service Name',
-                      prefixIcon: const Icon(Icons.edit),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    decoration: _buildInputDecoration('Custom Service Name', Icons.edit, isRequired: true),
                   ),
                   const SizedBox(height: 16),
                 ],
                 TextFormField(
                   controller: _trackingLinkController,
-                  decoration: InputDecoration(
-                    labelText: 'Live Tracking Link (Optional)',
-                    prefixIcon: const Icon(Icons.map),
-                    helperText: 'Share the live ride link from the app.',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  maxLength: 250,
+                  decoration: _buildInputDecoration('Live Tracking Link (Optional)', Icons.map, helper: 'Share the live ride link from the app.'),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: InputDecoration(
-                    labelText: 'Rider Phone Number',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  decoration: _buildInputDecoration('Rider Phone Number', Icons.phone, isRequired: true),
                 ),
               ] else if (_selectedMethod == 'Local Transport') ...[
                 DropdownButtonFormField<String>(
                   value: _selectedProvider,
-                  decoration: InputDecoration(
-                    labelText: 'Transport Type',
-                    prefixIcon: const Icon(Icons.directions_bus),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  decoration: _buildInputDecoration('Transport Type', Icons.directions_bus, isRequired: true),
                   items: _transportProviders.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                   onChanged: (val) => setState(() => _selectedProvider = val!),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _customProviderController,
+                  maxLength: 50,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: InputDecoration(
-                    labelText: 'Transport Name (e.g. KSRTC, SRS Travels)',
-                    prefixIcon: const Icon(Icons.business),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  decoration: _buildInputDecoration('Transport Name (e.g. KSRTC, SRS Travels)', Icons.business, isRequired: true),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _receiptController,
+                  maxLength: 30,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: InputDecoration(
-                    labelText: 'LR / Ticket Number',
-                    prefixIcon: const Icon(Icons.receipt),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  decoration: _buildInputDecoration('LR / Ticket Number', Icons.receipt, isRequired: true),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Driver Contact (Optional)',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  maxLength: 10,
+                  decoration: _buildInputDecoration('Driver Contact (Optional)', Icons.phone),
                 ),
               ] else if (_selectedMethod == 'Self Delivery') ...[
                 InkWell(
                   onTap: _pickDateTime,
                   child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Expected Delivery Time',
-                      prefixIcon: const Icon(Icons.access_time),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    decoration: _buildInputDecoration('Expected Delivery Time', Icons.access_time, isRequired: true),
                     child: Text(
                       _selectedDeliveryTime != null 
                           ? DateFormat('dd MMM, yyyy - hh:mm a').format(_selectedDeliveryTime!)
@@ -332,12 +363,9 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                 TextFormField(
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: InputDecoration(
-                    labelText: 'Delivery Person Phone Number',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                  decoration: _buildInputDecoration('Delivery Person Phone Number', Icons.phone, isRequired: true),
                 ),
               ],
               

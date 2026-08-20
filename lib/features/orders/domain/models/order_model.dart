@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class OrderModel {
   final String orderId;
   final String storeId;
+  final String storeName;
   final String customerId;
   final String customerName;
   final List<OrderItem> items;
@@ -15,6 +16,7 @@ class OrderModel {
   final String deliveryAddress;
   final String customerPhone;
   final String orderStatus; // 'New', 'Accepted', 'Packed', 'Shipped', 'Delivered', 'Declined'
+  final String paymentMethod; // 'Online', 'COD'
   final String payoutStatus; // 'pending', 'paid'
   
   // Tracking & Lifecycle
@@ -38,6 +40,7 @@ class OrderModel {
   OrderModel({
     required this.orderId,
     required this.storeId,
+    required this.storeName,
     required this.customerId,
     required this.customerName,
     required this.items,
@@ -50,6 +53,7 @@ class OrderModel {
     required this.deliveryAddress,
     this.customerPhone = '',
     required this.orderStatus,
+    this.paymentMethod = 'Online',
     this.payoutStatus = 'pending',
     this.shippingProvider = '',
     this.trackingId = '',
@@ -70,6 +74,7 @@ class OrderModel {
     return OrderModel(
       orderId: json['orderId'] ?? '',
       storeId: json['storeId'] ?? '',
+      storeName: json['storeName'] ?? '',
       customerId: json['customerId'] ?? '',
       customerName: json['customerName'] ?? 'Customer',
       items: (json['items'] as List<dynamic>?)
@@ -85,6 +90,7 @@ class OrderModel {
       deliveryAddress: json['deliveryAddress'] ?? '',
       customerPhone: json['customerPhone'] ?? '',
       orderStatus: json['orderStatus'] ?? 'New',
+      paymentMethod: json['paymentMethod'] ?? 'Online',
       payoutStatus: json['payoutStatus'] ?? 'pending',
       shippingProvider: json['shippingProvider'] ?? '',
       trackingId: json['trackingId'] ?? '',
@@ -108,6 +114,7 @@ class OrderModel {
     return {
       'orderId': orderId,
       'storeId': storeId,
+      'storeName': storeName,
       'customerId': customerId,
       'customerName': customerName,
       'items': items.map((e) => e.toJson()).toList(),
@@ -120,6 +127,7 @@ class OrderModel {
       'deliveryAddress': deliveryAddress,
       'customerPhone': customerPhone,
       'orderStatus': orderStatus,
+      'paymentMethod': paymentMethod,
       'payoutStatus': payoutStatus,
       'shippingProvider': shippingProvider,
       'trackingId': trackingId,
@@ -140,6 +148,7 @@ class OrderModel {
   OrderModel copyWith({
     String? orderId,
     String? storeId,
+    String? storeName,
     String? customerId,
     String? customerName,
     List<OrderItem>? items,
@@ -152,6 +161,7 @@ class OrderModel {
     String? deliveryAddress,
     String? customerPhone,
     String? orderStatus,
+    String? paymentMethod,
     String? payoutStatus,
     String? shippingProvider,
     String? trackingId,
@@ -166,6 +176,7 @@ class OrderModel {
     return OrderModel(
       orderId: orderId ?? this.orderId,
       storeId: storeId ?? this.storeId,
+      storeName: storeName ?? this.storeName,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
       items: items ?? this.items,
@@ -178,6 +189,7 @@ class OrderModel {
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       customerPhone: customerPhone ?? this.customerPhone,
       orderStatus: orderStatus ?? this.orderStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
       payoutStatus: payoutStatus ?? this.payoutStatus,
       shippingProvider: shippingProvider ?? this.shippingProvider,
       trackingId: trackingId ?? this.trackingId,

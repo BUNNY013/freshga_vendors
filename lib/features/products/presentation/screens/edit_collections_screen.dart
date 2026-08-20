@@ -368,7 +368,7 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: _canSave ? _handleSubmit : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF16A34A),
@@ -379,8 +379,7 @@ class _EditCollectionsScreenState extends State<EditCollectionsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      icon: _isSaving ? const SizedBox() : const Icon(Icons.save_outlined, size: 20),
-                      label: _isSaving
+                      child: _isSaving
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : Text(_buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     ),

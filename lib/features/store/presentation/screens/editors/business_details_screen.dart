@@ -29,6 +29,8 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
   String _savedPincode = "";
   String _fssaiUrl = "";
   String _taxUrl = "";
+  String _savedPan = "";
+  String _panUrl = "";
   
   // Verification states
   final bool _isFssaiVerified = true;
@@ -62,6 +64,8 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
             _savedFssai = data['fssaiNumber'] ?? '';
             _fssaiUrl = data['fssaiCertificateImage'] ?? '';
             _taxUrl = data['taxImage'] ?? '';
+            _savedPan = data['panNumber'] ?? '';
+            _panUrl = data['panImage'] ?? '';
             _savedAddress = data['businessAddress'] ?? '';
             _savedVillage = data['village'] ?? '';
             _savedDistrict = data['district'] ?? '';
@@ -195,6 +199,15 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
                     showVerifyBadge: false,
                     bottomWidget: _savedGst.isNotEmpty && _taxUrl.isNotEmpty ? _buildDocumentAction(context, 'View Tax Document', _taxUrl) : null,
                   ),
+                  const SizedBox(height: 20),
+                  _buildViewRow(
+                    Icons.credit_card_outlined, 
+                    'PAN Card Number', 
+                    _savedPan.isNotEmpty ? _savedPan : 'Not provided', 
+                    isVerified: false, 
+                    showVerifyBadge: false,
+                    bottomWidget: _savedPan.isNotEmpty && _panUrl.isNotEmpty ? _buildDocumentAction(context, 'View PAN Document', _panUrl) : null,
+                  ),
                 ],
               ),
             ),
@@ -230,6 +243,43 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
                   _buildViewRow(Icons.map_outlined, 'State', _savedState.isNotEmpty ? _savedState : 'Not provided', showVerifyBadge: false),
                   const SizedBox(height: 20),
                   _buildViewRow(Icons.pin_drop_outlined, 'Pincode', _savedPincode.isNotEmpty ? _savedPincode : 'Not provided', showVerifyBadge: false),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Support Contact Block
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppColors.primary, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Update legal details?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                        Text('Contact admin for FSSAI/GST changes.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.push('/profile/support'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Support', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             ),

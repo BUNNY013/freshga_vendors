@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -54,11 +55,18 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Let’s start with your business basics ✨',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
+                        'Business Details',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Let\'s start with the basics of your business.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 15,
                             ),
                       ),
                       const SizedBox(height: 32),
@@ -66,16 +74,29 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         label: 'Owner Full Name',
                         controller: provider.fullNameController,
                         hintText: 'Enter owner full name',
+                        prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.grey400),
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(50),
+                          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s\.\-]')),
+                        ],
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Business Name',
                         controller: provider.businessNameController,
                         hintText: 'Enter your business name',
+                        prefixIcon: const Icon(Icons.storefront_outlined, size: 20, color: AppColors.grey400),
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                        ],
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Phone Number',
                         controller: provider.phoneController,
@@ -83,91 +104,145 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         readOnly: true, // Phone is prefilled and read-only
                         hintText: 'XXXXX XXXXX',
                         prefixText: '+91 ',
+                        prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.grey400),
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Alternate Phone Number',
                         controller: provider.alternatePhoneController,
                         keyboardType: TextInputType.phone,
                         hintText: 'Enter alternate phone number',
                         prefixText: '+91 ',
+                        prefixIcon: const Icon(Icons.phone_android_outlined, size: 20, color: AppColors.grey400),
                         isRequired: false,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         validator: (value) {
                           if (value != null && value.isNotEmpty && value.length < 10) {
-                            return 'Enter valid phone number';
+                            return 'Enter valid 10-digit phone number';
                           }
                           return null;
                         },
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Email Address',
                         controller: provider.emailController,
                         keyboardType: TextInputType.emailAddress,
                         hintText: 'Enter your email address',
+                        prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.grey400),
                         isRequired: false,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                        ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
+                      const Divider(color: AppColors.grey300),
+                      const SizedBox(height: 32),
                       Text(
                         'Business Address',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Address Details (Door No, Building, Street)',
                         controller: provider.businessAddressController,
                         hintText: 'Enter permanent business address',
-                        maxLines: 2,
+                        prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.grey400),
+                        minLines: 3,
+                        maxLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(200),
+                        ],
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
-                        label: 'Pincode',
-                        controller: provider.pincodeController,
-                        keyboardType: TextInputType.number,
-                        hintText: 'Enter 6-digit pincode',
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Required';
-                          if (value.length != 6) return 'Enter valid pincode';
-                          return null;
-                        },
-                        suffixIcon: provider.isLoading
-                            ? const Padding(
-                                padding: EdgeInsets.all(12.0),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                            : null,
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: CustomTextField(
+                              label: 'Pincode',
+                              controller: provider.pincodeController,
+                              keyboardType: TextInputType.number,
+                              hintText: 'Enter pincode',
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(6),
+                              ],
+                              validator: (value) {
+                                if (value == null || value.isEmpty) return 'Required';
+                                if (value.length != 6) return 'Invalid pincode';
+                                return null;
+                              },
+                              suffixIcon: provider.isLoading
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: CustomTextField(
+                              label: 'City/Block',
+                              controller: provider.cityController,
+                              hintText: 'Enter city or block',
+                              readOnly: provider.isLocationFetched,
+                              textCapitalization: TextCapitalization.words,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(50),
+                              ],
+                              validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                            ),
+                          ),
+                        ],
                       ),
                       if (provider.error != null && provider.error!.isNotEmpty) ...[
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
                           child: Text(
                             '${provider.error}. Please enter your details manually.',
-                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                            style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                         ),
+                      ] else ...[
+                        const SizedBox(height: 8),
                       ],
                       CustomTextField(
                         label: 'Village/Area',
                         controller: provider.villageController,
                         hintText: 'Enter village or area',
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                        ],
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
-                        label: 'City/Block',
-                        controller: provider.cityController,
-                        hintText: 'Enter city or block',
-                        readOnly: provider.isLocationFetched,
-                        validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                      ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'District',
                         controller: provider.districtController,
                         hintText: 'Enter district',
                         readOnly: provider.isLocationFetched,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(50),
+                        ],
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
+                      const SizedBox(height: 8),
                       provider.isLocationFetched
                           ? CustomTextField(
                               label: 'State',
@@ -179,20 +254,46 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                           : Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('State', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
-                                const SizedBox(height: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4.0, bottom: 4.0),
+                                  child: RichText(
+                                    text: const TextSpan(
+                                      text: 'State',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                        fontSize: 13,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                          text: ' *',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                                 DropdownButtonFormField<String>(
+                                  isExpanded: true,
                                   value: _indianStates.contains(provider.stateController.text) ? provider.stateController.text : null,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                                   ),
-                                  hint: const Text('Select State', style: TextStyle(fontSize: 14)),
+                                  hint: const Text('Select State', style: TextStyle(fontSize: 14, color: AppColors.grey400)),
                                   items: _indianStates.map((state) {
-                                    return DropdownMenuItem(value: state, child: Text(state, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)));
+                                    return DropdownMenuItem(
+                                      value: state, 
+                                      child: Text(
+                                        state, 
+                                        style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
                                   }).toList(),
                                   onChanged: (val) {
                                     if (val != null) {
@@ -203,7 +304,6 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                                   },
                                   validator: (val) => val == null || val.isEmpty ? "Required" : null,
                                 ),
-                                const SizedBox(height: 16),
                               ],
                             ),
                     ],

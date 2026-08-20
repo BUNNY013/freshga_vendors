@@ -368,8 +368,17 @@ class StoreSetupProvider extends ChangeNotifier {
 
       await FirebaseFirestore.instance.collection('stores').doc(storeId).set(store.toJson());
       
-      // Create the 14-Day Growth Trial Subscription
-      final trialEndsAt = DateTime.now().add(const Duration(days: 14));
+      // Fetch the global settings for trial days
+      int trialDays = 90; // Fallback default
+      try {
+        final settingsDoc = await FirebaseFirestore.instance.collection('global_settings').doc('settings').get();
+        if (settingsDoc.exists) {
+          trialDays = settingsDoc.data()?['default_trial_days'] ?? 90;
+        }
+      } catch (_) {}
+
+      // Create the Growth Trial Subscription based on global settings
+      final trialEndsAt = DateTime.now().add(Duration(days: trialDays));
       
       final subscriptionData = {
         'storeId': storeId,

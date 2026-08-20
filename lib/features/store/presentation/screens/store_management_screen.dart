@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/models/store_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../providers/subscription_provider.dart';
 
 class StoreManagementScreen extends StatefulWidget {
   const StoreManagementScreen({super.key});
@@ -88,14 +90,11 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 automaticallyImplyLeading: false,
                 centerTitle: false,
                 title: Text(
-                  'Store',
+                  'My Store',
                   style: TextStyle(
-                    color: titleColor,
+                    color: fraction > 0.5 ? titleColor : Colors.transparent,
                     fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                    shadows: fraction < 0.5 ? [
-                      Shadow(color: Colors.black.withOpacity(shadowOpacity), blurRadius: 4, offset: const Offset(0, 1)),
-                    ] : null,
+                    fontSize: 24,
                   ),
                 ),
               ),
@@ -182,16 +181,21 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
                       ],
-                      image: DecorationImage(
-                        image: NetworkImage(store.logo.isNotEmpty ? store.logo : 'https://images.unsplash.com/photo-1606787366850-de6330128bfc'),
-                        fit: BoxFit.cover,
-                      ),
                     ),
+                    child: store.logo.isNotEmpty
+                        ? ClipOval(child: Image.network(store.logo, fit: BoxFit.cover))
+                        : Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF0FDF4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primary),
+                          ),
                   ),
                 ],
               ),
@@ -203,18 +207,18 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(store.storeName.isNotEmpty ? store.storeName : "Amma's Secrets", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A))),
+            Text(store.storeName.isNotEmpty ? store.storeName : "Amma's Secrets", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
           ],
         ),
         if (store.storeSlug.isNotEmpty) ...[
           const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(100),
             ),
-            child: Text('@${store.storeSlug}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
+            child: Text('@${store.storeSlug}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary, letterSpacing: 0.3)),
           ),
         ],
         const SizedBox(height: 6),
@@ -223,15 +227,26 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         // Instagram-style Metrics Row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4)),
+              ],
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildMetricColumn(store.totalOrders.toString(), 'Orders'),
+                Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
                 _buildMetricColumn(store.followers > 1000 ? '${(store.followers / 1000).toStringAsFixed(1)}K' : store.followers.toString(), 'Followers'),
+                Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
                 _buildMetricColumn(store.productsCount.toString(), 'Products'),
-                _buildMetricColumn('${store.rating}', '${store.totalReviews} Reviews', isRating: true),
+                Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
+                _buildMetricColumn('${store.rating}', '${store.totalReviews} Revs', isRating: true),
               ],
             ),
           ),
@@ -245,15 +260,15 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.push('/store/info'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    foregroundColor: const Color(0xFF0F172A),
+                    backgroundColor: const Color(0xFFF0FDF4),
+                    foregroundColor: AppColors.primary,
                     elevation: 0,
-                    minimumSize: const Size(0, 34),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: const Size(0, 40),
+                    side: const BorderSide(color: Color(0xFFBBF7D0)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: EdgeInsets.zero,
                   ),
-                  child: const Text('Edit store', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  child: const Text('Edit Store', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -261,29 +276,29 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 child: ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    foregroundColor: const Color(0xFF0F172A),
+                    backgroundColor: const Color(0xFFF8FAFC),
+                    foregroundColor: const Color(0xFF334155),
                     elevation: 0,
-                    minimumSize: const Size(0, 34),
+                    minimumSize: const Size(0, 40),
                     side: const BorderSide(color: Color(0xFFE2E8F0)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: EdgeInsets.zero,
                   ),
-                  child: const Text('Share store', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  child: const Text('Share Store', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                height: 34,
-                width: 34,
+                height: 40,
+                width: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: IconButton(
                   padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.remove_red_eye_outlined, size: 18, color: Color(0xFF0F172A)),
+                  icon: const Icon(Icons.remove_red_eye_rounded, size: 20, color: Color(0xFF334155)),
                   onPressed: () => context.push('/store/preview', extra: store),
                 ),
               ),
@@ -313,7 +328,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     );
   }
 
-  Widget _buildVacationModeCard(StoreModel store) {
+  Widget _buildVacationModeCard(BuildContext context, StoreModel store) {
+    final subProvider = context.watch<SubscriptionProvider>();
+    final isExpired = subProvider.currentSubscription?.isCompletelyExpired ?? false;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -336,12 +354,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: store.isActive ? Colors.green.withOpacity(0.1) : Colors.amber.withOpacity(0.1),
+                color: isExpired 
+                    ? Colors.red.withOpacity(0.1) 
+                    : (store.isActive ? Colors.green.withOpacity(0.1) : Colors.amber.withOpacity(0.1)),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                store.isActive ? Icons.storefront : Icons.beach_access,
-                color: store.isActive ? Colors.green[700] : Colors.amber[700],
+                isExpired ? Icons.error_outline : (store.isActive ? Icons.storefront : Icons.beach_access),
+                color: isExpired ? Colors.red[700] : (store.isActive ? Colors.green[700] : Colors.amber[700]),
                 size: 24,
               ),
             ),
@@ -351,13 +371,20 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Vacation Mode',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'serif', color: Color(0xFF0F172A)),
+                    'Store Visibility',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    store.isActive ? 'Store is visible and accepting orders' : 'Store is hidden. You are on a break.',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.3),
+                    isExpired
+                        ? 'Store is offline due to expired subscription. Renew to activate.'
+                        : (store.isActive ? 'Store is visible and accepting orders' : 'Store is hidden. You are on a break.'),
+                    style: TextStyle(
+                      fontSize: 13, 
+                      color: isExpired ? Colors.red[700] : const Color(0xFF64748B), 
+                      height: 1.3,
+                      fontWeight: isExpired ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                 ],
               ),
@@ -367,9 +394,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               value: !store.isActive,
               activeColor: Colors.amber[700],
               activeTrackColor: Colors.amber[100],
-              inactiveThumbColor: Colors.green[600],
-              inactiveTrackColor: Colors.green[100],
-              onChanged: (val) async {
+              inactiveThumbColor: isExpired ? Colors.grey[400] : Colors.green[600],
+              inactiveTrackColor: isExpired ? Colors.grey[200] : Colors.green[100],
+              onChanged: isExpired ? null : (val) async {
                 final bool isPausing = val;
                 
                 if (isPausing) {
@@ -434,7 +461,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
   Widget _buildSettingsMenu(BuildContext context, StoreModel store, String userId) {
     return Column(
       children: [
-        _buildVacationModeCard(store),
+        _buildVacationModeCard(context, store),
         _buildSettingsCard(
           context: context,
           icon: Icons.link_outlined,

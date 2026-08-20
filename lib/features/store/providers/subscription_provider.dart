@@ -53,15 +53,26 @@ class SubscriptionProvider extends ChangeNotifier {
       if (subDoc.exists) {
         _currentSubscription = VendorSubscriptionModel.fromJson(subDoc.data()!);
       } else {
-        // If they have a store but no subscription doc, default to basic or create a dummy expired one
-        _currentSubscription = VendorSubscriptionModel(
+        // Store exists but no subscription doc yet. Create their initial free trial!
+        int trialDays = 90; // Fallback default
+        try {
+          final settingsDoc = await FirebaseFirestore.instance.collection('global_settings').doc('settings').get();
+          if (settingsDoc.exists) {
+            trialDays = settingsDoc.data()?['default_trial_days'] ?? 90;
+          }
+        } catch (_) {}
+
+        final newSubscription = VendorSubscriptionModel(
           storeId: storeId,
-          status: 'expired',
-          currentTier: 'basic',
-          trialEndsAt: DateTime.now().subtract(const Duration(days: 1)),
-          cancelAtPeriodEnd: false,
-          activeFeatures: [],
+          status: 'trialing',
+          trialEndsAt: DateTime.now().add(Duration(days: trialDays)),
+          currentPeriodEnd: null,
         );
+
+        // Save it permanently so the trial date never changes
+        await FirebaseFirestore.instance.collection('store_subscriptions').doc(storeId).set(newSubscription.toJson());
+        
+        _currentSubscription = newSubscription;
       }
 
     } catch (e) {

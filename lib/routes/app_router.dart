@@ -9,6 +9,7 @@ import '../features/onboarding/presentation/screens/rejection_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/store/presentation/screens/store_setup_screen.dart';
 import '../features/store/presentation/screens/trial_activation_screen.dart';
+import '../features/store/presentation/screens/subscription_dashboard_screen.dart';
 import '../features/products/presentation/screens/add_product_screen.dart';
 import '../features/products/presentation/screens/edit_product_screen.dart';
 import '../features/products/presentation/screens/edit_pricing_screen.dart';
@@ -41,6 +42,9 @@ import '../features/analytics/presentation/screens/ratings_analytics_screen.dart
 
 import '../features/analytics/presentation/screens/earnings_payouts_screen.dart';
 import '../features/profile/presentation/screens/customer_feedback_screen.dart';
+import '../features/profile/presentation/screens/payouts_screen.dart';
+import '../features/profile/presentation/screens/notification_settings_screen.dart';
+import '../features/profile/presentation/screens/vendor_help_support_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
@@ -216,6 +220,14 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/profile/payouts',
+        builder: (context, state) => const PayoutsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/support',
+        builder: (context, state) => const VendorHelpSupportScreen(),
+      ),
+      GoRoute(
         path: '/analytics/revenue',
         builder: (context, state) => const RevenueAnalyticsScreen(),
       ),
@@ -245,8 +257,16 @@ class AppRouter {
         builder: (context, state) => const CustomerFeedbackScreen(),
       ),
       GoRoute(
+        path: '/profile/notifications',
+        builder: (context, state) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const SubscriptionDashboardScreen(),
       ),
     ],
     redirect: (context, state) {

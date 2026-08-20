@@ -97,34 +97,7 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Store info
-                      Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Text('🏪', style: TextStyle(fontSize: 14)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            product.storeName.isNotEmpty
-                                ? product.storeName
-                                : 'Your Store',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.grey600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+
 
                       // Product Name
                       Text(
@@ -170,9 +143,7 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
                         const SizedBox(height: 20),
                       ],
 
-                      // Engagement
-                      _buildEngagementBar(),
-                      const SizedBox(height: 20),
+
 
                       // Description
                       if (product.description.isNotEmpty) ...[
@@ -330,49 +301,32 @@ class _ProductPreviewSheetState extends State<ProductPreviewSheet> {
       );
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 280,
-          child: PageView.builder(
-            itemCount: product.images.length,
-            onPageChanged: (i) => setState(() => _selectedImageIndex = i),
-            itemBuilder: (_, i) => Image.network(
-              product.images[i],
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.grey200,
-                child: const Center(
-                  child:
-                      Icon(Icons.broken_image, size: 40, color: AppColors.grey400),
-                ),
+    return SizedBox(
+      height: 320,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: product.images.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            product.images[i],
+            fit: BoxFit.cover,
+            width: product.images.length > 1 ? MediaQuery.of(context).size.width * 0.8 : MediaQuery.of(context).size.width - 40,
+            height: 320,
+            errorBuilder: (_, __, ___) => Container(
+              width: product.images.length > 1 ? MediaQuery.of(context).size.width * 0.8 : MediaQuery.of(context).size.width - 40,
+              height: 320,
+              color: AppColors.grey200,
+              child: const Center(
+                child: Icon(Icons.broken_image, size: 40, color: AppColors.grey400),
               ),
             ),
           ),
         ),
-        if (product.images.length > 1) ...[
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              product.images.length,
-              (i) => AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _selectedImageIndex ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: i == _selectedImageIndex
-                      ? AppColors.primary
-                      : AppColors.grey300,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 

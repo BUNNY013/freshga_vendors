@@ -442,24 +442,28 @@ class OnboardingProvider extends ChangeNotifier {
       final metadata = SettableMetadata(contentType: 'image/jpeg');
 
       if (taxImage != null) {
+        if (!taxImage!.existsSync()) throw Exception('Tax document photo was lost from device memory. Please re-select it in Step 2.');
         final taxRef = _storage.ref().child('vendor_documents/$userId/tax.jpg');
         await taxRef.putFile(taxImage!, metadata);
         taxUrl = await taxRef.getDownloadURL();
       }
 
       if (fssaiImage != null) {
+        if (!fssaiImage!.existsSync()) throw Exception('FSSAI certificate photo was lost from device memory. Please re-select it in Step 2.');
         final fssaiRef = _storage.ref().child('vendor_documents/$userId/fssai.jpg');
         await fssaiRef.putFile(fssaiImage!, metadata);
         fssaiUrl = await fssaiRef.getDownloadURL();
       }
 
       if (panImage != null) {
+        if (!panImage!.existsSync()) throw Exception('PAN card photo was lost from device memory. Please re-select it in Step 2.');
         final panRef = _storage.ref().child('vendor_documents/$userId/pan.jpg');
         await panRef.putFile(panImage!, metadata);
         panUrl = await panRef.getDownloadURL();
       }
 
       if (bankImage != null) {
+        if (!bankImage!.existsSync()) throw Exception('Bank passbook/cheque photo was lost from device memory. Please re-select it.');
         final bankRef = _storage.ref().child('vendor_documents/$userId/bank.jpg');
         await bankRef.putFile(bankImage!, metadata);
         bankUrl = await bankRef.getDownloadURL();

@@ -902,10 +902,8 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                           child: Divider(),
                         ),
                         
-                        // Logistics (Shiprocket) Section
-                        const Text("Optional Logistics (for future Courier delivery)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        const Text("Not needed for local Self-Delivery. Only fill if using automated courier shipping.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        // Logistics Section
+                        const Text("Logistics & Shipping Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         
                         _buildLabel("Actual Weight (grams)", required: false),
@@ -1061,11 +1059,11 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       hintText: hintText,
       hintStyle: const TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w500, fontSize: 14),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: const Color(0xFFF8FAFC), // very subtle gray
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF1F5F9))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
     );
   }
 

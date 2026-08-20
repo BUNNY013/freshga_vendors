@@ -196,11 +196,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       hintText: hintText,
       hintStyle: const TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w500, fontSize: 14),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+      fillColor: const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
     );
   }
 
@@ -208,7 +208,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     return RichText(
       text: TextSpan(
         text: text,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
         children: [
           if (required) const TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
         ],
@@ -485,7 +485,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                     crossAxisCount: 3,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.75, 
+                    childAspectRatio: 0.70, 
                   ),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
@@ -525,6 +525,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                               scale: isSelected ? 1.05 : 1.15,
                                               child: CachedNetworkImage(
                                                 imageUrl: cat.imageUrl,
+                                                memCacheWidth: 250,
+                                                memCacheHeight: 250,
                                                 fit: BoxFit.contain,
                                                 placeholder: (context, url) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
                                                 errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey),
@@ -533,23 +535,26 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                           : const Icon(Icons.category, color: Colors.grey, size: 40),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Padding(
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 34,
+                                    alignment: Alignment.bottomCenter,
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                     child: Text(
                                       cat.name,
                                       style: TextStyle(
                                         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         color: isSelected ? AppColors.primary : AppColors.textPrimary,
                                         letterSpacing: -0.1,
+                                        height: 1.15,
                                       ),
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 8),
                                 ],
                               ),
                             ),
@@ -720,6 +725,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                               scale: isSelected ? 1.05 : 1.15,
                                               child: CachedNetworkImage(
                                                 imageUrl: sub.imageUrl,
+                                                memCacheWidth: 250,
+                                                memCacheHeight: 250,
                                                 fit: BoxFit.contain,
                                                 placeholder: (context, url) => const Center(
                                                   child: SizedBox(
@@ -741,7 +748,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                   const SizedBox(height: 6),
                                   Container(
                                     height: 34,
-                                    alignment: Alignment.topCenter,
+                                    alignment: Alignment.bottomCenter,
                                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                     child: Text(
                                       sub.name,
@@ -845,39 +852,52 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.category_rounded, size: 20, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            _categoryName,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary),
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.category_rounded, size: 20, color: AppColors.primary),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _categoryName,
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                                if (selectedSubs.isNotEmpty)
+                                  const Icon(Icons.chevron_right, size: 18, color: AppColors.grey400),
+                                ...selectedSubs.map((sub) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDF4),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                                  ),
+                                  child: Text(
+                                    sub.name,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  ),
+                                )),
+                              ],
+                            ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 12),
                           GestureDetector(
                             onTap: () => _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
-                            child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
                           ),
                         ],
                       ),
-                      if (selectedSubs.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: selectedSubs.map((sub) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDF4),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(color: const Color(0xFFBBF7D0)),
-                            ),
-                            child: Text(
-                              sub.name,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                            ),
-                          )).toList(),
-                        ),
-                      ],
                     ],
                   ),
                 );
@@ -917,7 +937,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -1018,8 +1038,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
         return _buildStepCard(
-          title: "1. Product Photos & Media",
-          subtitle: "Cover photo + up to 9 gallery photos",
+          title: "Product Photos",
+          subtitle: "Add at least one photo of your product",
           icon: Icons.photo_library_outlined,
           trailingWidget: Row(
             children: [
@@ -1036,12 +1056,10 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                       onTap: () => _showFullScreenImage(provider.selectedImages.first),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Image.file(provider.selectedImages.first, fit: BoxFit.cover),
-                          ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 200,
+                          child: Image.file(provider.selectedImages.first, fit: BoxFit.cover),
                         ),
                       ),
                     ),
@@ -1056,7 +1074,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text("Cover Photo (1:1)", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                            Text("Main Photo", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                             SizedBox(width: 6),
                             Icon(Icons.zoom_in, color: Colors.white70, size: 14),
                           ],
@@ -1079,9 +1097,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
               else
                 GestureDetector(
                   onTap: provider.pickImages,
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Container(
+                  child: Container(
+                    height: 110,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF9FAFB),
@@ -1092,14 +1109,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary, size: 44),
-                            SizedBox(height: 10),
-                            Text("Add Cover Photo (1:1 Square)", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14)),
-                            SizedBox(height: 4),
-                            Text("Perfect for customer app product cards", style: TextStyle(color: AppColors.grey500, fontSize: 12)),
+                            Icon(Icons.add_a_photo_rounded, color: AppColors.primary, size: 36),
+                            SizedBox(height: 12),
+                            Text("Tap to Upload Photo", style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 15)),
                           ],
                         ),
-                      ),
                     ),
                   ),
                 ),
@@ -1107,7 +1121,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
               if (provider.selectedImages.length > 1) ...[
                 const SizedBox(height: 16),
                 const Text(
-                  "Gallery Photos",
+                  "More Photos (Optional)",
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 8),
@@ -1213,8 +1227,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     ];
 
     return _buildStepCard(
-      title: "2. Basic Identity & Dietary",
-      subtitle: "Name, FSSAI food classification & short description",
+      title: "Product Details",
+      subtitle: "What is it and what's in it?",
       icon: Icons.local_dining_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1238,12 +1252,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
           ),
           const SizedBox(height: 20),
 
-          _buildLabel("FSSAI Dietary Classification", required: true),
-          const SizedBox(height: 4),
-          const Text(
-            "Required by FSSAI food safety regulations. Clear labeling builds customer trust and avoids allergen disputes.",
-            style: TextStyle(color: AppColors.grey500, fontSize: 13, height: 1.4),
-          ),
+          _buildLabel("Is it Veg or Non-Veg?", required: true),
           const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
@@ -1339,8 +1348,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
 
   Widget _buildPacksSection() {
     return _buildStepCard(
-      title: "3. Pack Sizes & Pricing Studio",
-      subtitle: "Configure variants, selling prices & inventory",
+      title: "Price & Quantity",
+      subtitle: "How much does it cost?",
       icon: Icons.inventory_2_outlined,
       trailingWidget: GestureDetector(
         onTap: () => _openAddPackSheet(),
@@ -1815,10 +1824,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                           child: Divider(),
                         ),
                         
-                        // Logistics (Shiprocket) Section
-                        const Text("Optional Logistics (for future Courier delivery)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        const Text("Not needed for local Self-Delivery. Only fill if using automated courier shipping.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        // Logistics Section
+                        const Text("Logistics & Shipping Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         
                         _buildLabel("Actual Weight (grams)", required: false),
@@ -1961,8 +1968,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
 
   Widget _buildFreshnessAndHandlingSection() {
     return _buildStepCard(
-      title: "4. Freshness & Handling Specifications",
-      subtitle: "Shelf life, preparation timelines & ingredients",
+      title: "Freshness & Care",
+      subtitle: "How long does it last and how to store it?",
       icon: Icons.timer_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2081,8 +2088,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
   Widget _buildPreviewSection() {
     final provider = context.read<ProductProvider>();
     return _buildStepCard(
-      title: "5. Customer App Preview",
-      subtitle: "Tap card to see full interactive experience",
+      title: "Customer Preview",
+      subtitle: "Tap to see how it looks to buyers",
       icon: Icons.smartphone_outlined,
       child: GestureDetector(
         onTap: _openFullScreenPreview,
@@ -2219,16 +2226,20 @@ class _AddProductWizardState extends State<_AddProductWizard> {
               Container(
                 width: 52,
                 height: 52,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFEF3F2),
+                decoration: BoxDecoration(
+                  color: _currentPage == 2 ? const Color(0xFFEFF6FF) : const Color(0xFFFEF3F2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.bookmark_border_rounded, color: Color(0xFFDC2626), size: 26),
+                child: Icon(
+                  _currentPage == 2 ? Icons.bookmark_border_rounded : Icons.delete_outline,
+                  color: _currentPage == 2 ? AppColors.primary : const Color(0xFFDC2626),
+                  size: 26,
+                ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Save as Draft?',
-                style: TextStyle(
+              Text(
+                _currentPage == 2 ? 'Save as Draft?' : 'Discard Changes?',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),

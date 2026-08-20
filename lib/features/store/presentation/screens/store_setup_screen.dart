@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 import '../../providers/store_setup_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
@@ -50,6 +51,33 @@ class _StoreSetupContent extends StatelessWidget {
                 onPressed: provider.previousStep,
               )
             : null,
+        actions: [
+          if (provider.currentStep == 0)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+              onSelected: (value) async {
+                if (value == 'logout') {
+                  await context.read<AuthProvider>().signOut();
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+                      SizedBox(width: 8),
+                      Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(width: 8),
+        ],
         title: _buildProgressIndicator(provider.currentStep),
       ),
       body: SafeArea(
@@ -128,19 +156,39 @@ class _StoreSetupContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.storefront, size: 80, color: AppColors.primary),
-          const SizedBox(height: 32),
+          const SizedBox(height: 10),
+          Image.asset(
+            'assets/images/vendor_intro.png',
+            width: double.infinity,
+            height: 320,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 24),
           const Text(
-            "Your food journey starts here 🚀",
-            style: AppTextStyles.h1,
+            "Your food journey\nstarts here",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              height: 1.2,
+              letterSpacing: -0.5,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          const Text(
-            "Let's set up your store profile so customers can start discovering your homemade brand.",
-            style: AppTextStyles.bodyText,
-            textAlign: TextAlign.center,
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              "Let's set up your store profile so customers can start discovering your homemade brand.",
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -152,38 +200,97 @@ class _StoreSetupContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text("Store Logo", style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          const Text("Upload a profile picture for your brand.", style: AppTextStyles.bodyText),
-          const SizedBox(height: 48),
-        GestureDetector(
-          onTap: provider.pickLogo,
-          child: Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: AppColors.grey100,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
-              image: provider.logoFile != null
-                  ? DecorationImage(
-                      image: FileImage(provider.logoFile!),
-                      fit: BoxFit.cover,
+          const SizedBox(height: 16),
+          const Text(
+            "Store Logo",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "Upload a profile picture for your brand. This is the first thing customers will see.",
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 56),
+          GestureDetector(
+            onTap: provider.pickLogo,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: provider.logoFile == null ? AppColors.primary.withOpacity(0.05) : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: provider.logoFile == null ? AppColors.primary.withOpacity(0.2) : AppColors.primary,
+                  width: provider.logoFile == null ? 2 : 4,
+                ),
+                boxShadow: [
+                  if (provider.logoFile == null)
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.1),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    )
+                  else
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.25),
+                      blurRadius: 40,
+                      spreadRadius: 10,
+                      offset: const Offset(0, 10),
+                    ),
+                ],
+                image: provider.logoFile != null
+                    ? DecorationImage(
+                        image: FileImage(provider.logoFile!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: provider.logoFile == null
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.add_photo_alternate_rounded, color: AppColors.primary, size: 36),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Tap to Upload",
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     )
                   : null,
             ),
-            child: provider.logoFile == null
-                ? const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_a_photo, color: AppColors.primary, size: 40),
-                      SizedBox(height: 8),
-                      Text("Upload Logo", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                    ],
-                  )
-                : null,
           ),
-        ),
         ],
       ),
     );
@@ -195,40 +302,110 @@ class _StoreSetupContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text("Store Banner", style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          const Text("Upload a beautiful banner for your profile top.", style: AppTextStyles.bodyText),
-          const SizedBox(height: 48),
-        GestureDetector(
-          onTap: provider.pickBanner,
-          child: Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.grey100,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
-              image: provider.bannerFile != null
-                  ? DecorationImage(
-                      image: FileImage(provider.bannerFile!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
+          const SizedBox(height: 16),
+          const Text(
+            "Store Banner",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.5,
             ),
-            child: provider.bannerFile == null
-                ? const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.image_outlined, color: AppColors.primary, size: 48),
-                      SizedBox(height: 12),
-                      Text("Upload Banner", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4),
-                      Text("Recommended: 1024x500", style: TextStyle(color: AppColors.grey600, fontSize: 12)),
-                    ],
-                  )
-                : null,
           ),
-        ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "Upload a beautiful banner. Here is how it will look with your logo!",
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 40),
+          
+          GestureDetector(
+            onTap: provider.pickBanner,
+            child: SizedBox(
+              height: 300,
+              width: double.infinity,
+              child: Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  // Banner Area
+                  Container(
+                    height: 240,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: provider.bannerFile == null ? AppColors.primary.withOpacity(0.05) : Colors.white,
+                      border: Border.symmetric(
+                        horizontal: BorderSide(
+                          color: provider.bannerFile == null ? AppColors.primary.withOpacity(0.2) : AppColors.primary,
+                          width: provider.bannerFile == null ? 2 : 3,
+                        ),
+                      ),
+                      boxShadow: [
+                        if (provider.bannerFile == null)
+                          BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 20)
+                        else
+                          BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10)),
+                      ],
+                      image: provider.bannerFile != null
+                          ? DecorationImage(
+                              image: FileImage(provider.bannerFile!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: provider.bannerFile == null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                                ),
+                                child: const Icon(Icons.add_photo_alternate_rounded, color: AppColors.primary, size: 36),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text("Tap to Upload Banner", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 16)),
+                            ],
+                          )
+                        : null,
+                  ),
+                  
+                  // Overlapping Logo (from previous step)
+                  Positioned(
+                    bottom: 0,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 5)),
+                        ],
+                        image: provider.logoFile != null
+                            ? DecorationImage(image: FileImage(provider.logoFile!), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      child: provider.logoFile == null 
+                          ? const Icon(Icons.storefront_rounded, color: AppColors.grey400, size: 50)
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -240,74 +417,136 @@ class _StoreSetupContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Your Brand", style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          const Text("Tell customers about your kitchen.", style: AppTextStyles.bodyText),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              "Your Brand",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Center(
+              child: Text(
+                "Tell customers about your kitchen and what makes your food special.",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
           
-          const Text("Store Name", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          _buildPremiumLabel("Store Name", isMandatory: true),
           TextFormField(
             initialValue: provider.storeName,
             onChanged: provider.setStoreName,
-            decoration: InputDecoration(
-              hintText: "e.g., Grandma's Pickles",
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            decoration: _premiumInputDecoration("e.g., Grandma's Pickles"),
           ),
           const SizedBox(height: 24),
           
-          const Text("Store Handle (Unique Link)", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          _buildPremiumLabel("Store ID", isMandatory: true),
           TextFormField(
             controller: provider.handleController,
             onChanged: provider.setStoreHandle,
-            decoration: InputDecoration(
-              hintText: "grandmas_pickles",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            decoration: _premiumInputDecoration("grandmas_pickles").copyWith(
               prefixIcon: const Padding(
-                padding: EdgeInsets.all(14.0),
-                child: Text('@', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                child: Text('@', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ),
               suffixIcon: provider.isCheckingHandle
-                  ? const Padding(padding: EdgeInsets.all(12.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                  ? const Padding(padding: EdgeInsets.all(14.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
                   : provider.storeHandle.isNotEmpty
                       ? provider.isHandleAvailable == true
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : const Icon(Icons.cancel, color: Colors.red)
+                          ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
+                          : const Icon(Icons.cancel_rounded, color: AppColors.error, size: 24)
                       : null,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12), 
-                borderSide: provider.storeHandle.isNotEmpty && provider.isHandleAvailable == false 
-                    ? const BorderSide(color: Colors.red) 
-                    : BorderSide.none
-              ),
             ),
           ),
           if (provider.storeHandle.isNotEmpty && provider.isHandleAvailable == false)
             Padding(
               padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-              child: Text(provider.handleError ?? "This handle is already taken. Try another.", style: const TextStyle(color: Colors.red, fontSize: 12)),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 16),
+                  const SizedBox(width: 4),
+                  Text(provider.handleError ?? "This handle is already taken. Try another.", style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
             ),
           const SizedBox(height: 24),
           
-          const Text("Brand Story", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          _buildPremiumLabel("Brand Story", isMandatory: true),
           TextFormField(
             initialValue: provider.brandStory,
             onChanged: provider.setBrandStory,
             maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "Started by a mother in Guntur using traditional family recipes...",
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            decoration: _premiumInputDecoration("Started by a mother in Guntur using traditional family recipes..."),
           ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumLabel(String text, {bool isMandatory = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0, left: 4.0),
+      child: RichText(
+        text: TextSpan(
+          text: text,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.3,
+          ),
+          children: [
+            if (isMandatory)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(color: AppColors.error, fontSize: 16),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _premiumInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 16),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.border, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
     );
   }
@@ -389,35 +628,58 @@ class _StoreSetupContent extends StatelessWidget {
   }
 
   Widget _buildPreviewStep(StoreSetupProvider provider) {
-    // We can't access private fields easily if we don't have getters for story etc,
-    // but we can fake it or use a default if it's a stateless preview.
-    // However, we just need a beautiful preview representation.
     return SingleChildScrollView(
       key: const ValueKey('preview'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text("Store Preview", style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          const Text("This is how customers will see your brand.", style: AppTextStyles.bodyText),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          const Text(
+            "Store Preview",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "This is exactly how customers will see your brand.",
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 32),
           
           // Premium Customer App style profile card
           Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08), 
+                  blurRadius: 30, 
+                  offset: const Offset(0, 15),
+                  spreadRadius: -5,
+                ),
               ],
-              border: Border.all(color: Colors.grey.shade200, width: 1),
+              border: Border.all(color: Colors.grey.shade100, width: 1.5),
             ),
             child: Column(
               children: [
                 // Store Header
                 SizedBox(
-                  height: 220,
+                  height: 240,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -426,14 +688,17 @@ class _StoreSetupContent extends StatelessWidget {
                         top: 0,
                         left: 0,
                         right: 0,
-                        bottom: 50,
+                        bottom: 60,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.grey200,
+                            color: AppColors.primary.withOpacity(0.05),
                             image: provider.bannerFile != null
                                 ? DecorationImage(image: FileImage(provider.bannerFile!), fit: BoxFit.cover)
                                 : null,
                           ),
+                          child: provider.bannerFile == null
+                              ? Center(child: Icon(Icons.image, color: AppColors.primary.withOpacity(0.2), size: 40))
+                              : null,
                         ),
                       ),
                       // Gradient overlay
@@ -441,14 +706,14 @@ class _StoreSetupContent extends StatelessWidget {
                         top: 0,
                         left: 0,
                         right: 0,
-                        bottom: 50,
+                        bottom: 60,
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withOpacity(0.4),
+                                Colors.black.withOpacity(0.3),
                                 Colors.transparent,
                                 Colors.black.withOpacity(0.1),
                               ],
@@ -461,11 +726,11 @@ class _StoreSetupContent extends StatelessWidget {
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        height: 50,
+                        height: 60,
                         child: Container(
                           decoration: const BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                           ),
                         ),
                       ),
@@ -476,21 +741,21 @@ class _StoreSetupContent extends StatelessWidget {
                         bottom: 0,
                         child: Center(
                           child: Container(
-                            width: 100,
-                            height: 100,
+                            width: 120,
+                            height: 120,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
+                              border: Border.all(color: Colors.white, width: 5),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4)),
+                                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5)),
                               ],
                               image: provider.logoFile != null
                                   ? DecorationImage(image: FileImage(provider.logoFile!), fit: BoxFit.cover)
                                   : null,
                             ),
                             child: provider.logoFile == null
-                                ? const Icon(Icons.store, color: Colors.grey, size: 36)
+                                ? Icon(Icons.store, color: AppColors.primary.withOpacity(0.3), size: 48)
                                 : null,
                           ),
                         ),
@@ -501,11 +766,11 @@ class _StoreSetupContent extends StatelessWidget {
                 
                 // Store Info Section
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -513,45 +778,41 @@ class _StoreSetupContent extends StatelessWidget {
                             child: Text(
                               provider.storeName.isEmpty ? "Your Brand Name" : provider.storeName,
                               style: const TextStyle(
-                                fontSize: 26,
+                                fontSize: 28,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
                                 fontFamily: 'serif',
+                                height: 1.2,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified, color: Colors.blue, size: 20),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.verified, color: Colors.blue, size: 22),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         provider.storeHandle.isEmpty ? "@your_brand_handle" : "@${provider.storeHandle}",
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.green.shade700, 
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          letterSpacing: 0.3,
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "0 Followers",
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          minimumSize: const Size(double.infinity, 54),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
-                        child: const Text("Follow", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: const Text("Follow", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -560,10 +821,13 @@ class _StoreSetupContent extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
+
+
 
   Widget _buildBottomButton(StoreSetupProvider provider, BuildContext context) {
     if (provider.isLoading) {

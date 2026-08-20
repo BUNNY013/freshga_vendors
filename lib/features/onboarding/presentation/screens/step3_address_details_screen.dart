@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -147,17 +150,24 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.background,
+          border: Border.all(color: AppColors.grey300, width: 1.5),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary, style: BorderStyle.solid),
         ),
-        child: const Column(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.upload_file_rounded, color: AppColors.primary, size: 32),
-            SizedBox(height: 8),
-            Text('Upload Passbook / Cheque', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 28),
+            ),
+            const SizedBox(height: 12),
+            const Text('Upload Passbook / Cheque', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            const Text('Tap to take a photo or select from gallery', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           ],
         ),
       ),
@@ -183,135 +193,189 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Bank Details & Agreement 💸',
+                        'Bank Details',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('Your earnings will be securely transferred to this account.', style: TextStyle(color: Colors.grey.shade600)),
+                      Text('Your earnings will be securely transferred to this account.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, fontSize: 15)),
                       const SizedBox(height: 32),
                       
                       CustomTextField(
                         label: 'Account Holder Name',
                         controller: provider.accountNameController,
                         hintText: 'As per bank records (Must match PAN Card)',
+                        prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.grey400),
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                        ],
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
-
-                      const SizedBox(height: 16),
-                      Text('Account Type', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: provider.accountType,
-                        decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: AppColors.surface),
+                      const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4.0, bottom: 4.0),
+                            child: Text(
+                              'Account Type',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
+                            ),
+                          ),
+                          DropdownButtonFormField<String>(
+                            value: provider.accountType,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.grey300, width: 1.0)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                              prefixIcon: const Icon(Icons.account_balance_outlined, size: 20, color: AppColors.grey400),
+                            ),
                         items: const [
                           DropdownMenuItem(value: 'Savings', child: Text('Savings Account')),
                           DropdownMenuItem(value: 'Current', child: Text('Current Account')),
                         ],
-                        onChanged: (val) {
-                          if (val != null) provider.setAccountType(val);
-                        },
+                            onChanged: (val) {
+                              if (val != null) provider.setAccountType(val);
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       CustomTextField(
                         label: 'Account Number',
                         controller: provider.accountNumberController,
                         keyboardType: TextInputType.number,
                         hintText: 'Enter account number',
+                        prefixIcon: const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.grey400),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(30),
+                        ],
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Confirm Account Number',
                         controller: provider.confirmAccountNumberController,
                         keyboardType: TextInputType.number,
                         hintText: 'Re-enter account number',
+                        prefixIcon: const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.grey400),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(30),
+                        ],
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Required';
                           if (value != provider.accountNumberController.text) return 'Account numbers do not match';
                           return null;
                         },
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'IFSC Code',
                         controller: provider.ifscController,
                         textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseTextFormatter()],
+                        prefixIcon: const Icon(Icons.account_balance_outlined, size: 20, color: AppColors.grey400),
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(11),
+                          UpperCaseTextFormatter(),
+                        ],
                         hintText: '11-character IFSC code',
-                        maxLength: 11,
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Required';
                           if (value.length != 11) return 'Invalid IFSC length';
                           return null;
                         },
                       ),
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'Bank Name',
                         controller: provider.bankNameController,
                         hintText: 'Auto-fetched using IFSC',
+                        prefixIcon: const Icon(Icons.account_balance_outlined, size: 20, color: AppColors.grey400),
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
-
+                      const SizedBox(height: 8),
                       CustomTextField(
                         label: 'UPI ID (Optional)',
                         controller: provider.upiController,
                         hintText: 'e.g. yourname@upi',
+                        prefixIcon: const Icon(Icons.payment_outlined, size: 20, color: AppColors.grey400),
                         isRequired: false,
                       ),
-                      
-                      const SizedBox(height: 16),
-                      Text('Upload Passbook / Cancelled Cheque *', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      _buildBankPhotoUploadButton(context, provider),
-                      const SizedBox(height: 4),
-                      Text('This is required to verify your bank details', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                      
-                      const SizedBox(height: 32),
-                      const Divider(),
-                      const SizedBox(height: 32),
-                      
-                      Text('Platform Agreement', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('1. FreshGa charges a standard platform commission on all orders to cover software, payment gateways, and support.', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                            const SizedBox(height: 8),
-                            const Text('2. By checking the box below, you guarantee that all food prepared for FreshGa customers is made in safe, sanitary, and hygienic conditions.', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                            const SizedBox(height: 8),
-                            const Text('3. You agree to indemnify FreshGa against any claims related to food quality or safety.', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                          ],
+                      const SizedBox(height: 12),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4.0, bottom: 8.0),
+                        child: Text(
+                          'Upload Passbook / Cancelled Cheque *',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _agreedToTerms,
-                              onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
-                              activeColor: AppColors.primary,
+                      _buildBankPhotoUploadButton(context, provider),
+                      const SizedBox(height: 6),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4.0),
+                        child: Text('This is required to verify your bank details', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      ),
+                      
+                      const SizedBox(height: 32),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                                activeColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'I have read and agree to the Terms of Service, Commission Structure, and Food Safety Guarantees.',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textPrimary),
+                                  children: [
+                                    const TextSpan(text: 'I have read and agree to the '),
+                                    TextSpan(
+                                      text: 'Terms of Service',
+                                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          launchUrl(Uri.parse('https://sites.google.com/view/freshaga/home'));
+                                        },
+                                    ),
+                                    const TextSpan(text: ', Commission Structure, and '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          launchUrl(Uri.parse('https://sites.google.com/view/freshaga/home'));
+                                        },
+                                    ),
+                                    const TextSpan(text: '.'),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
                     ],
