@@ -88,13 +88,19 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
     final isLoading = authProvider.isLoading;
     final errorMessage = _localError ?? authProvider.errorMessage;
 
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Background Image
-          Positioned.fill(
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: screenHeight,
             child: Image.asset(
               'assets/images/vendor_login_bg.png',
               fit: BoxFit.cover,
@@ -104,10 +110,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
           // Content
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               physics: const ClampingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+                constraints: BoxConstraints(minHeight: screenHeight - MediaQuery.of(context).viewInsets.bottom),
                 child: IntrinsicHeight(
                   child: SafeArea(
                     child: Column(

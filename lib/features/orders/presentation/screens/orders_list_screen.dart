@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../domain/models/order_model.dart';
 import '../widgets/order_card.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
 import 'vendor_issues_screen.dart';
 
@@ -14,28 +16,38 @@ class OrdersListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Not authenticated')));
+      return Scaffold(body: ErrorStateWidget(message: 'Not authenticated', onRetry: () {}));
     }
 
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
       builder: (context, userSnap) {
+        if (userSnap.hasError) {
+          return Scaffold(body: ErrorStateWidget(message: 'Failed to load user data', onRetry: () {}));
+        }
         if (!userSnap.hasData) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: LoadingStateWidget(message: 'Loading store data...'));
         }
 
         final userData = userSnap.data!.data() as Map<String, dynamic>?;
         if (userData == null) {
-          return const Scaffold(body: Center(child: Text('User data error')));
+          return Scaffold(body: ErrorStateWidget(message: 'User data not found', onRetry: () {}));
         }
 
         final storeId = UserModel.fromJson(userData).storeId;
 
         if (storeId.isEmpty) {
-          return const Scaffold(body: Center(child: Text('Store not set up')));
+          return Scaffold(
+            body: Center(
+              child: EmptyStateWidget(
+                icon: Icons.store_mall_directory_outlined,
+                title: 'Store not set up',
+                message: 'Please complete your store profile to start receiving orders.',
+              ),
+            ),
+          );
         }
+
 
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('orders').where('storeId', isEqualTo: storeId).snapshots(),
@@ -197,7 +209,7 @@ class _OrderListTab extends StatelessWidget {
               'updatedAt': DateTime.now().toIso8601String(),
             };
             if (payload != null) {
-              if (payload.containsKey('shippingMethod')) updates['shippingDetails'] = payload;
+              if (payload.containsKey('shippingMethod')) updates.addAll(payload);
               if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
             }
 
@@ -249,46 +261,18 @@ class _OrderListTab extends StatelessWidget {
         subtitle = 'Orders that were declined or cancelled will appear here.';
         break;
       default:
-        iconData = Icons.folder_open_rounded;
+        iconData = Icons.receipt_long;
         title = 'No orders found';
-        subtitle = 'Check back later for updates.';
+        subtitle = 'There are no orders matching this status.';
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(iconData, size: 56, color: AppColors.primary),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: EmptyStateWidget(
+          icon: iconData,
+          title: title,
+          message: subtitle,
         ),
       ),
     );

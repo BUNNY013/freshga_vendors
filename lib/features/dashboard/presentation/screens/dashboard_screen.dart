@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
@@ -12,14 +13,45 @@ import '../../../store/providers/subscription_provider.dart';
 import 'home_dashboard_view.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final int initialIndex;
+  const DashboardScreen({super.key, this.initialIndex = 0});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _setupNotifications();
+  }
+
+  Future<void> _setupNotifications() async {
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      try {
+        final token = await messaging.getToken();
+        if (token != null && FirebaseAuth.instance.currentUser != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser!.uid)
+              .update({'fcmToken': token});
+        }
+      } catch (e) {
+        debugPrint('Error setting up notifications: $e');
+      }
+    }
+  }
 
   final List<Widget> _views = [
     const HomeDashboardView(),

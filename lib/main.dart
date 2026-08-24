@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
@@ -55,8 +57,38 @@ void main() async {
   );
 }
 
-class FreshGaVendorApp extends StatelessWidget {
+class FreshGaVendorApp extends StatefulWidget {
   const FreshGaVendorApp({super.key});
+
+  @override
+  State<FreshGaVendorApp> createState() => _FreshGaVendorAppState();
+}
+
+class _FreshGaVendorAppState extends State<FreshGaVendorApp> {
+  late StreamSubscription<User?> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Global session expiration handler
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        // Delay ensures router is ready before we attempt navigation
+        Future.microtask(() {
+          if (AppRouter.router.routerDelegate.currentConfiguration.uri.path != '/login' && 
+              AppRouter.router.routerDelegate.currentConfiguration.uri.path != '/splash') {
+            AppRouter.router.go('/login');
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

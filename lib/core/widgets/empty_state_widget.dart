@@ -6,17 +6,31 @@ class EmptyStateWidget extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
-  final String buttonText;
-  final VoidCallback onAction;
+  final String? buttonText;
+  final VoidCallback? onAction;
 
   const EmptyStateWidget({
     super.key,
     required this.icon,
     required this.title,
     required this.message,
-    required this.buttonText,
-    required this.onAction,
+    this.buttonText,
+    this.onAction,
   });
+
+  factory EmptyStateWidget.noSearchResults({
+    String title = 'No results found',
+    String message = 'Try adjusting your search or filters to find what you are looking for.',
+    VoidCallback? onClearFilters,
+  }) {
+    return EmptyStateWidget(
+      icon: Icons.search_off_rounded,
+      title: title,
+      message: message,
+      buttonText: onClearFilters != null ? 'Clear Filters' : null,
+      onAction: onClearFilters,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,25 +62,28 @@ class EmptyStateWidget extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.grey600, height: 1.5),
+            style: AppTextStyles.bodyText.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: onAction,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          if (buttonText != null && onAction != null) ...[
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onAction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  buttonText!,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-            child: Text(
-              buttonText,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ),
+          ],
         ],
       ),
     );

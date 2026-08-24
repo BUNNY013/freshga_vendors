@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../products/domain/models/product_model.dart';
 import '../../../orders/domain/models/order_model.dart';
@@ -64,9 +66,9 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
             stream: FirebaseFirestore.instance.collection('products').where('storeId', isEqualTo: storeId).snapshots(),
             builder: (context, prodSnap) {
               if (prodSnap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingStateWidget(message: 'Loading products data...');
               }
-              if (prodSnap.hasError) return Center(child: Text('Error: ${prodSnap.error}'));
+              if (prodSnap.hasError) return ErrorStateWidget(message: 'Failed to load products', onRetry: () {});
 
               List<ProductModel> allProducts = prodSnap.data!.docs.map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
 

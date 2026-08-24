@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../providers/notification_provider.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -13,7 +15,36 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsBindingObserver {
+  bool _permissionsDenied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions(); // Re-check if user comes back from settings
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final status = await Permission.notification.status;
+    setState(() {
+      _permissionsDenied = status.isDenied || status.isPermanentlyDenied;
+    });
+  }
+
   void _markAllAsRead() {
     context.read<NotificationProvider>().markAllAsRead();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -29,6 +60,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _markAsRead(String id) {
     context.read<NotificationProvider>().markAsRead(id);
+  }
+
+  void _onNotificationTapped(NotificationModel notification) {
+    _markAsRead(notification.id);
+    if (notification.type == 'order' || notification.type == 'alert') {
+      context.go('/dashboard', extra: 1); // Index 1 is OrdersListScreen
+    } else {
+      context.go('/dashboard', extra: 4); // Index 4 is ProfileScreen
+    }
   }
 
   String _formatTime(DateTime time) {
@@ -109,32 +149,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : notifications.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade300),
-                      const SizedBox(height: 16),
-                      Text("No notifications yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
-                      const SizedBox(height: 8),
-                      Text("We'll let you know when something arrives.", style: TextStyle(color: Colors.grey.shade500)),
-                    ],
-                  ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  children: [
-                    if (today.isNotEmpty) _buildSectionHeader("Today"),
-                    ...today.map((n) => _buildNotificationTile(n)),
-                    if (yesterday.isNotEmpty) _buildSectionHeader("Yesterday"),
-                    ...yesterday.map((n) => _buildNotificationTile(n)),
-                    if (earlier.isNotEmpty) _buildSectionHeader("Earlier"),
-                    ...earlier.map((n) => _buildNotificationTile(n)),
-                  ],
-                ),
+      body: _permissionsDenied
+          ? PermissionDeniedWidget(
+              title: 'Notifications Disabled',
+              message: 'You might miss important order updates. Please enable notifications in your device settings.',
+              icon: Icons.notifications_off_rounded,
+              onOpenSettings: () {
+                openAppSettings();
+              },
+            )
+          : isLoading
+              ? const LoadingStateWidget(message: 'Loading notifications...')
+              : notifications.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text("No notifications yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+                          const SizedBox(height: 8),
+                          Text("We'll let you know when something arrives.", style: TextStyle(color: Colors.grey.shade500)),
+                        ],
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      children: [
+                        if (today.isNotEmpty) _buildSectionHeader("Today"),
+                        ...today.map((n) => _buildNotificationTile(n)),
+                        if (yesterday.isNotEmpty) _buildSectionHeader("Yesterday"),
+                        ...yesterday.map((n) => _buildNotificationTile(n)),
+                        if (earlier.isNotEmpty) _buildSectionHeader("Earlier"),
+                        ...earlier.map((n) => _buildNotificationTile(n)),
+                      ],
+                    ),
     );
   }
 
@@ -150,7 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildNotificationTile(NotificationModel notification) {
     return InkWell(
-      onTap: () => _markAsRead(notification.id),
+      onTap: () => _onNotificationTapped(notification),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(

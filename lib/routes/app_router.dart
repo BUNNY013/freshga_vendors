@@ -103,7 +103,10 @@ class AppRouter {
       ),
       GoRoute(
         path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
+        builder: (context, state) {
+          final initialIndex = state.extra as int? ?? 0;
+          return DashboardScreen(initialIndex: initialIndex);
+        },
       ),
       GoRoute(
         path: '/add-product',

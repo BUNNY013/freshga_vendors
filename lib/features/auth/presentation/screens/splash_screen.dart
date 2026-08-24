@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,33 +12,94 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AuthProvider _authProvider;
   bool _isNavigating = false;
+  bool _animationCompleted = false;
+
+  late AnimationController _scaleController;
+  late AnimationController _fadeController;
+  
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
+    
+    // Logo scale animation
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scaleController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    // Text fade and slide animation
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: Curves.easeIn,
+      ),
+    );
+    
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _authProvider = context.read<AuthProvider>();
       _authProvider.addListener(_onAuthStateChanged);
-      _checkAuthAndRoute();
+      _playAnimations();
     });
+  }
+
+  Future<void> _playAnimations() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    _scaleController.forward();
+    
+    // Stagger the text animation
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    _fadeController.forward();
+    
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (!mounted) return;
+    
+    _animationCompleted = true;
+    _checkAuthAndRoute();
   }
 
   @override
   void dispose() {
     _authProvider.removeListener(_onAuthStateChanged);
+    _scaleController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
   void _onAuthStateChanged() {
-    if (!mounted || _isNavigating) return;
+    if (!mounted || _isNavigating || !_animationCompleted) return;
     _checkAuthAndRoute();
   }
 
   void _checkAuthAndRoute() {
-    if (_isNavigating) return;
+    if (_isNavigating || !_animationCompleted) return;
 
     if (_authProvider.state == AuthState.unauthenticated) {
       _isNavigating = true;
@@ -64,25 +126,44 @@ class _SplashScreenState extends State<SplashScreen> {
         context.go('/welcome');
       }
     }
-    // If state is loading or initial, stay on splash screen
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.background,
+    return Scaffold(
+      backgroundColor: const Color(0xFF6CBF43), // FreshGa Green
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.stars_rounded, size: 80, color: AppColors.primary),
-            SizedBox(height: 24),
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                strokeWidth: 2.5,
+            SlideTransition(
+              position: _slideAnimation,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Column(
+                  children: [
+                    Text(
+                      'FreshGa',
+                      style: TextStyle(
+                        fontSize: 72,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1.0,
+                        height: 1.0,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Business',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../../../data/models/user_model.dart';
 import '../widgets/bank_update_sheet.dart';
 
@@ -341,11 +343,10 @@ class _PayoutsScreenState extends State<PayoutsScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator(color: AppColors.primary)));
+          return const LoadingStateWidget(message: 'Loading payouts...');
         }
-
         if (snapshot.hasError) {
-          return const Center(child: Text('Error loading payouts', style: TextStyle(color: Colors.red)));
+          return ErrorStateWidget(message: 'Error loading payouts', onRetry: () {});
         }
 
         final docs = snapshot.data?.docs.toList() ?? [];

@@ -147,11 +147,12 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
         ],
       ),
     );
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -173,7 +174,11 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
       body: Stack(
         children: [
           // Background Image
-          Positioned.fill(
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: screenHeight,
             child: Image.asset(
               'assets/images/vendor_login_bg.png',
               fit: BoxFit.cover,
@@ -183,10 +188,9 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
           // Content
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               physics: const ClampingScrollPhysics(),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+                constraints: BoxConstraints(minHeight: screenHeight - MediaQuery.of(context).viewInsets.bottom),
                 child: IntrinsicHeight(
                   child: SafeArea(
                     child: Column(

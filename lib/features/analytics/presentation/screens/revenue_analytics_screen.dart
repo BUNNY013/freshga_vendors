@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../orders/domain/models/order_model.dart';
@@ -65,11 +67,11 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
             stream: _ordersStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingStateWidget(message: 'Loading revenue data...');
               }
 
               if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+                return ErrorStateWidget(message: 'Failed to load revenue data', onRetry: () {});
               }
 
               List<OrderModel> allOrders = snapshot.data!.docs

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../orders/domain/models/order_model.dart';
 import '../widgets/premium_line_chart_card.dart';
@@ -64,11 +66,11 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
             stream: _ordersStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingStateWidget(message: 'Loading orders data...');
               }
 
               if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+                return ErrorStateWidget(message: 'Failed to load orders data', onRetry: () {});
               }
 
               List<OrderModel> allOrders = snapshot.data!.docs
