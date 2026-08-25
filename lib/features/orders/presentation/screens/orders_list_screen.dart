@@ -52,6 +52,9 @@ class OrdersListScreen extends StatelessWidget {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('orders').where('storeId', isEqualTo: storeId).snapshots(),
           builder: (context, ordersSnap) {
+            if (ordersSnap.hasError) {
+              return Scaffold(body: ErrorStateWidget(message: 'Failed to load orders', onRetry: () {}));
+            }
             final ordersList = ordersSnap.data?.docs.map((d) => OrderModel.fromJson(d.data() as Map<String, dynamic>)).toList() ?? [];
             final newCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'new').length;
             final prepCount = ordersList.where((o) => o.orderStatus.toLowerCase() == 'accepted').length;
@@ -61,6 +64,9 @@ class OrdersListScreen extends StatelessWidget {
             return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('refund_requests').where('storeId', isEqualTo: storeId).snapshots(),
               builder: (context, issuesSnap) {
+                if (issuesSnap.hasError) {
+                  return Scaffold(body: ErrorStateWidget(message: 'Failed to load orders', onRetry: () {}));
+                }
                 final issuesList = issuesSnap.data?.docs.map((d) => d.data() as Map<String, dynamic>).toList() ?? [];
                 final issuesCount = issuesList.where((i) => i['status'] != 'Refund Processed' && i['status'] != 'Rejected').length;
 
@@ -182,7 +188,7 @@ class _OrderListTab extends StatelessWidget {
           },
           child: OrderCard(
             order: filteredOrders[index],
-            onStatusUpdate: (newStatus, payload) {
+            onStatusUpdate: (newStatus, payload) async {
             final order = filteredOrders[index];
             final timeline = List<Map<String, dynamic>>.from(order.timeline);
 
@@ -213,10 +219,16 @@ class _OrderListTab extends StatelessWidget {
               if (payload.containsKey('rejectionReason')) updates['rejectionReason'] = payload['rejectionReason'];
             }
 
-            FirebaseFirestore.instance
-                .collection('orders')
-                .doc(order.orderId)
-                .update(updates);
+            try {
+              await FirebaseFirestore.instance
+                  .collection('orders')
+                  .doc(order.orderId)
+                  .update(updates);
+              return true;
+            } catch (e) {
+              debugPrint('Failed to update order ${order.orderId}: $e');
+              return false;
+            }
           },
         ),
       );

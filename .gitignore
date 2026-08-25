@@ -47,3 +47,17 @@ app.*.map.json
 # Keystore files
 key.properties
 *.jks
+
+# Firebase config (contains project/app identifiers — provide your own per environment)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+
+# Machine-specific local SDK paths
+android/local.properties
+
+# Kotlin/Gradle daemon session state
+android/.kotlin/
+
+# Claude Code session state (not project source)
+.claude/

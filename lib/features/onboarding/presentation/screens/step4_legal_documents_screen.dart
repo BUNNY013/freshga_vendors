@@ -101,7 +101,7 @@ class _Step4LegalDocumentsScreenState extends State<Step4LegalDocumentsScreen> {
                         title: 'Upload FSSAI Certificate',
                         subtitle: 'Clear photo of the original document',
                         imageFile: provider.fssaiImage,
-                        onTap: () => provider.pickImage(true),
+                        onTap: () => provider.pickImage('fssai'),
                       ),
                       const SizedBox(height: 32),
 
@@ -137,7 +137,7 @@ class _Step4LegalDocumentsScreenState extends State<Step4LegalDocumentsScreen> {
                         title: 'Upload PAN Card',
                         subtitle: 'Clear photo of your PAN card',
                         imageFile: provider.panImage,
-                        onTap: () => provider.pickImage(false),
+                        onTap: () => provider.pickImage('pan'),
                       ),
                     ],
                   ),

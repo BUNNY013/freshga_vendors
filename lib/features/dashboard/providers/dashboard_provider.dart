@@ -72,7 +72,7 @@ class DashboardProvider extends ChangeNotifier {
             }
           }
         } catch (e) {
-          print("Error parsing product in dashboard metric: $e");
+          debugPrint("Error parsing product in dashboard metric: $e");
         }
       }
 

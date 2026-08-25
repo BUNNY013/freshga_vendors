@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/user_model.dart';
@@ -37,27 +38,42 @@ class AuthService {
   }
 
   Future<UserModel?> getUserData(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    if (doc.exists) {
-      return UserModel.fromJson(doc.data()!);
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        return UserModel.fromJson(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('AuthService.getUserData failed for $uid: $e');
+      rethrow;
     }
-    return null;
   }
 
   Future<void> createUserDoc(UserModel user) async {
-    await _firestore.collection('users').doc(user.userId).set(user.toJson());
+    try {
+      await _firestore.collection('users').doc(user.userId).set(user.toJson());
+    } catch (e) {
+      debugPrint('AuthService.createUserDoc failed for ${user.userId}: $e');
+      rethrow;
+    }
   }
 
   Future<SupplierApplicationModel?> getSupplierApplication(String uid) async {
-    final snapshot = await _firestore
-        .collection('supplierApplications')
-        .where('userId', isEqualTo: uid)
-        .limit(1)
-        .get();
-        
-    if (snapshot.docs.isNotEmpty) {
-      return SupplierApplicationModel.fromJson(snapshot.docs.first.data());
+    try {
+      final snapshot = await _firestore
+          .collection('supplierApplications')
+          .where('userId', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return SupplierApplicationModel.fromJson(snapshot.docs.first.data());
+      }
+      return null;
+    } catch (e) {
+      debugPrint('AuthService.getSupplierApplication failed for $uid: $e');
+      rethrow;
     }
-    return null;
   }
 }

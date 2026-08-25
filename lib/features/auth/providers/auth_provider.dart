@@ -191,8 +191,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> refreshApplicationStatus() async {
     if (_userModel == null) return;
-    _applicationModel = await _authService.getSupplierApplication(_userModel!.userId);
-    notifyListeners();
+    try {
+      _applicationModel = await _authService.getSupplierApplication(_userModel!.userId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to refresh application status: $e');
+    }
   }
 
   Future<void> signOut() async {

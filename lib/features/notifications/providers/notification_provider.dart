@@ -52,7 +52,7 @@ class NotificationProvider extends ChangeNotifier {
         notifyListeners();
       },
       onError: (error) {
-        print('Error listening to notifications: $error');
+        debugPrint('Error listening to notifications: $error');
         _isLoading = false;
         notifyListeners();
       },
@@ -72,7 +72,7 @@ class NotificationProvider extends ChangeNotifier {
         // Revert on error
         _notifications[index] = _notifications[index].copyWith(isRead: false);
         notifyListeners();
-        print('Error marking notification as read: $e');
+        debugPrint('Error marking notification as read: $e');
       }
     }
   }
@@ -97,7 +97,7 @@ class NotificationProvider extends ChangeNotifier {
       }
       await batch.commit();
     } catch (e) {
-      print('Error marking all as read: $e');
+      debugPrint('Error marking all as read: $e');
       // On failure, re-subscribe to get the real state back
       _subscribeToNotifications(user.uid);
     }

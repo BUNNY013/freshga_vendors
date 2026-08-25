@@ -678,32 +678,54 @@ class OrderDetailsScreen extends StatelessWidget {
   }
 
   void _processAction(BuildContext context, String newStatus, {Map<String, dynamic>? payload, bool closeDetails = true}) async {
-    final statusText = newStatus.toLowerCase() == 'declined' ? 'Order #${order.orderId} Declined' : 'Order #${order.orderId} moved to $newStatus';
-    final bgColor = newStatus.toLowerCase() == 'declined' ? Colors.red : const Color(0xFF16A34A);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(newStatus.toLowerCase() == 'declined' ? Icons.cancel : Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(statusText, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: bgColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 1),
-      ),
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Updating order...'), duration: Duration(seconds: 30)),
     );
 
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (context.mounted) {
-      onStatusUpdate(newStatus, payload);
+    bool success;
+    try {
+      final result = await onStatusUpdate(newStatus, payload);
+      success = result != false;
+    } catch (_) {
+      success = false;
+    }
+
+    messenger.hideCurrentSnackBar();
+    if (!context.mounted) return;
+
+    if (success) {
+      final statusText = newStatus.toLowerCase() == 'declined' ? 'Order #${order.orderId} Declined' : 'Order #${order.orderId} moved to $newStatus';
+      final bgColor = newStatus.toLowerCase() == 'declined' ? Colors.red : const Color(0xFF16A34A);
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(newStatus.toLowerCase() == 'declined' ? Icons.cancel : Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(statusText, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          backgroundColor: bgColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
       if (closeDetails) {
         Navigator.pop(context); // Close details screen
       }
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Failed to update the order. Please check your connection and try again.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
     }
   }
 }

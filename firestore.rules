@@ -15,6 +15,13 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // True if the signed-in user's own user doc (users/{uid}.storeId) matches storeId,
+    // i.e. they are the vendor who owns that store.
+    function isStoreOwner(storeId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeId == storeId;
+    }
+
     // =========================
     // ADMIN SETTINGS
     // =========================
@@ -137,7 +144,10 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow create: if isAuthenticated();
-      allow read, update: if isAuthenticated();
+      // Only the customer who placed the order or the vendor whose store it belongs to
+      // may read/update it — previously any signed-in user could touch any order.
+      allow read, update: if isAuthenticated() &&
+        (resource.data.customerId == request.auth.uid || isStoreOwner(resource.data.storeId));
       allow delete: if false;
     }
 
@@ -153,12 +163,18 @@ service cloud.firestore {
     // TRANSACTIONS & PAYOUTS
     // =========================
 
+    // NOTE: left as-is — this collection isn't read or written anywhere in the vendor
+    // app, so its real document schema/owner field couldn't be confirmed here. Scope
+    // this the same way as `payouts` once that's verified against whatever app writes it.
     match /transactions/{transactionId} {
       allow read, write: if isAuthenticated();
     }
 
     match /payouts/{payoutId} {
-      allow read, write: if isAuthenticated();
+      // Scoped to the vendor whose store the payout belongs to — previously any
+      // signed-in user could read or write any store's payout records.
+      allow read: if isStoreOwner(resource.data.storeId);
+      allow write: if isStoreOwner(request.resource.data.storeId);
     }
 
     // =========================

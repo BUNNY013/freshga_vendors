@@ -374,6 +374,13 @@ class _EditDeliveryAreaSheetState extends State<_EditDeliveryAreaSheet> {
   }
 
   @override
+  void dispose() {
+    _rateController.dispose();
+    _thresholdController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
@@ -527,6 +534,13 @@ class _AddDeliveryAreaSheetState extends State<_AddDeliveryAreaSheet> {
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _thresholdController = TextEditingController();
   final List<String> _selectedStates = [];
+
+  @override
+  void dispose() {
+    _rateController.dispose();
+    _thresholdController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

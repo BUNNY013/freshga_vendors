@@ -173,16 +173,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsB
                         ],
                       ),
                     )
-                  : ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      children: [
-                        if (today.isNotEmpty) _buildSectionHeader("Today"),
-                        ...today.map((n) => _buildNotificationTile(n)),
-                        if (yesterday.isNotEmpty) _buildSectionHeader("Yesterday"),
-                        ...yesterday.map((n) => _buildNotificationTile(n)),
-                        if (earlier.isNotEmpty) _buildSectionHeader("Earlier"),
-                        ...earlier.map((n) => _buildNotificationTile(n)),
-                      ],
+                  : Builder(
+                      builder: (context) {
+                        final items = <Object>[
+                          if (today.isNotEmpty) 'Today',
+                          ...today,
+                          if (yesterday.isNotEmpty) 'Yesterday',
+                          ...yesterday,
+                          if (earlier.isNotEmpty) 'Earlier',
+                          ...earlier,
+                        ];
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return item is String ? _buildSectionHeader(item) : _buildNotificationTile(item as NotificationModel);
+                          },
+                        );
+                      },
                     ),
     );
   }

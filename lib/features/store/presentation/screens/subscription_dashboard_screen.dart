@@ -68,7 +68,9 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
     final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? '';
     
     var options = {
-      'key': 'rzp_test_TOo0mUDrME9tJp', // TODO: Use real key for prod
+      // Defaults to the test key so behavior is unchanged; pass the live key at build
+      // time with --dart-define=RAZORPAY_KEY=rzp_live_xxx for production builds.
+      'key': const String.fromEnvironment('RAZORPAY_KEY', defaultValue: 'rzp_test_TOo0mUDrME9tJp'),
       'amount': amount,
       'name': 'FreshGa Premium',
       'description': 'Store Subscription - ${plan == 'monthly' ? '1 Month' : '1 Year'}',

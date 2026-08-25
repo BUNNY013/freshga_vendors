@@ -71,11 +71,13 @@ class StoreProvider extends ChangeNotifier {
 
   Future<void> updateShippingMode(String mode) async {
     if (_store == null) return;
-    
+
+    final previousStore = _store;
+
     // Optimistic UI update
     final updatedConfig = Map<String, dynamic>.from(_store!.shippingConfig);
     updatedConfig['shippingMode'] = mode;
-    
+
     _store = _store!.copyWith(shippingConfig: updatedConfig);
     notifyListeners();
 
@@ -86,12 +88,17 @@ class StoreProvider extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint("Failed to update shipping mode: $e");
-      // Rollback on failure could be implemented here
+      // Roll back the optimistic update so the UI matches what's actually persisted
+      _store = previousStore;
+      _error = "Failed to update shipping mode. Please try again.";
+      notifyListeners();
     }
   }
 
   Future<void> updateDeliveryArea(int index, DeliveryAreaModel updatedArea) async {
     if (_store == null) return;
+
+    final previousStore = _store;
 
     // Optimistic UI update
     final newAreas = List<DeliveryAreaModel>.from(_store!.deliveryAreas);
@@ -106,11 +113,16 @@ class StoreProvider extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint("Failed to update delivery area: $e");
+      _store = previousStore;
+      _error = "Failed to update delivery area. Please try again.";
+      notifyListeners();
     }
   }
 
   Future<void> addDeliveryArea(DeliveryAreaModel newArea) async {
     if (_store == null) return;
+
+    final previousStore = _store;
 
     // Optimistic UI update
     final newAreas = List<DeliveryAreaModel>.from(_store!.deliveryAreas);
@@ -125,6 +137,9 @@ class StoreProvider extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint("Failed to add delivery area: $e");
+      _store = previousStore;
+      _error = "Failed to add delivery area. Please try again.";
+      notifyListeners();
     }
   }
 }

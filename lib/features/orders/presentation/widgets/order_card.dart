@@ -16,6 +16,51 @@ class OrderCard extends StatelessWidget {
     required this.onStatusUpdate,
   });
 
+  Future<void> _confirmAndUpdate(BuildContext context, String newStatus, {Map<String, dynamic>? payload}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Updating order...'), duration: Duration(seconds: 30)),
+    );
+
+    bool success;
+    try {
+      final result = await onStatusUpdate(newStatus, payload);
+      success = result != false;
+    } catch (_) {
+      success = false;
+    }
+
+    messenger.hideCurrentSnackBar();
+    if (!context.mounted) return;
+
+    if (success) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Order #${order.orderId} moved to $newStatus', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Failed to update the order. Please check your connection and try again.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   String _getShortAddress(String address) {
     final parts = address.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (parts.length <= 2) return address;
@@ -305,27 +350,7 @@ class OrderCard extends StatelessWidget {
                   orderId: order.orderId,
                   onDispatch: (payload) async {
                     Navigator.pop(sheetContext);
-                    
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text('Order #${order.orderId} moved to Shipped', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFF16A34A),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-
-                    await Future.delayed(const Duration(seconds: 1));
-                    if (context.mounted) {
-                      onStatusUpdate('Shipped', payload);
-                    }
+                    await _confirmAndUpdate(context, 'Shipped', payload: payload);
                   },
                 ),
               );
@@ -368,27 +393,7 @@ class OrderCard extends StatelessWidget {
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(dialogContext);
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text('Order #${order.orderId} moved to $newStatus', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      backgroundColor: const Color(0xFF16A34A),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-
-                  await Future.delayed(const Duration(seconds: 1));
-                  if (context.mounted) {
-                    onStatusUpdate(newStatus, null);
-                  }
+                  await _confirmAndUpdate(context, newStatus);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: color,

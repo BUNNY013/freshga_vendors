@@ -117,7 +117,7 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
       await ref.putFile(_receiptImage!);
       return await ref.getDownloadURL();
     } catch (e) {
-      print('Image Upload Error: $e');
+      debugPrint('Image Upload Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
       }
