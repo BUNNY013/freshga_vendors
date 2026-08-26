@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class VendorTicketDetailsScreen extends StatefulWidget {
@@ -316,18 +317,13 @@ class _VendorTicketDetailsScreenState extends State<VendorTicketDetailsScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: PremiumTextField(
+                    label: '',
                     controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: "Type a reply...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
+                    hintText: "Type a reply...",
                     maxLines: null,
                     textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
+                    onFieldSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 12),

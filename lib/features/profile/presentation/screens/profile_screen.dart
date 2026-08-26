@@ -16,20 +16,7 @@ class ProfileScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: user == null
           ? const Center(child: Text("Not authenticated"))
           : FutureBuilder<DocumentSnapshot>(
@@ -54,12 +41,12 @@ class ProfileScreen extends StatelessWidget {
                     }
 
                     return SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 120),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _buildPremiumHeader(context, userModel, store),
                           const SizedBox(height: 24),
-                          _buildProfileHeader(userModel, store),
-                          const SizedBox(height: 32),
                           _buildSectionTitle("Business Settings"),
                           _buildBusinessSettingsList(context),
                           const SizedBox(height: 24),
@@ -74,7 +61,6 @@ class ProfileScreen extends StatelessWidget {
                               style: TextStyle(color: AppColors.grey400, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ),
-                          const SizedBox(height: 48),
                         ],
                       ),
                     );
@@ -85,70 +71,87 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(UserModel userModel, StoreModel? store) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: store == null || store.logo.isEmpty ? const Color(0xFFF0FDF4) : Colors.white,
-              border: store != null && store.logo.isNotEmpty ? Border.all(color: Colors.white, width: 2) : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+  Widget _buildPremiumHeader(BuildContext context, UserModel userModel, StoreModel? store) {
+    final logoUrl = store?.logo ?? '';
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.only(bottom: 24),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Text(
+                "Settings",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
                 ),
-              ],
-              image: store != null && store.logo.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(store.logo),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
+              ),
             ),
-            child: store == null || store.logo.isEmpty
-                ? const Icon(Icons.storefront_rounded, size: 30, color: AppColors.primary)
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        store?.storeName ?? 'FreshGa Vendor',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFF8FAFC),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
                     ),
-                    // Blue tick removed
-                  ],
-                ),
-                const SizedBox(height: 4),
-                if (userModel.phone.isNotEmpty)
-                  Text(
-                    userModel.phone,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+                    child: ClipOval(
+                      child: logoUrl.isNotEmpty
+                          ? Image.network(
+                              logoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.storefront_rounded, size: 32, color: AppColors.primary),
+                            )
+                          : const Icon(Icons.storefront_rounded, size: 32, color: AppColors.primary),
                     ),
                   ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          store?.storeName ?? 'FreshGa Vendor',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        if (userModel.phone.isNotEmpty)
+                          Text(
+                            userModel.phone,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

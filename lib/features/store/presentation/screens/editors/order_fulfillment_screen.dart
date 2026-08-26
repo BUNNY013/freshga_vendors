@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/presentation/widgets/premium_text_field.dart';
+import 'package:provider/provider.dart';
 import '../../../providers/store_provider.dart';
 import '../../../../../data/models/delivery_area_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -420,33 +422,21 @@ class _EditDeliveryAreaSheetState extends State<_EditDeliveryAreaSheet> {
               
               if (_ruleType == 'flat' || _ruleType == 'flat_plus_free_above') ...[
                 const SizedBox(height: 24),
-                const Text('Delivery Charge (₹)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                const SizedBox(height: 8),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Delivery Charge (₹)',
                   controller: _rateController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 50',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-                  ),
+                  hintText: 'e.g. 50',
                 ),
               ],
               
               if (_ruleType == 'flat_plus_free_above') ...[
                 const SizedBox(height: 16),
-                const Text('Free Shipping Threshold (₹)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                const SizedBox(height: 8),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Free Shipping Threshold (₹)',
                   controller: _thresholdController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 999',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
-                  ),
+                  hintText: 'e.g. 999',
                 ),
               ],
               

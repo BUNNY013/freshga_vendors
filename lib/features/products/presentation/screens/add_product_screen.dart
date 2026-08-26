@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../data/models/product_variant_model.dart';
 import '../providers/product_provider.dart';
@@ -194,13 +195,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
   InputDecoration _premiumInputDecoration(String hintText) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w500, fontSize: 14),
+      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400, fontSize: 14),
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFD1D5DB))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFD1D5DB))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
     );
   }
 
@@ -208,7 +209,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     return RichText(
       text: TextSpan(
         text: text,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
         children: [
           if (required) const TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
         ],
@@ -840,66 +841,47 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                 final subCategories = provider.subCategories;
                 final selectedSubs = subCategories.where((s) => _subCategoryIds.contains(s.subCategoryId)).toList();
                 
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildLabel("Category", required: true),
+                        GestureDetector(
+                          onTap: () => _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
+                          child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    PremiumTextField(
+                      label: '',
+                      initialValue: _categoryName,
+                      readOnly: true,
+                      hintText: '',
+                    ),
+                    if (selectedSubs.isNotEmpty) ...[
+                      const SizedBox(height: 20),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.category_rounded, size: 20, color: AppColors.primary),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _categoryName,
-                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary),
-                                    ),
-                                  ],
-                                ),
-                                if (selectedSubs.isNotEmpty)
-                                  const Icon(Icons.chevron_right, size: 18, color: AppColors.grey400),
-                                ...selectedSubs.map((sub) => Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0FDF4),
-                                    borderRadius: BorderRadius.circular(100),
-                                    border: Border.all(color: const Color(0xFFBBF7D0)),
-                                  ),
-                                  child: Text(
-                                    sub.name,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                                  ),
-                                )),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
+                          _buildLabel("Sub Categories", required: true),
                           GestureDetector(
-                            onTap: () => _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
-                            child: const Padding(
-                              padding: EdgeInsets.only(top: 2),
-                              child: Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
-                            ),
+                            onTap: () => _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
+                            child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      PremiumTextField(
+                        label: '',
+                        initialValue: selectedSubs.map((e) => e.name).join(', '),
+                        readOnly: true,
+                        hintText: '',
+                      ),
                     ],
-                  ),
+                  ],
                 );
               },
             ),
@@ -932,60 +914,18 @@ class _AddProductWizardState extends State<_AddProductWizard> {
     String? trailing,
     Widget? trailingWidget,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (trailingWidget != null) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: trailingWidget,
           ),
+          const SizedBox(height: 12),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailingWidget != null)
-                trailingWidget
-              else if (trailing != null)
-                Text(trailing, style: const TextStyle(fontSize: 12, color: AppColors.grey500, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
-          ),
-          child,
-        ],
-      ),
+        child,
+      ],
     );
   }
 
@@ -1037,19 +977,18 @@ class _AddProductWizardState extends State<_AddProductWizard> {
   Widget _buildPhotosSection() {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
-        return _buildStepCard(
-          title: "Product Photos",
-          subtitle: "Add at least one photo of your product",
-          icon: Icons.photo_library_outlined,
-          trailingWidget: Row(
-            children: [
-              Text("${provider.selectedImages.length}/10", style: const TextStyle(fontSize: 13, color: AppColors.grey600, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (provider.selectedImages.isNotEmpty)
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildLabel("Cover Photo", required: true),
+                Text("${provider.selectedImages.length}/10", style: const TextStyle(fontSize: 13, color: AppColors.grey600, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (provider.selectedImages.isNotEmpty)
                 Stack(
                   children: [
                     GestureDetector(
@@ -1101,9 +1040,9 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                     height: 110,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.grey200),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD1D5DB)),
                       ),
                       child: const Center(
                         child: Column(
@@ -1111,7 +1050,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                           children: [
                             Icon(Icons.add_a_photo_rounded, color: AppColors.primary, size: 36),
                             SizedBox(height: 12),
-                            Text("Tap to Upload Photo", style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 15)),
+                            Text("Tap to Upload Cover Photo", style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 15)),
                           ],
                         ),
                     ),
@@ -1212,8 +1151,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                   ),
                 ),
             ],
-          ),
-        );
+          );
       }
     );
   }
@@ -1233,19 +1171,12 @@ class _AddProductWizardState extends State<_AddProductWizard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildLabel("Product Name", required: true),
-              Text("${_name.length}/60", style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
+          PremiumTextField(
+            label: 'Product Name',
+            isRequired: true,
             initialValue: _name,
             maxLength: 60,
-            buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-            decoration: _premiumInputDecoration("Grandma Mango Pickle"),
+            hintText: "Grandma Mango Pickle",
             onSaved: (val) => _name = val?.trim() ?? '',
             validator: (val) => val == null || val.trim().length < 3 ? 'Name must be at least 3 characters' : null,
             onChanged: (val) => setState(() => _name = val),
@@ -1323,20 +1254,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
           ),
           const SizedBox(height: 20),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildLabel("Short Description", required: true),
-              Text("${_shortDescription.length}/120", style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
+          PremiumTextField(
+            label: 'Short Description',
+            isRequired: true,
             initialValue: _shortDescription,
             maxLength: 120,
             maxLines: 2,
-            buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-            decoration: _premiumInputDecoration("Traditional Andhra style homemade..."),
+            hintText: "Traditional Andhra style homemade...",
             onSaved: (val) => _shortDescription = val?.trim() ?? '',
             validator: (val) => val == null || val.trim().length < 10 ? 'Description must be at least 10 characters' : null,
             onChanged: (val) => setState(() => _shortDescription = val),
@@ -1347,27 +1271,33 @@ class _AddProductWizardState extends State<_AddProductWizard> {
   }
 
   Widget _buildPacksSection() {
-    return _buildStepCard(
-      title: "Price & Quantity",
-      subtitle: "How much does it cost?",
-      icon: Icons.inventory_2_outlined,
-      trailingWidget: GestureDetector(
-        onTap: () => _openAddPackSheet(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(20)),
-          child: const Row(
-            children: [
-              Icon(Icons.add, size: 14, color: AppColors.primary),
-              SizedBox(width: 4),
-              Text("Add Pack", style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-            ]
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildLabel("Price & Quantity", required: true),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => _openAddPackSheet(),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(12)),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, size: 18, color: AppColors.primary),
+                SizedBox(width: 8),
+                Text("Add Pack", style: TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.bold)),
+              ]
+            ),
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        const SizedBox(height: 16),
           if (_packSizes.isEmpty)
             const Text("Please add at least one pack size.", style: TextStyle(color: Colors.red, fontSize: 13)),
             
@@ -1530,8 +1460,7 @@ class _AddProductWizardState extends State<_AddProductWizard> {
             ),
           )
         ],
-      ),
-    );
+      );
   }
 
   void _openAddPackSheet({ProductVariantModel? pack, int? editIndex}) {
@@ -1701,11 +1630,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                           children: [
                             Expanded(
                               flex: 2,
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: qtyCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*'))],
-                                decoration: _premiumInputDecoration("e.g., 250, 1, 6").copyWith(errorText: qtyError),
+                                hintText: "e.g., 250, 1, 6",
+                                errorText: qtyError,
                                 onChanged: (_) => setSheetState(() => qtyError = null),
                               ),
                             ),
@@ -1735,11 +1666,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                 children: [
                                   _buildLabel("Price (₹)", required: true),
                                   const SizedBox(height: 8),
-                                  TextField(
+                                  PremiumTextField(
+                                    label: '',
                                     controller: priceCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                    decoration: _premiumInputDecoration("0").copyWith(errorText: priceError),
+                                    hintText: "0",
+                                    errorText: priceError,
                                     onChanged: (_) => setSheetState(() => priceError = null),
                                   ),
                                 ],
@@ -1752,11 +1685,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                 children: [
                                   _buildLabel("Discount Price (₹)"),
                                   const SizedBox(height: 8),
-                                  TextField(
+                                  PremiumTextField(
+                                    label: '',
                                     controller: discountCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                    decoration: _premiumInputDecoration("Optional").copyWith(errorText: discountError),
+                                    hintText: "Optional",
+                                    errorText: discountError,
                                     onChanged: (_) => setSheetState(() => discountError = null),
                                   ),
                                 ],
@@ -1810,11 +1745,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                           const SizedBox(height: 16),
                           _buildLabel("Stock Quantity", required: true),
                           const SizedBox(height: 8),
-                          TextField(
+                          PremiumTextField(
+                            label: '',
                             controller: stockCtrl,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            decoration: _premiumInputDecoration("e.g. 50").copyWith(errorText: stockError),
+                            hintText: "e.g. 50",
+                            errorText: stockError,
                             onChanged: (_) => setSheetState(() => stockError = null),
                           ),
                         ],
@@ -1830,11 +1767,13 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                         
                         _buildLabel("Actual Weight (grams)", required: false),
                         const SizedBox(height: 8),
-                        TextField(
+                        PremiumTextField(
+                          label: '',
                           controller: weightCtrl,
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: _premiumInputDecoration("e.g. 250").copyWith(errorText: weightError),
+                          hintText: "e.g. 250",
+                          errorText: weightError,
                           onChanged: (_) => setSheetState(() => weightError = null),
                         ),
                         
@@ -1845,27 +1784,33 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: lengthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("L").copyWith(errorText: dimError),
+                                hintText: "L",
+                                errorText: dimError,
                                 onChanged: (_) => setSheetState(() => dimError = null),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: widthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("W").copyWith(errorText: dimError),
+                                hintText: "W",
+                                errorText: dimError,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: heightCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("H").copyWith(errorText: dimError),
+                                hintText: "H",
+                                errorText: dimError,
                               ),
                             ),
                           ],
@@ -1982,10 +1927,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
             children: [
               Expanded(
                 flex: 1,
-                child: TextFormField(
+                child: PremiumTextField(
+                  label: '',
                   initialValue: _shelfLifeQty,
                   keyboardType: TextInputType.number,
-                  decoration: _premiumInputDecoration("e.g. 3").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
+                  hintText: "e.g. 3",
                   onChanged: (val) => _shelfLifeQty = val,
                 ),
               ),
@@ -2012,10 +1958,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
             children: [
               Expanded(
                 flex: 1,
-                child: TextFormField(
+                child: PremiumTextField(
+                  label: '',
                   initialValue: _dispatchTimeQty,
                   keyboardType: TextInputType.number,
-                  decoration: _premiumInputDecoration("e.g. 2").copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16)),
+                  hintText: "e.g. 2",
                   onChanged: (val) => _dispatchTimeQty = val,
                 ),
               ),
@@ -2036,25 +1983,19 @@ class _AddProductWizardState extends State<_AddProductWizard> {
           const SizedBox(height: 20),
           _buildLabel("Ingredients (Optional)"),
           const SizedBox(height: 8),
-          TextFormField(
+          PremiumTextField(
+            label: '',
             controller: _ingredientCtrl,
-            decoration: _premiumInputDecoration("e.g., Raw Mango, Mustard Seeds").copyWith(
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                onPressed: () {
-                  if (_ingredientCtrl.text.isNotEmpty) {
-                    setState(() => _ingredients.add(_ingredientCtrl.text.trim()));
-                    _ingredientCtrl.clear();
-                  }
-                },
-              ),
+            hintText: "e.g., Raw Mango, Mustard Seeds",
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.add_circle, color: AppColors.primary),
+              onPressed: () {
+                if (_ingredientCtrl.text.isNotEmpty) {
+                  setState(() => _ingredients.add(_ingredientCtrl.text.trim()));
+                  _ingredientCtrl.clear();
+                }
+              },
             ),
-            onFieldSubmitted: (val) {
-              if (val.trim().isNotEmpty) {
-                setState(() => _ingredients.add(val.trim()));
-                _ingredientCtrl.clear();
-              }
-            },
           ),
           if (_ingredients.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -2074,10 +2015,11 @@ class _AddProductWizardState extends State<_AddProductWizard> {
           const SizedBox(height: 20),
           _buildLabel("Storage Instructions (Optional)"),
           const SizedBox(height: 8),
-          TextFormField(
+          PremiumTextField(
+            label: '',
             initialValue: _storageInstructions,
             maxLines: 2,
-            decoration: _premiumInputDecoration("Keep in a cool and dry place. Use clean spoon."),
+            hintText: "Keep in a cool and dry place. Use clean spoon.",
             onChanged: (val) => _storageInstructions = val,
           ),
         ],

@@ -11,10 +11,12 @@ class DashboardProvider extends ChangeNotifier {
   int _lowStockCount = 0;
   int _outOfStockCount = 0;
   int _pendingOrdersCount = 0;
+  int _expiringOrdersCount = 0;
 
   int get lowStockCount => _lowStockCount;
   int get outOfStockCount => _outOfStockCount;
   int get pendingOrdersCount => _pendingOrdersCount;
+  int get expiringOrdersCount => _expiringOrdersCount;
 
   String? _storeId;
   StreamSubscription? _productsSubscription;
@@ -79,6 +81,8 @@ class DashboardProvider extends ChangeNotifier {
       _lowStockCount = low;
       _outOfStockCount = out;
       notifyListeners();
+    }, onError: (error) {
+      debugPrint("PRODUCTS STREAM ERROR: $error");
     });
 
     _ordersSubscription = _firestore
@@ -87,8 +91,26 @@ class DashboardProvider extends ChangeNotifier {
         .where('orderStatus', whereIn: ['New', 'Accepted', 'Packed'])
         .snapshots()
         .listen((snapshot) {
+      int expiring = 0;
+      final now = DateTime.now();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if ((data['orderStatus'] ?? '').toString().toLowerCase() == 'new') {
+          if (data['expiresAt'] != null) {
+            final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+            final hoursLeft = expiresAt.difference(now).inMinutes / 60.0;
+            if (hoursLeft <= 1.0) {
+              expiring++;
+            }
+          }
+        }
+      }
       _pendingOrdersCount = snapshot.docs.length;
+      _expiringOrdersCount = expiring;
       notifyListeners();
+    }, onError: (error) {
+      debugPrint("ORDERS STREAM ERROR: $error");
     });
   }
 

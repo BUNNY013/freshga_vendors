@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../providers/store_setup_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 class StoreSetupScreen extends StatefulWidget {
@@ -446,33 +447,32 @@ class _StoreSetupContent extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           
-          _buildPremiumLabel("Store Name", isMandatory: true),
-          TextFormField(
+          PremiumTextField(
+            label: "Store Name",
+            isRequired: true,
             initialValue: provider.storeName,
             onChanged: provider.setStoreName,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            decoration: _premiumInputDecoration("e.g., Grandma's Pickles"),
+            hintText: "e.g., Grandma's Pickles",
           ),
           const SizedBox(height: 24),
           
-          _buildPremiumLabel("Store ID", isMandatory: true),
-          TextFormField(
+          PremiumTextField(
+            label: "Store ID",
+            isRequired: true,
             controller: provider.handleController,
             onChanged: provider.setStoreHandle,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            decoration: _premiumInputDecoration("grandmas_pickles").copyWith(
-              prefixIcon: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                child: Text('@', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
-              ),
-              suffixIcon: provider.isCheckingHandle
-                  ? const Padding(padding: EdgeInsets.all(14.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
-                  : provider.storeHandle.isNotEmpty
-                      ? provider.isHandleAvailable == true
-                          ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
-                          : const Icon(Icons.cancel_rounded, color: AppColors.error, size: 24)
-                      : null,
+            hintText: "grandmas_pickles",
+            prefixIcon: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              child: Text('@', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
             ),
+            suffixIcon: provider.isCheckingHandle
+                ? const Padding(padding: EdgeInsets.all(14.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
+                : provider.storeHandle.isNotEmpty
+                    ? provider.isHandleAvailable == true
+                        ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
+                        : const Icon(Icons.cancel_rounded, color: AppColors.error, size: 24)
+                    : null,
           ),
           if (provider.storeHandle.isNotEmpty && provider.isHandleAvailable == false)
             Padding(
@@ -487,66 +487,17 @@ class _StoreSetupContent extends StatelessWidget {
             ),
           const SizedBox(height: 24),
           
-          _buildPremiumLabel("Brand Story", isMandatory: true),
-          TextFormField(
+          PremiumTextField(
+            label: "Brand Story",
+            isRequired: true,
             initialValue: provider.brandStory,
             onChanged: provider.setBrandStory,
+            minLines: 5,
             maxLines: 5,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            decoration: _premiumInputDecoration("Started by a mother in Guntur using traditional family recipes..."),
+            hintText: "Started by a mother in Guntur using traditional family recipes...",
           ),
           const SizedBox(height: 24),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPremiumLabel(String text, {bool isMandatory = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0, left: 4.0),
-      child: RichText(
-        text: TextSpan(
-          text: text,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            letterSpacing: 0.3,
-          ),
-          children: [
-            if (isMandatory)
-              const TextSpan(
-                text: ' *',
-                style: TextStyle(color: AppColors.error, fontSize: 16),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _premiumInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 16),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.border, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
     );
   }
@@ -562,66 +513,43 @@ class _StoreSetupContent extends StatelessWidget {
           const Text("Connect your audience.", style: AppTextStyles.bodyText),
           const SizedBox(height: 32),
         
-        const Text("Instagram Profile (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
+        PremiumTextField(
+          label: "Instagram Profile (Optional)",
           initialValue: provider.instagramLink,
           onChanged: provider.setInstagramLink,
-          decoration: InputDecoration(
-            hintText: "https://instagram.com/yourbrand",
-            prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.pink),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          hintText: "https://instagram.com/yourbrand",
+          prefixIcon: const Icon(Icons.camera_alt_outlined, color: Colors.pink),
         ),
         const SizedBox(height: 16),
         
-        const Text("YouTube Channel (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
+        PremiumTextField(
+          label: "YouTube Channel (Optional)",
           initialValue: provider.youtubeLink,
           onChanged: provider.setYoutubeLink,
-          decoration: InputDecoration(
-            hintText: "https://youtube.com/@yourbrand",
-            prefixIcon: const Icon(Icons.play_circle_outline, color: Colors.red),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          hintText: "https://youtube.com/@yourbrand",
+          prefixIcon: const Icon(Icons.play_circle_outline, color: Colors.red),
         ),
         const SizedBox(height: 16),
         
-        const Text("Facebook Page (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
+        PremiumTextField(
+          label: "Facebook Page (Optional)",
           initialValue: provider.facebookLink,
           onChanged: provider.setFacebookLink,
-          decoration: InputDecoration(
-            hintText: "https://facebook.com/yourbrand",
-            prefixIcon: const Icon(Icons.facebook, color: Colors.blue),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          hintText: "https://facebook.com/yourbrand",
+          prefixIcon: const Icon(Icons.facebook, color: Colors.blue),
         ),
         const SizedBox(height: 16),
         
-        const Text("WhatsApp Number (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
+        PremiumTextField(
+          label: "WhatsApp Number (Optional)",
           initialValue: provider.whatsappNumber,
           onChanged: provider.setWhatsappNumber,
           keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            hintText: "Enter 10-digit number",
-            prefixIcon: const Icon(Icons.chat_bubble_outline, color: Colors.green),
-            prefixText: "+91 ",
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          hintText: "Enter 10-digit number",
+          prefixIcon: const Icon(Icons.chat_bubble_outline, color: Colors.green),
+          prefixText: "+91 ",
         ),
+        const SizedBox(height: 32),
       ],
       ),
     );

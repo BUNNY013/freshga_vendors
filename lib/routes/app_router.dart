@@ -43,7 +43,6 @@ import '../features/analytics/presentation/screens/ratings_analytics_screen.dart
 import '../features/analytics/presentation/screens/earnings_payouts_screen.dart';
 import '../features/profile/presentation/screens/customer_feedback_screen.dart';
 import '../features/profile/presentation/screens/payouts_screen.dart';
-import '../features/profile/presentation/screens/notification_settings_screen.dart';
 import '../features/profile/presentation/screens/vendor_help_support_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
@@ -260,8 +259,8 @@ class AppRouter {
         builder: (context, state) => const CustomerFeedbackScreen(),
       ),
       GoRoute(
-        path: '/profile/notifications',
-        builder: (context, state) => const NotificationSettingsScreen(),
+        path: '/profile/payouts',
+        builder: (context, state) => const PayoutsScreen(),
       ),
       GoRoute(
         path: '/notifications',

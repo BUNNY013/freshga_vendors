@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../../core/presentation/widgets/premium_text_field.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../data/models/user_model.dart';
@@ -399,24 +400,13 @@ class _StoreInfoScreenState extends State<StoreInfoScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Store Story', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                            const SizedBox(height: 8),
-                            TextFormField(
+                            PremiumTextField(
+                              label: 'Store Story',
                               controller: _descController,
+                              minLines: 5,
                               maxLines: 5,
                               maxLength: 1000,
-                              style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), height: 1.5),
-                              decoration: InputDecoration(
-                                hintText: 'Tell your story...',
-                                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                                filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFF1F5F9))),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                                contentPadding: const EdgeInsets.all(16),
-                                counterStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-                              ),
+                              hintText: 'Tell your story...',
                               validator: (val) {
                                 if (val == null || val.trim().isEmpty) return 'Story cannot be empty';
                                 return null;

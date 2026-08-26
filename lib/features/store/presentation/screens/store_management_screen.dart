@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/models/store_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/subscription_provider.dart';
+import '../widgets/store_qr_code_sheet.dart';
 
 class StoreManagementScreen extends StatefulWidget {
   const StoreManagementScreen({super.key});
@@ -97,6 +99,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                     fontSize: 24,
                   ),
                 ),
+                actions: [
+                  // QR code button removed, now invoked from "Share Store" button
+                ],
               ),
               body: SingleChildScrollView(
                 controller: _scrollController,
@@ -239,12 +244,36 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildMetricColumn(store.totalOrders.toString(), 'Orders'),
+                FutureBuilder<AggregateQuerySnapshot>(
+                  future: FirebaseFirestore.instance.collection('orders')
+                    .where('storeId', isEqualTo: store.storeId)
+                    .where('orderStatus', isEqualTo: 'Delivered')
+                    .count().get(),
+                  builder: (context, snapshot) {
+                    String count = store.totalOrders.toString();
+                    if (snapshot.hasData) {
+                      count = snapshot.data?.count?.toString() ?? count;
+                    }
+                    return _buildMetricColumn(count, 'Successful\nOrders');
+                  },
+                ),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
                 _buildMetricColumn(store.followers > 1000 ? '${(store.followers / 1000).toStringAsFixed(1)}K' : store.followers.toString(), 'Followers'),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
-                _buildMetricColumn(store.productsCount.toString(), 'Products'),
+                FutureBuilder<AggregateQuerySnapshot>(
+                  future: FirebaseFirestore.instance.collection('products')
+                    .where('storeId', isEqualTo: store.storeId)
+                    .count().get(),
+                  builder: (context, snapshot) {
+                    String count = store.productsCount.toString();
+                    if (snapshot.hasData) {
+                      count = snapshot.data?.count?.toString() ?? count;
+                    }
+                    return _buildMetricColumn(count, 'Products');
+                  },
+                ),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
                 _buildMetricColumn('${store.rating}', '${store.totalReviews} Revs', isRating: true),
               ],
@@ -274,7 +303,18 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => StoreQrCodeSheet(
+                        storeId: store.storeId,
+                        storeName: store.storeName.isNotEmpty ? store.storeName : "My Store",
+                        storeSlug: store.storeSlug,
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF8FAFC),
                     foregroundColor: const Color(0xFF334155),
@@ -323,7 +363,11 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+        Text(
+          label, 
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import '../../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../../core/theme/app_colors.dart';
 
 class StoreAddress {
@@ -565,35 +566,35 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
                 ),
                 const SizedBox(height: 24),
                 
-                _buildLabel('Flat, House no., Building, Company', required: true),
-                const SizedBox(height: 8),
-                _buildTextField(
+                PremiumTextField(
+                  label: 'Flat, House no., Building, Company',
+                  isRequired: true,
                   controller: _houseController,
                   hintText: 'e.g. Flat 201, Sunshine Apts',
                   validator: (val) => val == null || val.trim().isEmpty ? 'House/Building is required' : null,
                 ),
 
                 const SizedBox(height: 20),
-                _buildLabel('Area, Street, Sector, Village', required: true),
-                const SizedBox(height: 8),
-                _buildTextField(
+                PremiumTextField(
+                  label: 'Area, Street, Sector, Village',
+                  isRequired: true,
                   controller: _areaController,
                   hintText: 'e.g. Main Road, Sector 4',
                   validator: (val) => val == null || val.trim().isEmpty ? 'Area/Street is required' : null,
                 ),
 
                 const SizedBox(height: 20),
-                _buildLabel('Landmark'),
-                const SizedBox(height: 8),
-                _buildTextField(
+                PremiumTextField(
+                  label: 'Landmark',
+                  isRequired: false,
                   controller: _landmarkController,
                   hintText: 'e.g. Near Apollo Hospital',
                 ),
 
                 const SizedBox(height: 20),
-                _buildLabel('Pincode', required: true),
-                const SizedBox(height: 8),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Pincode',
+                  isRequired: true,
                   controller: _pincodeController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -601,24 +602,14 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
                     LengthLimitingTextInputFormatter(6),
                   ],
                   validator: (val) => val == null || val.length != 6 ? 'Enter valid 6-digit PIN' : null,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
-                  decoration: InputDecoration(
-                    hintText: '6-digit pincode',
-                    errorText: _pincodeError,
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                    errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-                    focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-                    suffixIcon: _isFetchingPincode 
-                      ? const Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                        )
-                      : null,
-                  ),
+                  hintText: '6-digit pincode',
+                  errorText: _pincodeError,
+                  suffixIcon: _isFetchingPincode 
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : null,
                 ),
                 if (_isFetchingPincode)
                   const Padding(
@@ -634,9 +625,9 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildLabel('City', required: true),
-                          const SizedBox(height: 8),
-                          _buildTextField(
+                          PremiumTextField(
+                            label: 'City',
+                            isRequired: true,
                             controller: _cityController, 
                             hintText: 'City',
                             validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
@@ -649,26 +640,44 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildLabel('State', required: true),
-                          const SizedBox(height: 8),
                           _isApiFallback
-                            ? DropdownButtonFormField<String>(
-                                value: _indianStates.contains(_stateController.text) ? _stateController.text : null,
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                ),
-                                hint: const Text('Select State', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
-                                items: _indianStates.map((state) {
-                                  return DropdownMenuItem(value: state, child: Text(state, style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A))));
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _stateController.text = val);
-                                },
-                                validator: (val) => val == null || val.isEmpty ? "Required" : null,
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    text: const TextSpan(
+                                      text: 'State',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                                      children: [
+                                        TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    value: _indianStates.contains(_stateController.text) ? _stateController.text : null,
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFD1D5DB))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFD1D5DB))),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                                    ),
+                                    hint: const Text('Select State', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14)),
+                                    items: _indianStates.map((state) {
+                                      return DropdownMenuItem(value: state, child: Text(state, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary)));
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) setState(() => _stateController.text = val);
+                                    },
+                                    validator: (val) => val == null || val.isEmpty ? "Required" : null,
+                                  )
+                                ],
                               )
-                            : _buildTextField(
+                            : PremiumTextField(
+                                label: 'State',
+                                isRequired: true,
                                 controller: _stateController, 
                                 hintText: 'State',
                                 readOnly: true,
@@ -730,52 +739,4 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
     );
   }
 
-  Widget _buildLabel(String text, {bool required = false}) {
-    return Row(
-      children: [
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              text: text,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontFamily: 'Inter'),
-              children: [
-                if (required) const TextSpan(text: ' *', style: TextStyle(color: Color(0xFFDC2626))),
-                if (!required) const TextSpan(text: ' (Optional)', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.normal)),
-              ]
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hintText,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-    bool readOnly = false,
-  }) {
-    return TextFormField(
-      controller: controller,
-      readOnly: readOnly,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      validator: validator,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-      ),
-    );
-  }
 }

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/primary_button.dart';
 
 class Step5BankDetailsScreen extends StatefulWidget {
@@ -51,14 +51,14 @@ class _Step5BankDetailsScreenState extends State<Step5BankDetailsScreen> {
                             ),
                       ),
                       const SizedBox(height: 32),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Account Holder Name',
                         controller: provider.accountNameController,
                         hintText: 'As per bank records',
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Account Number',
                         controller: provider.accountNumberController,
                         keyboardType: TextInputType.number,
@@ -66,7 +66,7 @@ class _Step5BankDetailsScreenState extends State<Step5BankDetailsScreen> {
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Confirm Account Number',
                         controller: provider.confirmAccountNumberController,
                         keyboardType: TextInputType.number,
@@ -78,7 +78,7 @@ class _Step5BankDetailsScreenState extends State<Step5BankDetailsScreen> {
                           return null;
                         },
                       ),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'IFSC Code',
                         controller: provider.ifscController,
                         hintText: '11-character IFSC code',
@@ -88,14 +88,14 @@ class _Step5BankDetailsScreenState extends State<Step5BankDetailsScreen> {
                           return null;
                         },
                       ),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Bank Name',
                         controller: provider.bankNameController,
                         hintText: 'E.g., HDFC Bank',
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'UPI ID',
                         controller: provider.upiController,
                         hintText: 'E.g., yourname@bank (optional)',

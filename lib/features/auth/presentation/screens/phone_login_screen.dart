@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -182,101 +183,42 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
                                   const SizedBox(height: 32),
                                   
                                   // Phone Input Area
-                                  Container(
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.inputBackground,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: errorMessage != null ? AppColors.error : Colors.transparent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(16),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(0.03),
-                                                blurRadius: 10,
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Image.network(
-                                                'https://flagcdn.com/w40/in.png',
-                                                width: 24,
-                                                errorBuilder: (context, error, stackTrace) => 
-                                                    const Icon(Icons.flag, size: 24, color: AppColors.grey500),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              const Text(
-                                                '+91',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _phoneController,
-                                            focusNode: _phoneFocus,
-                                            keyboardType: TextInputType.number,
-                                            maxLength: 10,
-                                            style: const TextStyle(
-                                              fontSize: 18, 
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 2.0,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                            decoration: InputDecoration(
-                                              counterText: '',
-                                              hintText: '00000 00000',
-                                              hintStyle: TextStyle(
-                                                color: AppColors.grey400,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.normal,
-                                                letterSpacing: 1.0,
-                                              ),
-                                              border: InputBorder.none,
-                                              contentPadding: EdgeInsets.zero,
-                                            ),
-                                            onChanged: (val) {
-                                              if (_localError != null) setState(() => _localError = null);
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  
-                                  // Error message
-                                  if (errorMessage != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                                  PremiumTextField(
+                                    label: 'Phone Number',
+                                    isRequired: true,
+                                    controller: _phoneController,
+                                    focusNode: _phoneFocus,
+                                    keyboardType: TextInputType.number,
+                                    maxLength: 10,
+                                    hintText: '00000 00000',
+                                    errorText: errorMessage,
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                       child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.info_outline, color: AppColors.error, size: 16),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              errorMessage,
-                                              style: const TextStyle(color: AppColors.error, fontSize: 13),
+                                          Image.network(
+                                            'https://flagcdn.com/w40/in.png',
+                                            width: 24,
+                                            errorBuilder: (context, error, stackTrace) => 
+                                                const Icon(Icons.flag, size: 24, color: AppColors.grey500),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            '+91',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textPrimary,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                    onChanged: (val) {
+                                      if (_localError != null) setState(() => _localError = null);
+                                    },
+                                  ),
                                     
                                   const SizedBox(height: 32),
                                   

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/image_upload_card.dart';
 import '../widgets/primary_button.dart';
 
@@ -67,7 +67,7 @@ class _Step4LegalDocumentsScreenState extends State<Step4LegalDocumentsScreen> {
                             ),
                       ),
                       const SizedBox(height: 32),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'FSSAI Number',
                         controller: provider.fssaiNumberController,
                         hintText: '14-digit FSSAI Number',
@@ -105,7 +105,7 @@ class _Step4LegalDocumentsScreenState extends State<Step4LegalDocumentsScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'PAN Number',
                         controller: provider.panNumberController,
                         hintText: '10-character PAN Number',

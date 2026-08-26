@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../store/providers/store_provider.dart';
 import '../../../auth/providers/auth_provider.dart';
 import 'vendor_ticket_details_screen.dart';
@@ -284,13 +285,11 @@ class _RaiseTicketFormState extends State<_RaiseTicketForm> {
           const SizedBox(height: 20),
           const Text('Describe your issue', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 8),
-          TextField(
+          PremiumTextField(
+            label: '',
             controller: _messageController,
             maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Please provide as much detail as possible...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            hintText: 'Please provide as much detail as possible...',
           ),
           const SizedBox(height: 24),
           SizedBox(

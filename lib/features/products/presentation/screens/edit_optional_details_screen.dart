@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
 
@@ -331,11 +332,12 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
                       children: [
                         Expanded(
                           flex: 1,
-                          child: TextFormField(
+                          child: PremiumTextField(
+                            label: '',
                             controller: _dispatchTimeQtyCtrl,
                             keyboardType: TextInputType.number,
                             onChanged: (_) => _markDirty(),
-                            decoration: _premiumInputDecoration("e.g. 2"),
+                            hintText: "e.g. 2",
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -365,11 +367,12 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
                       children: [
                         Expanded(
                           flex: 1,
-                          child: TextFormField(
+                          child: PremiumTextField(
+                            label: '',
                             controller: _shelfLifeQtyCtrl,
                             keyboardType: TextInputType.number,
                             onChanged: (_) => _markDirty(),
-                            decoration: _premiumInputDecoration("e.g. 3"),
+                            hintText: "e.g. 3",
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -405,32 +408,23 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
+                    PremiumTextField(
+                      label: '',
                       controller: _ingredientInputCtrl,
                       onChanged: (_) => _markDirty(),
-                      decoration: _premiumInputDecoration("e.g., Raw Mango, Mustard Seeds").copyWith(
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                          onPressed: () {
-                            if (_ingredientInputCtrl.text.trim().isNotEmpty) {
-                              setState(() {
-                                _ingredients.add(_ingredientInputCtrl.text.trim());
-                                _ingredientInputCtrl.clear();
-                                _hasUnsavedChanges = true;
-                              });
-                            }
-                          },
-                        ),
+                      hintText: "e.g., Raw Mango, Mustard Seeds",
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                        onPressed: () {
+                          if (_ingredientInputCtrl.text.trim().isNotEmpty) {
+                            setState(() {
+                              _ingredients.add(_ingredientInputCtrl.text.trim());
+                              _ingredientInputCtrl.clear();
+                              _hasUnsavedChanges = true;
+                            });
+                          }
+                        },
                       ),
-                      onFieldSubmitted: (val) {
-                        if (val.trim().isNotEmpty) {
-                          setState(() {
-                            _ingredients.add(val.trim());
-                            _ingredientInputCtrl.clear();
-                            _hasUnsavedChanges = true;
-                          });
-                        }
-                      },
                     ),
                     if (_ingredients.isNotEmpty) ...[
                       const SizedBox(height: 14),
@@ -463,11 +457,12 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
+                    PremiumTextField(
+                      label: '',
                       controller: _storageCtrl,
                       maxLines: 3,
                       onChanged: (_) => _markDirty(),
-                      decoration: _premiumInputDecoration("e.g., Store in a cool, dry place away from direct sunlight. Always use a clean dry spoon."),
+                      hintText: "e.g., Store in a cool, dry place away from direct sunlight. Always use a clean dry spoon.",
                     ),
                   ],
                 ),

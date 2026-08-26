@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class StoreActionsRow extends StatelessWidget {
+  final String storeId;
   final String storeSlug;
   final String storeName;
   final VoidCallback onEditStore;
@@ -10,6 +12,7 @@ class StoreActionsRow extends StatelessWidget {
 
   const StoreActionsRow({
     super.key,
+    required this.storeId,
     required this.storeSlug,
     required this.storeName,
     required this.onEditStore,
@@ -108,7 +111,7 @@ class StoreActionsRow extends StatelessWidget {
   }
 
   void _showShareBottomSheet(BuildContext context) {
-    final storeLink = 'https://freshga.in/store/$storeSlug';
+    final storeLink = 'https://freshga-homemades.web.app/store/$storeId';
 
     showModalBottomSheet(
       context: context,
@@ -231,12 +234,12 @@ class _ShareBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 12,
             children: [
               _buildSocialChip(context, 'WhatsApp', Icons.chat, const Color(0xFF25D366), storeLink),
               _buildSocialChip(context, 'Instagram', Icons.camera_alt, const Color(0xFFE1306C), storeLink),
-              _buildSocialChip(context, 'More', Icons.share, AppColors.textSecondary, storeLink),
+              _buildSocialChip(context, 'More', Icons.share, AppColors.textSecondary, storeLink, isMore: true),
             ],
           ),
         ],
@@ -244,20 +247,16 @@ class _ShareBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialChip(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    String link,
-  ) {
+  Widget _buildSocialChip(BuildContext context, String label, IconData icon, Color color, String url, {bool isMore = false}) {
     return GestureDetector(
       onTap: () {
-        Clipboard.setData(ClipboardData(text: link));
+        if (isMore || label == 'WhatsApp' || label == 'Instagram') {
+          Share.share(
+            'Check out $storeName on FreshGa!\n\n$url',
+            subject: 'Check out this store!',
+          );
+        }
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opening $label (link copied)...')),
-        );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

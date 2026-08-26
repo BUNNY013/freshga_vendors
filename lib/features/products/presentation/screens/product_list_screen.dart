@@ -87,16 +87,19 @@ class _ProductListContentState extends State<_ProductListContent> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/add-product'),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add Product',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 90.0),
+        child: FloatingActionButton.extended(
+          onPressed: () => context.push('/add-product'),
+          backgroundColor: AppColors.primary,
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            'Add Product',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         ),
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: _userFuture,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/presentation/widgets/premium_text_field.dart';
 
 class PoliciesScreen extends StatefulWidget {
   const PoliciesScreen({super.key});
@@ -75,27 +76,13 @@ class _PoliciesScreenState extends State<PoliciesScreen> {
                       ],
                     ),
                   ),
-                  // Text Area
-                  Container(
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        left: BorderSide(color: Color(0xFFE2E8F0)),
-                        right: BorderSide(color: Color(0xFFE2E8F0)),
-                        bottom: BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                    ),
-                    child: TextFormField(
-                      initialValue: 'Orders are usually dispatched within 1 business day.\n\nWe ship across India using trusted courier partners.\n\nFree shipping is available within Telangana and Andhra Pradesh. For other states, free shipping is available on orders above ₹999.\n\nDelivery time depends on your location and usually takes 2-7 business days.',
-                      maxLines: 15,
-                      maxLength: 1000,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A), height: 1.6),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(16),
-                        counterStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-                      ),
-                    ),
+                  PremiumTextField(
+                    label: '',
+                    initialValue: 'Orders are usually dispatched within 1 business day.\n\nWe ship across India using trusted courier partners.\n\nFree shipping is available within Telangana and Andhra Pradesh. For other states, free shipping is available on orders above ₹999.\n\nDelivery time depends on your location and usually takes 2-7 business days.',
+                    minLines: 15,
+                    maxLines: 15,
+                    maxLength: 1000,
+                    hintText: 'Enter your policies here...',
                   ),
                 ],
               ),

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
@@ -295,7 +296,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: InkWell(
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product link copied!')));
+                    Share.share(
+                      'Check out ${_product.name} on FreshGa!\n\nhttps://freshga-homemades.web.app/product/${_product.productId}',
+                      subject: 'Check out this product!',
+                    );
                   },
                   borderRadius: BorderRadius.circular(100),
                   child: Container(

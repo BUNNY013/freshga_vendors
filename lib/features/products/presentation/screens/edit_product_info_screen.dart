@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../../utils/product_change_detector.dart';
@@ -193,66 +194,6 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
     );
   }
 
-  Widget _buildInput({
-    required String title,
-    required TextEditingController controller,
-    required int maxLength,
-    required String hint,
-    required String helper,
-    int maxLines = 1,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            text: title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
-            children: const [
-              TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFF1F5F9)),
-          ),
-          child: TextField(
-            controller: controller,
-            maxLength: maxLength,
-            maxLines: maxLines,
-            enabled: !_isLocked,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
-            buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text('$currentLength / $maxLength', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
-                  ],
-                ),
-              );
-            },
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.normal, fontSize: 15),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(helper, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      ],
-    );
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -337,30 +278,36 @@ class _EditProductInfoScreenState extends State<EditProductInfoScreen> {
                   ),
                 ),
               ],
-              _buildInput(
-                title: 'Product Name',
+              PremiumTextField(
+                label: 'Product Name',
+                isRequired: true,
                 controller: _nameCtrl,
                 maxLength: 60,
-                hint: 'Grandma Mango Pickle',
-                helper: 'Use a simple and searchable product name.',
+                hintText: 'Grandma Mango Pickle',
+                helperText: 'Use a simple and searchable product name.',
+                readOnly: _isLocked,
               ),
               const SizedBox(height: 24),
-              _buildInput(
-                title: 'Short Description',
+              PremiumTextField(
+                label: 'Short Description',
+                isRequired: true,
                 controller: _shortDescCtrl,
                 maxLength: 120,
                 maxLines: 3,
-                hint: 'Traditional homemade mango pickle made using authentic Andhra recipe.',
-                helper: 'Shown on product cards and previews.',
+                hintText: 'Traditional homemade mango pickle made using authentic Andhra recipe.',
+                helperText: 'Shown on product cards and previews.',
+                readOnly: _isLocked,
               ),
               const SizedBox(height: 24),
-              _buildInput(
-                title: 'Product Description',
+              PremiumTextField(
+                label: 'Product Description',
+                isRequired: true,
                 controller: _descCtrl,
                 maxLength: 1000,
                 maxLines: 8,
-                hint: 'Describe ingredients, preparation style, taste, texture and what makes your product special.',
-                helper: 'Displayed on the product details page.',
+                hintText: 'Describe ingredients, preparation style, taste, texture and what makes your product special.',
+                helperText: 'Displayed on the product details page.',
+                readOnly: _isLocked,
               ),
               const SizedBox(height: 32),
 

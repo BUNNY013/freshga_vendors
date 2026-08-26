@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -356,13 +357,38 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
       ),
       child: Column(
         children: [
-          _buildVariantTextField('Pack Size / Weight', 'e.g., 500g', _baseWeightCtrl, TextInputType.text, Icons.inventory_2_outlined),
+          PremiumTextField(
+            label: 'Pack Size / Weight',
+            hintText: 'e.g., 500g',
+            controller: _baseWeightCtrl,
+            keyboardType: TextInputType.text,
+            prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 20),
+            onChanged: (_) => _markDirty(),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildVariantTextField('Original Price (₹)', '0', _baseOriginalPriceCtrl, TextInputType.number, Icons.attach_money)),
+              Expanded(
+                child: PremiumTextField(
+                  label: 'Original Price (₹)',
+                  hintText: '0',
+                  controller: _baseOriginalPriceCtrl,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: const Icon(Icons.attach_money, color: AppColors.primary, size: 20),
+                  onChanged: (_) => _markDirty(),
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildVariantTextField('Discount Price (₹)', '0', _basePriceCtrl, TextInputType.number, Icons.local_offer_outlined)),
+              Expanded(
+                child: PremiumTextField(
+                  label: 'Discount Price (₹)',
+                  hintText: '0',
+                  controller: _basePriceCtrl,
+                  keyboardType: TextInputType.number,
+                  prefixIcon: const Icon(Icons.local_offer_outlined, color: AppColors.primary, size: 20),
+                  onChanged: (_) => _markDirty(),
+                ),
+              ),
             ],
           ),
         ],
@@ -779,11 +805,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                           children: [
                             Expanded(
                               flex: 2,
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: qtyCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*'))],
-                                decoration: _premiumInputDecoration("e.g., 250, 1, 6").copyWith(errorText: qtyError),
+                                hintText: "e.g., 250, 1, 6",
+                                errorText: qtyError,
                                 onChanged: (_) => setSheetState(() => qtyError = null),
                               ),
                             ),
@@ -813,11 +841,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                                 children: [
                                   _buildLabel("Price (₹)", required: true),
                                   const SizedBox(height: 8),
-                                  TextField(
+                                  PremiumTextField(
+                                    label: '',
                                     controller: priceCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                    decoration: _premiumInputDecoration("0").copyWith(errorText: priceError),
+                                    hintText: "0",
+                                    errorText: priceError,
                                     onChanged: (_) => setSheetState(() => priceError = null),
                                   ),
                                 ],
@@ -830,11 +860,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                                 children: [
                                   _buildLabel("Discount Price (₹)"),
                                   const SizedBox(height: 8),
-                                  TextField(
+                                  PremiumTextField(
+                                    label: '',
                                     controller: discountCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                    decoration: _premiumInputDecoration("Optional").copyWith(errorText: discountError),
+                                    hintText: "Optional",
+                                    errorText: discountError,
                                     onChanged: (_) => setSheetState(() => discountError = null),
                                   ),
                                 ],
@@ -888,11 +920,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                           const SizedBox(height: 16),
                           _buildLabel("Stock Quantity", required: true),
                           const SizedBox(height: 8),
-                          TextField(
+                          PremiumTextField(
+                            label: '',
                             controller: stockCtrl,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            decoration: _premiumInputDecoration("e.g. 50").copyWith(errorText: stockError),
+                            hintText: "e.g. 50",
+                            errorText: stockError,
                             onChanged: (_) => setSheetState(() => stockError = null),
                           ),
                         ],
@@ -908,11 +942,13 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                         
                         _buildLabel("Actual Weight (grams)", required: false),
                         const SizedBox(height: 8),
-                        TextField(
+                        PremiumTextField(
+                          label: '',
                           controller: weightCtrl,
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: _premiumInputDecoration("e.g. 250").copyWith(errorText: weightError),
+                          hintText: "e.g. 250",
+                          errorText: weightError,
                           onChanged: (_) => setSheetState(() => weightError = null),
                         ),
                         
@@ -923,27 +959,33 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: lengthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("L").copyWith(errorText: dimError),
+                                hintText: "L",
+                                errorText: dimError,
                                 onChanged: (_) => setSheetState(() => dimError = null),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: widthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("W").copyWith(errorText: dimError),
+                                hintText: "W",
+                                errorText: dimError,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: TextField(
+                              child: PremiumTextField(
+                                label: '',
                                 controller: heightCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _premiumInputDecoration("H").copyWith(errorText: dimError),
+                                hintText: "H",
+                                errorText: dimError,
                               ),
                             ),
                           ],
@@ -1079,50 +1121,4 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     );
   }
 
-  Widget _buildVariantTextField(String label, String hint, TextEditingController controller, TextInputType keyboardType, IconData iconData) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.white,
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(iconData, color: AppColors.primary, size: 16),
-                ),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  onChanged: (_) => _markDirty(),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: AppColors.grey400, fontWeight: FontWeight.normal, fontSize: 14),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }

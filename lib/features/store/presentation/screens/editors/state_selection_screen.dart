@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/presentation/widgets/premium_text_field.dart';
 
 class StateSelectionScreen extends StatefulWidget {
   final List<String> availableStates;
@@ -104,22 +105,11 @@ class _StateSelectionScreenState extends State<StateSelectionScreen> {
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search states...',
-                    hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-                    prefixIcon: Icon(Icons.search, color: Color(0xFF94A3B8)),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
+              child: PremiumTextField(
+                label: '',
+                controller: _searchController,
+                hintText: 'Search states...',
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
               ),
             ),
             

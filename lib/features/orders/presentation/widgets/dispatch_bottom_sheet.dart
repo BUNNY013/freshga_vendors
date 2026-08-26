@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 
 class DispatchBottomSheet extends StatefulWidget {
   final Function(Map<String, dynamic>) onDispatch;
@@ -262,25 +263,34 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                 ),
                 const SizedBox(height: 16),
                 if (_selectedProvider == 'Other') ...[
-                  TextFormField(
+                  PremiumTextField(
+                    label: 'Custom Courier Name',
+                    isRequired: true,
                     controller: _customProviderController,
                     maxLength: 40,
                     validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                    decoration: _buildInputDecoration('Custom Courier Name', Icons.edit, isRequired: true),
+                    prefixIcon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                    hintText: '',
                   ),
                   const SizedBox(height: 16),
                 ],
-                TextFormField(
+                PremiumTextField(
+                  label: 'Tracking ID',
+                  isRequired: true,
                   controller: _trackingIdController,
                   maxLength: 40,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: _buildInputDecoration('Tracking ID', Icons.tag, isRequired: true),
+                  prefixIcon: const Icon(Icons.tag, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Tracking Link (Optional)',
                   controller: _trackingLinkController,
                   maxLength: 250,
-                  decoration: _buildInputDecoration('Tracking Link (Optional)', Icons.link, helper: 'Paste link so customers can track instantly.'),
+                  prefixIcon: const Icon(Icons.link, color: AppColors.primary, size: 20),
+                  helperText: 'Paste link so customers can track instantly.',
+                  hintText: '',
                 ),
               ] else if (_selectedMethod == 'Hyperlocal') ...[
                 DropdownButtonFormField<String>(
@@ -296,26 +306,35 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                 ),
                 const SizedBox(height: 16),
                 if (_selectedProvider == 'Other') ...[
-                  TextFormField(
+                  PremiumTextField(
+                    label: 'Custom Service Name',
+                    isRequired: true,
                     controller: _customProviderController,
                     maxLength: 40,
                     validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                    decoration: _buildInputDecoration('Custom Service Name', Icons.edit, isRequired: true),
+                    prefixIcon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                    hintText: '',
                   ),
                   const SizedBox(height: 16),
                 ],
-                TextFormField(
+                PremiumTextField(
+                  label: 'Live Tracking Link (Optional)',
                   controller: _trackingLinkController,
                   maxLength: 250,
-                  decoration: _buildInputDecoration('Live Tracking Link (Optional)', Icons.map, helper: 'Share the live ride link from the app.'),
+                  prefixIcon: const Icon(Icons.map, color: AppColors.primary, size: 20),
+                  helperText: 'Share the live ride link from the app.',
+                  hintText: '',
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Rider Phone Number',
+                  isRequired: true,
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: _buildInputDecoration('Rider Phone Number', Icons.phone, isRequired: true),
+                  prefixIcon: const Icon(Icons.phone, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
               ] else if (_selectedMethod == 'Local Transport') ...[
                 DropdownButtonFormField<String>(
@@ -327,25 +346,33 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                   onChanged: (val) => setState(() => _selectedProvider = val!),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Transport Name (e.g. KSRTC, SRS Travels)',
+                  isRequired: true,
                   controller: _customProviderController,
                   maxLength: 50,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: _buildInputDecoration('Transport Name (e.g. KSRTC, SRS Travels)', Icons.business, isRequired: true),
+                  prefixIcon: const Icon(Icons.business, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'LR / Ticket Number',
+                  isRequired: true,
                   controller: _receiptController,
                   maxLength: 30,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: _buildInputDecoration('LR / Ticket Number', Icons.receipt, isRequired: true),
+                  prefixIcon: const Icon(Icons.receipt, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Driver Contact (Optional)',
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
-                  decoration: _buildInputDecoration('Driver Contact (Optional)', Icons.phone),
+                  prefixIcon: const Icon(Icons.phone, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
               ] else if (_selectedMethod == 'Self Delivery') ...[
                 InkWell(
@@ -360,12 +387,15 @@ class _DispatchBottomSheetState extends State<DispatchBottomSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                PremiumTextField(
+                  label: 'Delivery Person Phone Number',
+                  isRequired: true,
                   controller: _contactNumberController,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
                   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                  decoration: _buildInputDecoration('Delivery Person Phone Number', Icons.phone, isRequired: true),
+                  prefixIcon: const Icon(Icons.phone, color: AppColors.primary, size: 20),
+                  hintText: '',
                 ),
               ],
               

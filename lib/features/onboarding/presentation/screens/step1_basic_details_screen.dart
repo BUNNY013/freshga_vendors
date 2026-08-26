@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/primary_button.dart';
 
 class Step1BasicDetailsScreen extends StatefulWidget {
@@ -70,7 +70,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                             ),
                       ),
                       const SizedBox(height: 32),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Owner Full Name',
                         controller: provider.fullNameController,
                         hintText: 'Enter owner full name',
@@ -84,7 +84,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Business Name',
                         controller: provider.businessNameController,
                         hintText: 'Enter your business name',
@@ -97,7 +97,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                             value == null || value.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Phone Number',
                         controller: provider.phoneController,
                         keyboardType: TextInputType.phone,
@@ -107,7 +107,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.grey400),
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Alternate Phone Number',
                         controller: provider.alternatePhoneController,
                         keyboardType: TextInputType.phone,
@@ -127,7 +127,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         },
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Email Address',
                         controller: provider.emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -149,7 +149,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Address Details (Door No, Building, Street)',
                         controller: provider.businessAddressController,
                         hintText: 'Enter permanent business address',
@@ -167,7 +167,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: CustomTextField(
+                            child: PremiumTextField(
                               label: 'Pincode',
                               controller: provider.pincodeController,
                               keyboardType: TextInputType.number,
@@ -195,7 +195,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: CustomTextField(
+                            child: PremiumTextField(
                               label: 'City/Block',
                               controller: provider.cityController,
                               hintText: 'Enter city or block',
@@ -220,7 +220,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       ] else ...[
                         const SizedBox(height: 8),
                       ],
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Village/Area',
                         controller: provider.villageController,
                         hintText: 'Enter village or area',
@@ -231,7 +231,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'District',
                         controller: provider.districtController,
                         hintText: 'Enter district',
@@ -244,7 +244,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       ),
                       const SizedBox(height: 8),
                       provider.isLocationFetched
-                          ? CustomTextField(
+                          ? PremiumTextField(
                               label: 'State',
                               controller: provider.stateController,
                               hintText: 'Enter state',

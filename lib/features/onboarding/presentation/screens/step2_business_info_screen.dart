@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/primary_button.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -225,7 +225,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       // PAN CARD (Mandatory)
                       Text('PAN Card Details', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'PAN Number',
                         controller: provider.panNumberController,
                         hintText: 'Enter 10-digit PAN',
@@ -279,7 +279,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       ),
                       const SizedBox(height: 12),
                       if (provider.taxRegistrationType != 'NeedsHelp') ...[
-                        CustomTextField(
+                        PremiumTextField(
                           label: provider.taxRegistrationType == 'GSTIN' ? 'GST Number' : 'Enrolment ID',
                           controller: provider.taxNumberController,
                           hintText: 'Enter Document Number',
@@ -350,7 +350,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       ),
                       const SizedBox(height: 12),
                       if (provider.fssaiStatus == 'Have') ...[
-                        CustomTextField(
+                        PremiumTextField(
                           label: '14-Digit FSSAI Number',
                           controller: provider.fssaiNumberController,
                           hintText: 'Enter FSSAI Number',

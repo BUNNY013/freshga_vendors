@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 
 class BankUpdateSheet extends StatefulWidget {
   final String storeId;
@@ -196,30 +197,16 @@ class _BankUpdateSheetState extends State<BankUpdateSheet> {
   }
 
   Widget _buildTextField(String label, TextEditingController controller, String hint, String? Function(String?) validator, {bool isNumber = false, bool isReadOnly = false, TextCapitalization textCapitalization = TextCapitalization.none, List<TextInputFormatter>? inputFormatters}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          validator: validator,
-          readOnly: isReadOnly,
-          textCapitalization: textCapitalization,
-          inputFormatters: inputFormatters ?? (isNumber ? [FilteringTextInputFormatter.digitsOnly] : null),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-          ),
-        ),
-      ],
+    return PremiumTextField(
+      label: label,
+      isRequired: true,
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      validator: validator,
+      readOnly: isReadOnly,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters ?? (isNumber ? [FilteringTextInputFormatter.digitsOnly] : null),
+      hintText: hint,
     );
   }
 }

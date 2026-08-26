@@ -13,7 +13,8 @@ import '../../providers/dashboard_provider.dart';
 
 
 class HomeDashboardView extends StatelessWidget {
-  const HomeDashboardView({super.key});
+  final Function(int)? onNavigateTab;
+  const HomeDashboardView({super.key, this.onNavigateTab});
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -255,9 +256,8 @@ class HomeDashboardView extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.orange.shade200, width: 2),
             ),
             child: CircleAvatar(
               radius: 20,
@@ -552,7 +552,7 @@ class HomeDashboardView extends StatelessWidget {
                       children: [
                         _buildOverviewCard(context, "Orders Today", "$todayOrders", Colors.green, '/analytics/orders'),
                         _buildOverviewCard(context, "Revenue Today", "₹${todayRevenue.toStringAsFixed(0)}", Colors.orange, '/analytics/revenue'),
-                        _buildOverviewCard(context, "Pending Orders", "$pendingCount", Colors.orange, '/analytics/orders'),
+                        _buildOverviewCard(context, "Pending Orders", "${dashboard.pendingOrdersCount}", Colors.orange, '/analytics/orders'),
                         _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, '/analytics/products', lowStockCount: dashboard.lowStockCount, outOfStockCount: dashboard.outOfStockCount),
                         _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, '/analytics/followers', showChevron: true),
                         _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
@@ -686,9 +686,10 @@ class HomeDashboardView extends StatelessWidget {
             final pendingCount = dashboard.pendingOrdersCount;
             final lowStockCount = dashboard.lowStockCount;
             final outOfStockCount = dashboard.outOfStockCount;
+            final expiringCount = dashboard.expiringOrdersCount;
 
         // If everything is clear, we might want to show a success state or hide it entirely
-            final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0;
+            final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0 && expiringCount == 0;
             final isNewStore = productCount == 0 && store.totalOrders == 0;
 
             return Column(
@@ -776,6 +777,23 @@ class HomeDashboardView extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    if (expiringCount > 0) ...[
+                      _buildAttentionRow(
+                        icon: Icons.timer_outlined,
+                        iconColor: Colors.red.shade700,
+                        title: "$expiringCount orders expiring soon!",
+                        subtitle: "Accept immediately to avoid cancellation",
+                        badgeText: "URGENT",
+                        badgeColor: Colors.red.shade800,
+                        onTap: () {
+                          if (onNavigateTab != null) onNavigateTab!(1);
+                          else context.go('/dashboard', extra: 1);
+                        },
+                      ),
+                    ],
+                    if (expiringCount > 0 && (pendingCount > 0 || lowStockCount > 0 || outOfStockCount > 0))
+                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
+                      
                     if (pendingCount > 0) ...[
                       _buildAttentionRow(
                         icon: Icons.assignment,
@@ -784,6 +802,10 @@ class HomeDashboardView extends StatelessWidget {
                         subtitle: "Dispatch as soon as possible",
                         badgeText: "High Priority",
                         badgeColor: Colors.red.shade600,
+                        onTap: () {
+                          if (onNavigateTab != null) onNavigateTab!(1);
+                          else context.go('/dashboard', extra: 1);
+                        },
                       ),
                     ],
                     if (pendingCount > 0 && (lowStockCount > 0 || outOfStockCount > 0))
@@ -797,6 +819,10 @@ class HomeDashboardView extends StatelessWidget {
                         subtitle: "Restock to avoid missed sales",
                         badgeText: "Medium",
                         badgeColor: Colors.orange.shade600,
+                        onTap: () {
+                          if (onNavigateTab != null) onNavigateTab!(2);
+                          else context.go('/dashboard', extra: 2);
+                        },
                       ),
                     ],
                     if (lowStockCount > 0 && outOfStockCount > 0)
@@ -810,6 +836,10 @@ class HomeDashboardView extends StatelessWidget {
                         subtitle: "Update availability to continue selling",
                         badgeText: "Low", // Matching image text visually
                         badgeColor: Colors.green.shade600, // Matching image color visually
+                        onTap: () {
+                          if (onNavigateTab != null) onNavigateTab!(2);
+                          else context.go('/dashboard', extra: 2);
+                        },
                       ),
                     ],
                   ],
@@ -830,9 +860,10 @@ class HomeDashboardView extends StatelessWidget {
     required String subtitle,
     required String badgeText,
     required Color badgeColor,
+    required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

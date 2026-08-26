@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/product_variant_model.dart';
 
@@ -143,7 +144,14 @@ class _VendorProductPreviewState extends State<VendorProductPreview> {
             right: 16,
             child: Row(
               children: [
-                _buildGlassButton(icon: Icons.share_outlined, onTap: () {}),
+                _buildGlassButton(
+                  icon: Icons.share_outlined, 
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Save the product first to share it with customers!')),
+                    );
+                  }
+                ),
                 const SizedBox(width: 12),
                 _buildGlassButton(icon: Icons.favorite_border, onTap: () {}),
               ],

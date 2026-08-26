@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
-import '../widgets/custom_text_field.dart';
+import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/primary_button.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -203,7 +203,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                       Text('Your earnings will be securely transferred to this account.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, fontSize: 15)),
                       const SizedBox(height: 32),
                       
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Account Holder Name',
                         controller: provider.accountNameController,
                         hintText: 'As per bank records (Must match PAN Card)',
@@ -247,7 +247,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Account Number',
                         controller: provider.accountNumberController,
                         keyboardType: TextInputType.number,
@@ -260,7 +260,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Confirm Account Number',
                         controller: provider.confirmAccountNumberController,
                         keyboardType: TextInputType.number,
@@ -277,7 +277,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                         },
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'IFSC Code',
                         controller: provider.ifscController,
                         textCapitalization: TextCapitalization.characters,
@@ -294,7 +294,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                         },
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'Bank Name',
                         controller: provider.bankNameController,
                         hintText: 'Auto-fetched using IFSC',
@@ -302,7 +302,7 @@ class _Step3AddressDetailsScreenState extends State<Step3AddressDetailsScreen> {
                         validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 8),
-                      CustomTextField(
+                      PremiumTextField(
                         label: 'UPI ID (Optional)',
                         controller: provider.upiController,
                         hintText: 'e.g. yourname@upi',
