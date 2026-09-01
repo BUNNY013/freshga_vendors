@@ -227,6 +227,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       const SizedBox(height: 12),
                       PremiumTextField(
                         label: 'PAN Number',
+                        isRequired: true,
                         controller: provider.panNumberController,
                         hintText: 'Enter 10-digit PAN',
                         prefixIcon: const Icon(Icons.credit_card_outlined, size: 20, color: AppColors.grey400),
@@ -237,7 +238,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildPhotoUploadButton(context, 'Upload PAN Card Photo', 'pan', provider),
+                      _buildPhotoUploadButton(context, 'Upload PAN Card Photo *', 'pan', provider),
                       
                       const SizedBox(height: 32),
                       const Divider(),
@@ -252,7 +253,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                           const Padding(
                             padding: EdgeInsets.only(left: 4.0, bottom: 4.0),
                             child: Text(
-                              'Do you have a GST Number?',
+                              'Do you have a GST Number? *',
                               style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
                             ),
                           ),
@@ -281,6 +282,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       if (provider.taxRegistrationType != 'NeedsHelp') ...[
                         PremiumTextField(
                           label: provider.taxRegistrationType == 'GSTIN' ? 'GST Number' : 'Enrolment ID',
+                          isRequired: true,
                           controller: provider.taxNumberController,
                           hintText: 'Enter Document Number',
                           prefixIcon: const Icon(Icons.receipt_long_outlined, size: 20, color: AppColors.grey400),
@@ -293,7 +295,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                         const SizedBox(height: 12),
                         _buildPhotoUploadButton(
                           context, 
-                          'Upload ${provider.taxRegistrationType == 'GSTIN' ? 'GST' : 'Enrolment'} Certificate', 
+                          'Upload ${provider.taxRegistrationType == 'GSTIN' ? 'GST' : 'Enrolment'} Certificate *', 
                           'tax', 
                           provider
                         ),
@@ -324,7 +326,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                           const Padding(
                             padding: EdgeInsets.only(left: 4.0, bottom: 4.0),
                             child: Text(
-                              'Do you have an FSSAI Certificate?',
+                              'Do you have an FSSAI Certificate? *',
                               style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 13),
                             ),
                           ),
@@ -352,6 +354,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                       if (provider.fssaiStatus == 'Have') ...[
                         PremiumTextField(
                           label: '14-Digit FSSAI Number',
+                          isRequired: true,
                           controller: provider.fssaiNumberController,
                           hintText: 'Enter FSSAI Number',
                           prefixIcon: const Icon(Icons.verified_user_outlined, size: 20, color: AppColors.grey400),
@@ -362,7 +365,7 @@ class _Step2BusinessInfoScreenState extends State<Step2BusinessInfoScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _buildPhotoUploadButton(context, 'Upload FSSAI Certificate', 'fssai', provider),
+                        _buildPhotoUploadButton(context, 'Upload FSSAI Certificate *', 'fssai', provider),
                       ] else ...[
                         Container(
                           padding: const EdgeInsets.all(16),

@@ -23,9 +23,17 @@ class NotificationProvider extends ChangeNotifier {
 
   void _init() {
     // Listen to Auth State to initialize notifications for the correct user
-    _auth.authStateChanges().listen((user) {
+    _auth.authStateChanges().listen((user) async {
       if (user != null) {
-        _subscribeToNotifications(user.uid);
+        try {
+          final userDoc = await _firestore.collection('users').doc(user.uid).get();
+          final storeId = userDoc.data()?['storeId'] as String?;
+          if (storeId != null && storeId.isNotEmpty) {
+            _subscribeToNotifications(storeId);
+          }
+        } catch (e) {
+          debugPrint('Error fetching storeId for notifications: $e');
+        }
       } else {
         _cancelSubscription();
         _notifications = [];

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../products/presentation/screens/product_list_screen.dart';
@@ -14,13 +16,51 @@ import 'home_dashboard_view.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialIndex;
-  const DashboardScreen({super.key, this.initialIndex = 0});
+  final int ordersInitialIndex;
+  final String productsInitialFilter;
+  
+  const DashboardScreen({
+    super.key, 
+    this.initialIndex = 0,
+    this.ordersInitialIndex = 0,
+    this.productsInitialFilter = 'Live',
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      blurValue: 1,
+      enableAutoScroll: true,
+      builder: (context) => _DashboardScreenBody(
+        initialIndex: widget.initialIndex,
+        ordersInitialIndex: widget.ordersInitialIndex,
+        productsInitialFilter: widget.productsInitialFilter,
+      ),
+    );
+  }
+}
+
+class _DashboardScreenBody extends StatefulWidget {
+  final int initialIndex;
+  final int ordersInitialIndex;
+  final String productsInitialFilter;
+  
+  const _DashboardScreenBody({
+    this.initialIndex = 0,
+    this.ordersInitialIndex = 0,
+    this.productsInitialFilter = 'Live',
+  });
+
+  @override
+  State<_DashboardScreenBody> createState() => _DashboardScreenBodyState();
+}
+
+class _DashboardScreenBodyState extends State<_DashboardScreenBody> {
   late int _currentIndex;
 
   @override
@@ -61,8 +101,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       },
     ),
-    const OrdersListScreen(),
-    const ProductListScreen(),
+    OrdersListScreen(initialIndex: widget.ordersInitialIndex),
+    ProductListScreen(initialFilter: widget.productsInitialFilter),
     const StoreManagementScreen(),
     const ProfileScreen(),
   ];

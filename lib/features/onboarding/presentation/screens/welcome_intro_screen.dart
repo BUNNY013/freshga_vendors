@@ -32,11 +32,6 @@ class _WelcomeIntroScreenState extends State<WelcomeIntroScreen> {
       'subtitle': 'Grow followers, get ratings, and build your own unique brand identity—just like an Instagram creator.',
       'image': 'assets/images/vendor_slide_3.png',
     },
-    {
-      'title': 'Secure & Fast Weekly Payouts',
-      'subtitle': 'Get paid securely with weekly settlements directly into your bank account. No hidden fees.',
-      'image': 'assets/images/vendor_slide_4.png',
-    },
   ];
 
   Timer? _timer;
@@ -79,15 +74,29 @@ class _WelcomeIntroScreenState extends State<WelcomeIntroScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          TextButton.icon(
-            onPressed: () async {
-              await context.read<AuthProvider>().signOut();
-              if (context.mounted) {
-                context.go('/login');
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (value) async {
+              if (value == 'logout') {
+                await context.read<AuthProvider>().signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               }
             },
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-            label: const Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],

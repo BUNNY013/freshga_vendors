@@ -7,6 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import '../../../../core/widgets/states/app_state_widgets.dart';
+import '../../../../data/models/product_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -62,9 +64,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsB
     context.read<NotificationProvider>().markAsRead(id);
   }
 
-  void _onNotificationTapped(NotificationModel notification) {
+  void _onNotificationTapped(NotificationModel notification) async {
     _markAsRead(notification.id);
-    if (notification.type == 'order' || notification.type == 'alert') {
+    if (notification.type == 'stock_alert' && notification.relatedId != null) {
+      showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
+      try {
+        final doc = await FirebaseFirestore.instance.collection('products').doc(notification.relatedId).get();
+        if (context.mounted) {
+           Navigator.pop(context); // close loader
+           if (doc.exists) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['productId'] = doc.id;
+              final product = ProductModel.fromJson(data);
+              context.push('/edit-pricing', extra: product);
+           } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product not found or has been deleted.')));
+           }
+        }
+      } catch (e) {
+        if (context.mounted) {
+           Navigator.pop(context); // close loader
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading product: $e')));
+        }
+      }
+    } else if (notification.type == 'order' || notification.type == 'alert') {
       context.go('/dashboard', extra: 1); // Index 1 is OrdersListScreen
     } else {
       context.go('/dashboard', extra: 4); // Index 4 is ProfileScreen
@@ -101,6 +124,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsB
           child: Icon(Icons.account_balance_wallet_outlined, color: Colors.orange.shade600, size: 24),
         );
       case 'alert':
+      case 'stock_alert':
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),

@@ -80,6 +80,9 @@ class VerificationPendingScreen extends StatelessWidget {
                       // Premium Gradient Header
                       _buildPremiumHeader(context, isChangesRequired, adminRemarks, needsAgentHelp, data),
                       
+                      // Spacing to prevent overlap from Positioned cards in the header
+                      SizedBox(height: isChangesRequired ? 110 : (needsAgentHelp ? 50 : 0)),
+                      
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                         child: Column(

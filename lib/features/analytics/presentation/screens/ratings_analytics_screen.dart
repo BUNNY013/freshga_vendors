@@ -42,42 +42,77 @@ class _RatingsAnalyticsScreenState extends State<RatingsAnalyticsScreen> {
 
             final store = StoreModel.fromJson(storeData);
 
-            // Since real customer reviews feature is not yet built, we default these distribution to 0
-            // but show the actual Store rating.
-            final avgRating = store.rating;
-            final totalReviews = store.totalReviews;
-            
-            return Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                title: const Text('Store Rating & Reviews', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
-                backgroundColor: Colors.white,
-                centerTitle: true,
-                iconTheme: const IconThemeData(color: AppColors.textPrimary),
-                elevation: 0,
-              ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildStatBox('Average Rating', avgRating.toStringAsFixed(1), 'No trends yet', '')),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildStatBox('Total Reviews', totalReviews.toString(), 'No trends yet', '')),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    _buildRatingDistribution(0, 0, 0, 0, 0, 0),
-                    const SizedBox(height: 24),
-                    
-                    _buildEmptyReviews(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('reviews').where('storeId', isEqualTo: storeId).orderBy('createdAt', descending: true).limit(10).snapshots(),
+              builder: (context, reviewsSnap) {
+                final docs = reviewsSnap.data?.docs ?? [];
+                
+                int totalReviews = store.totalReviews; // Keep the real counter if docs are paginated/limited
+                double avgRating = store.rating;
+                
+                // We'll calculate distribution from the recent 10 if totalReviews > 0
+                // Or just use the fetched ones. Actually let's query all if we want distribution!
+                // We'll just stream all reviews for the store to get the real distribution.
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('reviews').where('storeId', isEqualTo: storeId).snapshots(),
+                  builder: (context, allReviewsSnap) {
+                    final allDocs = allReviewsSnap.data?.docs ?? [];
+                    int total = allDocs.length;
+                    double calcAvg = 0;
+                    int d5=0, d4=0, d3=0, d2=0, d1=0;
+
+                    if (total > 0) {
+                      double sum = 0;
+                      for (var doc in allDocs) {
+                        final r = ((doc.data() as Map<String,dynamic>)['rating'] as num?)?.toDouble() ?? 0;
+                        sum += r;
+                        if (r >= 4.5) d5++;
+                        else if (r >= 3.5) d4++;
+                        else if (r >= 2.5) d3++;
+                        else if (r >= 1.5) d2++;
+                        else d1++;
+                      }
+                      calcAvg = sum / total;
+                    } else {
+                      calcAvg = store.rating;
+                      total = store.totalReviews;
+                    }
+
+                    return Scaffold(
+                      backgroundColor: Colors.white,
+                      appBar: AppBar(
+                        title: const Text('Store Rating & Reviews', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+                        backgroundColor: Colors.white,
+                        centerTitle: true,
+                        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+                        elevation: 0,
+                      ),
+                      body: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: _buildStatBox('Average Rating', total == 0 ? 'New' : calcAvg.toStringAsFixed(1), 'Realtime', '')),
+                                const SizedBox(width: 12),
+                                Expanded(child: _buildStatBox('Total Reviews', total.toString(), 'Realtime', '')),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            _buildRatingDistribution(d5, d4, d3, d2, d1, total),
+                            const SizedBox(height: 24),
+                            
+                            _buildRecentReviews(allDocs),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                );
+              }
             );
           }
         );
@@ -179,7 +214,36 @@ class _RatingsAnalyticsScreenState extends State<RatingsAnalyticsScreen> {
     );
   }
 
-  Widget _buildEmptyReviews() {
+  Widget _buildRecentReviews(List<QueryDocumentSnapshot> docs) {
+    if (docs.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Recent Reviews', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 32),
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.star_outline_rounded, size: 48, color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+                  Text("No reviews yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+    }
+
+    final recent = docs.take(5).toList();
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -190,23 +254,53 @@ class _RatingsAnalyticsScreenState extends State<RatingsAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Recent Reviews', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              Text('See All', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.green.shade700)),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: Column(
-              children: [
-                Icon(Icons.star_outline_rounded, size: 48, color: Colors.grey.shade300),
-                const SizedBox(height: 12),
-                Text("No reviews yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          )
+          const Text('Recent Reviews', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 24),
+          ...recent.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final rating = (data['rating'] as num?)?.toDouble() ?? 5.0;
+            final text = (data['feedback'] ?? data['reviewText'] ?? '') as String;
+            final customerName = data['customerName'] as String? ?? 'Customer';
+            final productName = data['productName'] as String? ?? 'Store Experience';
+            final orderId = data['orderId'] as String?;
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          customerName, 
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const SizedBox(width: 4),
+                          Text(rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        ],
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    orderId != null ? '$productName (Order: #$orderId)' : productName,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  if (text.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text('"$text"', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4, fontStyle: FontStyle.italic)),
+                  ],
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

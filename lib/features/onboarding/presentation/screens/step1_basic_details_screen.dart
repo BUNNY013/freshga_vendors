@@ -7,6 +7,7 @@ import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_app_bar.dart';
 import '../../../../core/presentation/widgets/premium_text_field.dart';
 import '../widgets/primary_button.dart';
+import 'location_picker_screen.dart';
 
 class Step1BasicDetailsScreen extends StatefulWidget {
   const Step1BasicDetailsScreen({super.key});
@@ -31,7 +32,14 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
 
   void _nextStep() {
     if (_formKey.currentState!.validate()) {
-      context.read<OnboardingProvider>().saveDraft();
+      final provider = context.read<OnboardingProvider>();
+      if (provider.latitude == null || provider.longitude == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please pin your location on the map')),
+        );
+        return;
+      }
+      provider.saveDraft();
       context.push('/onboarding/step2');
     }
   }
@@ -72,6 +80,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       const SizedBox(height: 32),
                       PremiumTextField(
                         label: 'Owner Full Name',
+                        isRequired: true,
                         controller: provider.fullNameController,
                         hintText: 'Enter owner full name',
                         prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.grey400),
@@ -86,6 +95,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       const SizedBox(height: 8),
                       PremiumTextField(
                         label: 'Business Name',
+                        isRequired: true,
                         controller: provider.businessNameController,
                         hintText: 'Enter your business name',
                         prefixIcon: const Icon(Icons.storefront_outlined, size: 20, color: AppColors.grey400),
@@ -99,6 +109,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       const SizedBox(height: 8),
                       PremiumTextField(
                         label: 'Phone Number',
+                        isRequired: true,
                         controller: provider.phoneController,
                         keyboardType: TextInputType.phone,
                         readOnly: true, // Phone is prefilled and read-only
@@ -151,6 +162,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       const SizedBox(height: 8),
                       PremiumTextField(
                         label: 'Address Details (Door No, Building, Street)',
+                        isRequired: true,
                         controller: provider.businessAddressController,
                         hintText: 'Enter permanent business address',
                         prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.grey400),
@@ -169,6 +181,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                           Expanded(
                             child: PremiumTextField(
                               label: 'Pincode',
+                              isRequired: true,
                               controller: provider.pincodeController,
                               keyboardType: TextInputType.number,
                               hintText: 'Enter pincode',
@@ -197,6 +210,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                           Expanded(
                             child: PremiumTextField(
                               label: 'City/Block',
+                              isRequired: true,
                               controller: provider.cityController,
                               hintText: 'Enter city or block',
                               readOnly: provider.isLocationFetched,
@@ -222,6 +236,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       ],
                       PremiumTextField(
                         label: 'Village/Area',
+                        isRequired: true,
                         controller: provider.villageController,
                         hintText: 'Enter village or area',
                         textCapitalization: TextCapitalization.words,
@@ -233,6 +248,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       const SizedBox(height: 8),
                       PremiumTextField(
                         label: 'District',
+                        isRequired: true,
                         controller: provider.districtController,
                         hintText: 'Enter district',
                         readOnly: provider.isLocationFetched,
@@ -246,6 +262,7 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                       provider.isLocationFetched
                           ? PremiumTextField(
                               label: 'State',
+                              isRequired: true,
                               controller: provider.stateController,
                               hintText: 'Enter state',
                               readOnly: true,
@@ -306,11 +323,81 @@ class _Step1BasicDetailsScreenState extends State<Step1BasicDetailsScreen> {
                                 ),
                               ],
                             ),
+                            
+                      // Location Picker Button Moved inside SingleChildScrollView
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: () async {
+                          final latLng = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LocationPickerScreen(
+                                initialLat: provider.latitude,
+                                initialLng: provider.longitude,
+                              ),
+                            ),
+                          );
+                          if (latLng != null) {
+                            provider.latitude = latLng.latitude;
+                            provider.longitude = latLng.longitude;
+                            provider.saveDraft();
+                            setState(() {});
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: provider.latitude != null ? Colors.green.withOpacity(0.1) : AppColors.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: provider.latitude != null ? Colors.green : AppColors.primary.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                provider.latitude != null ? Icons.check_circle : Icons.pin_drop,
+                                color: provider.latitude != null ? Colors.green : AppColors.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      provider.latitude != null ? 'Location Pinned' : 'Pin Location on Map *',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: provider.latitude != null ? Colors.green[800] : AppColors.primary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    if (provider.latitude != null)
+                                      Text(
+                                        '${provider.latitude!.toStringAsFixed(4)}, ${provider.longitude!.toStringAsFixed(4)}',
+                                        style: TextStyle(
+                                          color: Colors.green[700],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: provider.latitude != null ? Colors.green : AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
               Padding(
+
                 padding: const EdgeInsets.all(24.0),
                 child: PrimaryButton(text: 'Continue', onPressed: _nextStep),
               ),

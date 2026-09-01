@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -6,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
 import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../../../data/models/user_model.dart';
-import '../../../products/domain/models/product_model.dart';
+import '../../../../data/models/product_model.dart';
 import '../../../orders/domain/models/order_model.dart';
 
 class ProductsAnalyticsScreen extends StatefulWidget {
@@ -70,7 +71,11 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
               }
               if (prodSnap.hasError) return ErrorStateWidget(message: 'Failed to load products', onRetry: () {});
 
-              List<ProductModel> allProducts = prodSnap.data!.docs.map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
+              List<ProductModel> allProducts = prodSnap.data!.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['productId'] = doc.id;
+                return ProductModel.fromJson(data);
+              }).toList();
 
               if (allProducts.isEmpty) {
                 return _buildEmptyState();
@@ -130,6 +135,88 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
       statsList.sort((a, b) => b.revenue.compareTo(a.revenue));
     }
 
+    List<ProductModel> lowStockProducts = [];
+    List<ProductModel> outOfStockProducts = [];
+
+    for (var product in products) {
+      if (product.status.toLowerCase() == 'published' || product.status.toLowerCase() == 'live' || product.status.contains('Live')) {
+        if (product.variants.isNotEmpty) {
+          final isOutOfStock = product.variants.any((v) => v.manageStock && v.stock <= 0);
+          final isLowStock = product.variants.any((v) => v.manageStock && v.stock > 0 && v.stock <= 5);
+
+          if (isOutOfStock) {
+            outOfStockProducts.add(product);
+          } else if (isLowStock) {
+            lowStockProducts.add(product);
+          }
+        }
+      }
+    }
+
+    Widget buildNeedsAttention() {
+      if (lowStockProducts.isEmpty && outOfStockProducts.isEmpty) return const SizedBox.shrink();
+
+      List<Widget> attentionWidgets = [];
+      
+      for (var p in lowStockProducts) {
+        attentionWidgets.add(_buildProductAttentionRow(
+          product: p,
+          subtitle: "Running low on stock",
+          badgeText: "Restock",
+          badgeColor: Colors.orange.shade600,
+          onTap: () => context.push('/edit-pricing', extra: p),
+        ));
+      }
+
+      for (var p in outOfStockProducts) {
+        attentionWidgets.add(_buildProductAttentionRow(
+          product: p,
+          subtitle: "Out of stock",
+          badgeText: "Urgent",
+          badgeColor: Colors.red.shade600,
+          onTap: () => context.push('/edit-pricing', extra: p),
+        ));
+      }
+
+      List<Widget> finalWidgets = [];
+      for (int i = 0; i < attentionWidgets.length; i++) {
+        finalWidgets.add(attentionWidgets[i]);
+        if (i < attentionWidgets.length - 1) {
+          finalWidgets.add(Divider(height: 1, indent: 64, color: Colors.grey.shade100));
+        }
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: AppColors.textPrimary, size: 20),
+              SizedBox(width: 8),
+              Text("Needs Attention", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.red.shade100, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            ),
+            child: Column(children: finalWidgets),
+          ),
+          const SizedBox(height: 24),
+        ],
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -145,6 +232,8 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          
+          buildNeedsAttention(),
           
           Container(
             padding: const EdgeInsets.all(20),
@@ -167,40 +256,38 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
                 ),
                 const SizedBox(height: 28),
                 
-                if (statsList.every((s) => s.orders == 0))
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40.0),
-                      child: Column(
-                        children: [
-                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
-                          const SizedBox(height: 12),
-                          Text("No sales data yet", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(3),
-                      1: FlexColumnWidth(1.5),
-                      2: FlexColumnWidth(1.8),
-                      3: FlexColumnWidth(1.5),
-                    },
-                    children: [
-                      _buildTableHeader(),
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(3),
+                    1: FlexColumnWidth(1.5),
+                    2: FlexColumnWidth(1.8),
+                    3: FlexColumnWidth(1.5),
+                  },
+                  children: [
+                    _buildTableHeader(),
+                    if (statsList.isEmpty)
+                      const TableRow(children: [
+                        Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Text("No products found", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))),
+                        Text(""), Text(""), Text("")
+                      ])
+                    else if (statsList.every((s) => s.orders == 0) && _activeTab != 'Low Stock' && _activeTab != 'Out of Stock')
+                      const TableRow(children: [
+                        Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Text("No sales data yet", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))),
+                        Text(""), Text(""), Text("")
+                      ])
+                    else
                       ...statsList.take(6).map((stat) {
                         final format = NumberFormat('#,##,###', 'en_IN');
                         return _buildTableRow(
+                          stat.product,
                           stat.product.name, 
                           '${stat.orders}', 
                           '₹${format.format(stat.revenue.toInt())}', 
                           '${stat.views.toStringAsFixed(1)}'
                         );
                       }),
-                    ],
-                  )
+                  ],
+                )
               ],
             ),
           )
@@ -265,15 +352,90 @@ class _ProductsAnalyticsScreenState extends State<ProductsAnalyticsScreen> {
     );
   }
 
-  TableRow _buildTableRow(String name, String orders, String rev, String views) {
+  TableRow _buildTableRow(ProductModel product, String name, String orders, String rev, String views) {
     const style = TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary);
+    
+    Widget wrapClickable(Widget child) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.push('/edit-pricing', extra: product),
+        child: child,
+      );
+    }
+
     return TableRow(
       children: [
-        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(name, style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
-        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(orders, style: style)),
-        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(rev, style: style)),
-        Padding(padding: EdgeInsets.only(bottom: 16), child: Text(views, style: style, textAlign: TextAlign.right)),
+        wrapClickable(Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(name, style: style, maxLines: 1, overflow: TextOverflow.ellipsis))),
+        wrapClickable(Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(orders, style: style))),
+        wrapClickable(Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(rev, style: style))),
+        wrapClickable(Padding(padding: const EdgeInsets.only(bottom: 16), child: Text(views, style: style, textAlign: TextAlign.right))),
       ],
+    );
+  }
+
+  Widget _buildProductAttentionRow({
+    required ProductModel product,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                image: product.images.isNotEmpty 
+                  ? DecorationImage(image: NetworkImage(product.images.first), fit: BoxFit.cover)
+                  : null,
+              ),
+              child: product.images.isEmpty ? const Icon(Icons.inventory_2, color: Colors.grey) : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: badgeColor.withOpacity(0.3)),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor, letterSpacing: 0.3),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -10,6 +10,8 @@ import '../../../../data/models/store_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/subscription_provider.dart';
 import '../widgets/store_qr_code_sheet.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StoreManagementScreen extends StatefulWidget {
   const StoreManagementScreen({super.key});
@@ -21,6 +23,12 @@ class StoreManagementScreen extends StatefulWidget {
 class _StoreManagementScreenState extends State<StoreManagementScreen> {
   late ScrollController _scrollController;
   double _scrollOffset = 0.0;
+  final GlobalKey _visibilityKey = GlobalKey();
+  final GlobalKey _socialKey = GlobalKey();
+  final GlobalKey _deliveryKey = GlobalKey();
+  final GlobalKey _businessKey = GlobalKey();
+  final GlobalKey _bankingKey = GlobalKey();
+  bool _hasCheckedTutorial = false;
 
   @override
   void initState() {
@@ -33,6 +41,22 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
       });
   }
 
+  Future<void> _checkStoreTutorial() async {
+    if (_hasCheckedTutorial) return;
+    _hasCheckedTutorial = true;
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_store_tutorial') ?? false;
+    
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ShowCaseWidget.of(context).startShowCase([_visibilityKey, _socialKey, _deliveryKey, _businessKey, _bankingKey]);
+        }
+      });
+      await prefs.setBool('has_seen_store_tutorial', true);
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -41,11 +65,15 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    return ShowCaseWidget(
+      blurValue: 1,
+      enableAutoScroll: true,
+      builder: (context) {
+        final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text('Not authenticated')));
-    }
+        if (user == null) {
+          return const Scaffold(body: Center(child: Text('Not authenticated')));
+        }
 
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
@@ -75,6 +103,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             }
 
             final store = StoreModel.fromJson(storeSnap.data!.data() as Map<String, dynamic>);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _checkStoreTutorial();
+            });
 
             final double maxOffset = 180.0;
             final double fraction = (_scrollOffset / maxOffset).clamp(0.0, 1.0);
@@ -127,8 +159,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         );
       },
     );
+      },
+    );
   }
-
   Widget _buildHeader(BuildContext context, StoreModel store) {
     return Column(
       children: [
@@ -246,36 +279,30 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FutureBuilder<AggregateQuerySnapshot>(
-                  future: FirebaseFirestore.instance.collection('orders')
-                    .where('storeId', isEqualTo: store.storeId)
-                    .where('orderStatus', isEqualTo: 'Delivered')
-                    .count().get(),
-                  builder: (context, snapshot) {
-                    String count = store.totalOrders.toString();
-                    if (snapshot.hasData) {
-                      count = snapshot.data?.count?.toString() ?? count;
-                    }
-                    return _buildMetricColumn(count, 'Successful\nOrders');
-                  },
+                _buildMetricColumn(
+                  store.totalOrders.toString(), 
+                  'Successful\nOrders',
+                  onTap: () => context.go('/dashboard', extra: {'initialIndex': 1, 'ordersInitialIndex': 4}),
                 ),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
-                _buildMetricColumn(store.followers > 1000 ? '${(store.followers / 1000).toStringAsFixed(1)}K' : store.followers.toString(), 'Followers'),
-                Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
-                FutureBuilder<AggregateQuerySnapshot>(
-                  future: FirebaseFirestore.instance.collection('products')
-                    .where('storeId', isEqualTo: store.storeId)
-                    .count().get(),
-                  builder: (context, snapshot) {
-                    String count = store.productsCount.toString();
-                    if (snapshot.hasData) {
-                      count = snapshot.data?.count?.toString() ?? count;
-                    }
-                    return _buildMetricColumn(count, 'Products');
-                  },
+                _buildMetricColumn(
+                  store.followers > 1000 ? '${(store.followers / 1000).toStringAsFixed(1)}K' : store.followers.toString(), 
+                  'Followers',
+                  onTap: () => context.push('/analytics/followers'),
                 ),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
-                _buildMetricColumn('${store.rating}', '${store.totalReviews} Revs', isRating: true),
+                _buildMetricColumn(
+                  store.productsCount.toString(), 
+                  'Products',
+                  onTap: () => context.go('/dashboard', extra: {'initialIndex': 2, 'productsInitialFilter': 'Live'}),
+                ),
+                Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
+                _buildMetricColumn(
+                  store.totalReviews == 0 ? 'New' : '${store.rating}', 
+                  store.totalReviews == 0 ? 'Rating' : '${store.totalReviews} Revs', 
+                  isRating: store.totalReviews > 0,
+                  onTap: () => context.push('/analytics/rating'),
+                ),
               ],
             ),
           ),
@@ -349,26 +376,33 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     );
   }
 
-  Widget _buildMetricColumn(String value, String label, {bool isRating = false}) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildMetricColumn(String value, String label, {bool isRating = false, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
           children: [
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-            if (isRating) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.star, color: Color(0xFFF59E0B), size: 16),
-            ]
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                if (isRating) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.star, color: Color(0xFFF59E0B), size: 16),
+                ]
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label, 
+              style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label, 
-          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 
@@ -376,22 +410,45 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     final subProvider = context.watch<SubscriptionProvider>();
     final isExpired = subProvider.currentSubscription?.isCompletelyExpired ?? false;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Showcase(
+      key: _visibilityKey,
+      title: '1 of 5: Store Visibility',
+      description: 'Quickly toggle your store offline if you are busy or on vacation.',
+      tooltipBackgroundColor: AppColors.primary,
+      textColor: Colors.white,
+      targetPadding: const EdgeInsets.all(4),
+      targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      overlayOpacity: 0.5,
+      scrollAlignment: 0.5,
+      tooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.skip,
+          name: 'Skip Tutorial',
+          textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+        ),
+        TooltipActionButton(
+          type: TooltipDefaultActionType.next,
+          name: 'Next',
+          backgroundColor: Colors.white,
+          textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+        ),
+      ],
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -499,6 +556,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -506,85 +564,133 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     return Column(
       children: [
         _buildVacationModeCard(context, store),
-        _buildSettingsCard(
-          context: context,
-          icon: Icons.link_outlined,
-          title: 'Social Links',
-          subtitleWidget: Row(
-            children: [
-              if (store.instagramLink.isNotEmpty) _buildSocialIcon(Icons.camera_alt_outlined, Colors.pink),
-              if (store.instagramLink.isNotEmpty) const SizedBox(width: 8),
-              if (store.facebookLink.isNotEmpty) _buildSocialIcon(Icons.facebook, Colors.blue),
-              if (store.facebookLink.isNotEmpty) const SizedBox(width: 8),
-              if (store.youtubeLink.isNotEmpty) _buildSocialIcon(Icons.play_circle_fill, Colors.red),
-            ],
-          ),
-          route: '/store/social-links',
-        ),
-        _buildSettingsCard(
-          context: context,
-          icon: Icons.local_shipping_outlined,
-          title: 'Delivery Settings',
-          subtitleWidget: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Fulfillment: Self Shipping',
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              if (store.deliveryAreas.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ...store.deliveryAreas.map((area) {
-                  String displayName = area.areaType;
-                  if (area.areaType == 'My State' && store.state.isNotEmpty) {
-                    displayName = store.state;
-                  } else if (area.areaType == 'Local City' && store.city.isNotEmpty) {
-                    displayName = store.city;
-                  }
-
-                  String ruleText = '';
-                  if (area.ruleType == 'free') {
-                    ruleText = 'Free Delivery';
-                  } else if (area.ruleType == 'flat') {
-                    ruleText = '₹${area.deliveryCharge.toInt()}';
-                  } else if (area.ruleType == 'flat_plus_free_above') {
-                    ruleText = '₹${area.deliveryCharge.toInt()} (Free delivery over ₹${area.freeShippingThreshold?.toInt()})';
-                  }
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(Icons.location_on_outlined, size: 14, color: AppColors.primary),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                displayName,
-                                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                ruleText,
-                                style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+        Showcase(
+          key: _socialKey,
+          title: '2 of 5: Social Links',
+          description: 'Add your Instagram, Facebook, and WhatsApp group links here.',
+          tooltipBackgroundColor: AppColors.primary,
+          textColor: Colors.white,
+          targetPadding: const EdgeInsets.all(4),
+          targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          overlayOpacity: 0.5,
+          scrollAlignment: 0.5,
+          tooltipActions: [
+            TooltipActionButton(
+              type: TooltipDefaultActionType.skip,
+              name: 'Skip Tutorial',
+              textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+            ),
+            TooltipActionButton(
+              type: TooltipDefaultActionType.next,
+              name: 'Next',
+              backgroundColor: Colors.white,
+              textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ],
+          child: _buildSettingsCard(
+            context: context,
+            icon: Icons.link_outlined,
+            title: 'Social Links',
+            subtitleWidget: Row(
+              children: [
+                if (store.instagramLink.isNotEmpty) _buildSocialIcon(Icons.camera_alt_outlined, Colors.pink),
+                if (store.instagramLink.isNotEmpty) const SizedBox(width: 8),
+                if (store.facebookLink.isNotEmpty) _buildSocialIcon(Icons.facebook, Colors.blue),
+                if (store.facebookLink.isNotEmpty) const SizedBox(width: 8),
+                if (store.youtubeLink.isNotEmpty) _buildSocialIcon(Icons.play_circle_fill, Colors.red),
               ],
-            ],
+            ),
+            route: '/store/social-links',
           ),
-          route: '/store/order-fulfillment',
+        ),
+        Showcase(
+          key: _deliveryKey,
+          title: '3 of 5: Delivery Settings',
+          description: 'Set up your delivery areas and charges here.',
+          tooltipBackgroundColor: AppColors.primary,
+          textColor: Colors.white,
+          targetPadding: const EdgeInsets.all(4),
+          targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          overlayOpacity: 0.5,
+          scrollAlignment: 0.5,
+          tooltipActions: [
+            TooltipActionButton(
+              type: TooltipDefaultActionType.skip,
+              name: 'Skip Tutorial',
+              textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+            ),
+            TooltipActionButton(
+              type: TooltipDefaultActionType.next,
+              name: 'Next',
+              backgroundColor: Colors.white,
+              textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ],
+          child: _buildSettingsCard(
+            context: context,
+            icon: Icons.local_shipping_outlined,
+            title: 'Delivery Settings',
+            subtitleWidget: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Fulfillment: Self Shipping',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                if (store.deliveryAreas.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...store.deliveryAreas.map((area) {
+                    String displayName = area.areaType;
+                    if (area.areaType == 'My State' && store.state.isNotEmpty) {
+                      displayName = store.state;
+                    } else if (area.areaType == 'Local City' && store.city.isNotEmpty) {
+                      displayName = store.city;
+                    }
+
+                    String ruleText = '';
+                    if (area.ruleType == 'free') {
+                      ruleText = 'Free Delivery';
+                    } else if (area.ruleType == 'flat') {
+                      ruleText = '₹${area.deliveryCharge.toInt()}';
+                    } else if (area.ruleType == 'flat_plus_free_above') {
+                      ruleText = '₹${area.deliveryCharge.toInt()} (Free delivery over ₹${area.freeShippingThreshold?.toInt()})';
+                    }
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Icon(Icons.location_on_outlined, size: 14, color: AppColors.primary),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  ruleText,
+                                  style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ],
+            ),
+            route: '/store/order-fulfillment',
+          ),
         ),
         FutureBuilder<QuerySnapshot>(
           future: FirebaseFirestore.instance.collection('supplierApplications').where('userId', isEqualTo: userId).limit(1).get(),
@@ -611,7 +717,30 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
 
             return Column(
               children: [
-                _buildSettingsCard(
+                Showcase(
+                  key: _businessKey,
+                  title: '4 of 5: Business Details',
+                  description: 'Review your registered business name, address, and compliance info.',
+                  tooltipBackgroundColor: AppColors.primary,
+                  textColor: Colors.white,
+                  targetPadding: const EdgeInsets.all(4),
+                  targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  overlayOpacity: 0.5,
+                  scrollAlignment: 0.5,
+                  tooltipActions: [
+                    TooltipActionButton(
+                      type: TooltipDefaultActionType.skip,
+                      name: 'Skip Tutorial',
+                      textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                    ),
+                    TooltipActionButton(
+                      type: TooltipDefaultActionType.next,
+                      name: 'Next',
+                      backgroundColor: Colors.white,
+                      textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                  child: _buildSettingsCard(
                   context: context,
                   icon: Icons.business_outlined,
                   title: 'Business Details',
@@ -641,7 +770,26 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                   ),
                   route: '/store/business-details',
                 ),
-                _buildSettingsCard(
+                ),
+                Showcase(
+                  key: _bankingKey,
+                  title: '5 of 5: Banking & Payouts',
+                  description: 'View your bank account details where earnings are transferred.',
+                  tooltipBackgroundColor: AppColors.primary,
+                  textColor: Colors.white,
+                  targetPadding: const EdgeInsets.all(4),
+                  targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  overlayOpacity: 0.5,
+                  scrollAlignment: 0.5,
+                  tooltipActions: [
+                    TooltipActionButton(
+                      type: TooltipDefaultActionType.next,
+                      name: 'Finish',
+                      backgroundColor: Colors.white,
+                      textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                  child: _buildSettingsCard(
                   context: context,
                   icon: Icons.account_balance_outlined,
                   title: 'Banking & Payouts',
@@ -666,6 +814,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                     ],
                   ),
                   route: '/store/banking',
+                ),
                 ),
               ],
             );

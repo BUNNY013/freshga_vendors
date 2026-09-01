@@ -48,27 +48,13 @@ class DashboardProvider extends ChangeNotifier {
           
           // Only count active/live products
           if (product.status.contains('Live')) {
-            bool hasLowVariant = false;
-            bool allOut = true;
-            bool hasVariants = product.variants.isNotEmpty;
+            if (product.variants.isNotEmpty) {
+              final isOutOfStock = product.variants.any((v) => v.manageStock && v.stock <= 0);
+              final isLowStock = product.variants.any((v) => v.manageStock && v.stock > 0 && v.stock <= 5);
 
-            if (hasVariants) {
-              for (var variant in product.variants) {
-                if (variant.manageStock) {
-                  if (variant.stock > 0) {
-                    allOut = false;
-                    if (variant.stock <= 5) {
-                      hasLowVariant = true;
-                    }
-                  }
-                } else {
-                  allOut = false; // If stock is not managed, it's technically infinite
-                }
-              }
-
-              if (allOut) {
+              if (isOutOfStock) {
                 out++;
-              } else if (hasLowVariant) {
+              } else if (isLowStock) {
                 low++;
               }
             }

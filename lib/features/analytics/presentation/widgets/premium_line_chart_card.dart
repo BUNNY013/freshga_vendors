@@ -105,7 +105,7 @@ class _PremiumLineChartCardState extends State<PremiumLineChartCard> with Single
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
-                          interval: 2, // Space out labels to prevent overlap
+                          interval: widget.xLabels.length > 7 ? (widget.xLabels.length / 5).ceilToDouble() : 1,
                           getTitlesWidget: (value, meta) {
                             if (value.toInt() >= 0 && value.toInt() < widget.xLabels.length) {
                               return Padding(

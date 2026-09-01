@@ -54,6 +54,9 @@ class OnboardingProvider extends ChangeNotifier {
   final TextEditingController districtController = TextEditingController();
   final TextEditingController stateController = TextEditingController();
   final TextEditingController pincodeController = TextEditingController();
+  
+  double? latitude;
+  double? longitude;
 
 
   // Step 5: Bank Details
@@ -274,6 +277,8 @@ class OnboardingProvider extends ChangeNotifier {
       'district': districtController.text,
       'state': stateController.text,
       'pincode': pincodeController.text,
+      'latitude': latitude,
+      'longitude': longitude,
       
       'taxRegistrationType': taxRegistrationType,
       'taxNumber': taxNumberController.text,
@@ -343,6 +348,9 @@ class OnboardingProvider extends ChangeNotifier {
         if (pincodeController.text.length == 6 && stateController.text.isNotEmpty) {
           _isLocationFetched = true;
         }
+
+        if (draft['latitude'] != null) latitude = (draft['latitude'] as num).toDouble();
+        if (draft['longitude'] != null) longitude = (draft['longitude'] as num).toDouble();
         
         taxRegistrationType = draft['taxRegistrationType'] ?? 'GSTIN';
         taxNumberController.text = draft['taxNumber'] ?? '';
@@ -496,6 +504,8 @@ class OnboardingProvider extends ChangeNotifier {
         district: districtController.text.trim(),
         state: stateController.text.trim(),
         pincode: pincodeController.text.trim(),
+        latitude: latitude,
+        longitude: longitude,
         bankDetails: {
           'accountHolderName': accountNameController.text.trim(),
           'accountType': accountType,

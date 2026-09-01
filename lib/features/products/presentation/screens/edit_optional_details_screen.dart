@@ -135,7 +135,7 @@ class _EditOptionalDetailsScreenState extends State<EditOptionalDetailsScreen> {
           _hasUnsavedChanges = false;
         });
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Updated in real-time!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes updated successfully!')));
       }
     } catch (e) {
       if (mounted) {

@@ -44,6 +44,7 @@ import '../features/analytics/presentation/screens/earnings_payouts_screen.dart'
 import '../features/profile/presentation/screens/customer_feedback_screen.dart';
 import '../features/profile/presentation/screens/payouts_screen.dart';
 import '../features/profile/presentation/screens/vendor_help_support_screen.dart';
+import '../features/profile/presentation/screens/vendor_accounts_screen.dart';
 import '../features/onboarding/presentation/screens/step1_basic_details_screen.dart';
 import '../features/onboarding/presentation/screens/step2_business_info_screen.dart';
 import '../features/onboarding/presentation/screens/step3_address_details_screen.dart';
@@ -103,7 +104,15 @@ class AppRouter {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) {
-          final initialIndex = state.extra as int? ?? 0;
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            return DashboardScreen(
+              initialIndex: extra['initialIndex'] as int? ?? 0,
+              ordersInitialIndex: extra['ordersInitialIndex'] as int? ?? 0,
+              productsInitialFilter: extra['productsInitialFilter'] as String? ?? 'Live',
+            );
+          }
+          final initialIndex = extra as int? ?? 0;
           return DashboardScreen(initialIndex: initialIndex);
         },
       ),
@@ -228,6 +237,10 @@ class AppRouter {
       GoRoute(
         path: '/profile/support',
         builder: (context, state) => const VendorHelpSupportScreen(),
+      ),
+      GoRoute(
+        path: '/profile/accounts',
+        builder: (context, state) => const VendorAccountsScreen(),
       ),
       GoRoute(
         path: '/analytics/revenue',

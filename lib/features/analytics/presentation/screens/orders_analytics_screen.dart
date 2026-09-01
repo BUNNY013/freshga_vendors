@@ -184,22 +184,6 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
 
     final filteredOrders = allOrders.where((o) => o.createdAt.isAfter(startDate)).toList();
 
-    if (filteredOrders.isEmpty) {
-      return PremiumLineChartCard(
-        title: 'Total Orders',
-        primaryMetricLabel: 'Orders',
-        chartColor: Colors.green.shade600,
-        selectedFilter: _chartFilter,
-        xLabels: const [],
-        dataSpots: const [],
-        onFilterChanged: (newFilter) {
-          setState(() {
-            _chartFilter = newFilter;
-          });
-        },
-      );
-    }
-
     // 2. Group by Date
     Map<String, int> groupedData = {};
     
@@ -231,10 +215,20 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
 
     // 3. Convert to Chart format
     List<String> labels = groupedData.keys.toList();
-    List<FlSpot> spots = [];
     
+    // Ensure at least 2 points for LineChart to draw a line
+    if (labels.length == 1) {
+      String prevDay = DateFormat('MMM d').format(now.subtract(const Duration(days: 1)));
+      labels.insert(0, prevDay);
+      groupedData[prevDay] = 0;
+    } else if (labels.isEmpty) {
+      labels = ['', ''];
+      groupedData[''] = 0;
+    }
+
+    List<FlSpot> spots = [];
     for (int i = 0; i < labels.length; i++) {
-      spots.add(FlSpot(i.toDouble(), groupedData[labels[i]]!.toDouble()));
+      spots.add(FlSpot(i.toDouble(), (groupedData[labels[i]] ?? 0).toDouble()));
     }
 
     // Remove the fake fallback so empty state relies on the check above
@@ -279,14 +273,14 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
               SizedBox(
                 height: 140,
                 width: 140,
-                child: orders.isEmpty 
-                 ? const Center(child: Text('No Data', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)))
-                 : PieChart(
+                child: PieChart(
                   PieChartData(
                     sectionsSpace: 3,
                     centerSpaceRadius: 40,
                     startDegreeOffset: -90,
-                    sections: [
+                    sections: orders.isEmpty 
+                      ? [PieChartSectionData(color: Colors.grey.shade200, value: 1, radius: 20, showTitle: false)]
+                      : [
                       if (completed > 0) PieChartSectionData(color: Colors.green, value: completed.toDouble(), radius: 24, showTitle: false),
                       if (processing > 0) PieChartSectionData(color: Colors.grey, value: processing.toDouble(), radius: 22, showTitle: false),
                       if (pending > 0) PieChartSectionData(color: Colors.amber, value: pending.toDouble(), radius: 20, showTitle: false),
@@ -339,10 +333,8 @@ class _OrdersAnalyticsScreenState extends State<OrdersAnalyticsScreen> {
     Map<String, int> citiesCount = {};
     for (var o in orders) {
       if (o.deliveryAddress.isNotEmpty) {
-        // Try to extract city from address string (e.g. "Hyderabad, India" -> "Hyderabad")
-        // Very basic extraction for MVP
         List<String> parts = o.deliveryAddress.split(',');
-        String city = parts.isNotEmpty ? parts.first.trim() : 'Unknown';
+        String city = parts.length > 1 ? parts[parts.length - 2].trim() : parts.first.trim();
         if (city.isNotEmpty) {
           citiesCount[city] = (citiesCount[city] ?? 0) + 1;
         }

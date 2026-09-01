@@ -245,6 +245,12 @@ class ProductProvider extends ChangeNotifier {
       await _firestore.collection('products').doc(productId).set(finalProduct.toJson())
           .timeout(const Duration(seconds: 12), onTimeout: () => throw TimeoutException('Connection timed out while creating product. Please check your network.'));
 
+      if (_cachedStoreId != null) {
+        await _firestore.collection('stores').doc(_cachedStoreId).update({
+          'productsCount': FieldValue.increment(1),
+        });
+      }
+
       _selectedImages.clear();
       return finalProduct;
     } catch (e) {
@@ -637,7 +643,14 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: DateTime.now().toIso8601String(),
       );
       await _firestore.collection('products').doc(newId).set(dup.toJson());
-      return true;
+        
+        if (_cachedStoreId != null) {
+          await _firestore.collection('stores').doc(_cachedStoreId).update({
+            'productsCount': FieldValue.increment(1),
+          });
+        }
+        
+        return true;
     } catch (e) {
       debugPrint("Duplicate product failed: $e");
       return false;
@@ -656,9 +669,16 @@ class ProductProvider extends ChangeNotifier {
         // Images may not exist, continue
       }
 
-      // Delete product document
-      await _firestore.collection('products').doc(productId).delete();
-      return true;
+        // Delete product document
+        await _firestore.collection('products').doc(productId).delete();
+        
+        if (_cachedStoreId != null) {
+          await _firestore.collection('stores').doc(_cachedStoreId).update({
+            'productsCount': FieldValue.increment(-1),
+          });
+        }
+        
+        return true;
     } catch (e) {
       debugPrint("Delete product failed: $e");
       return false;

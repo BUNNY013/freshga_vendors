@@ -12,27 +12,38 @@ import '../widgets/product_card.dart';
 import '../widgets/product_actions_sheet.dart';
 import '../widgets/product_preview_sheet.dart';
 
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ProductListScreen extends StatelessWidget {
-  const ProductListScreen({super.key});
+  final String initialFilter;
+  const ProductListScreen({super.key, this.initialFilter = 'Live'});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ProductProvider(),
-      child: const _ProductListContent(),
+    return ShowCaseWidget(
+      blurValue: 1,
+      enableAutoScroll: true,
+      builder: (context) {
+        return ChangeNotifierProvider(
+          create: (_) => ProductProvider(),
+          child: _ProductListContent(initialFilter: initialFilter),
+        );
+      },
     );
   }
 }
 
 class _ProductListContent extends StatefulWidget {
-  const _ProductListContent();
+  final String initialFilter;
+  const _ProductListContent({this.initialFilter = 'Live'});
 
   @override
   State<_ProductListContent> createState() => _ProductListContentState();
 }
 
 class _ProductListContentState extends State<_ProductListContent> {
-  String _selectedFilter = 'Live';
+  late String _selectedFilter;
   String? _selectedCategory;
   String? _selectedSubCategory;
   final TextEditingController _searchController = TextEditingController();
@@ -40,6 +51,13 @@ class _ProductListContentState extends State<_ProductListContent> {
   late Future<DocumentSnapshot> _userFuture;
   Stream<List<ProductModel>>? _productsStream;
   String? _storeId;
+
+  final GlobalKey _liveKey = GlobalKey();
+  final GlobalKey _reviewKey = GlobalKey();
+  final GlobalKey _changesKey = GlobalKey();
+  final GlobalKey _draftKey = GlobalKey();
+  final GlobalKey _unavailableKey = GlobalKey();
+  bool _hasCheckedTutorial = false;
 
   bool _isProductInReview(ProductModel p) {
     return p.status == 'Under Review' ||
@@ -64,14 +82,36 @@ class _ProductListContentState extends State<_ProductListContent> {
   @override
   void initState() {
     super.initState();
+    _selectedFilter = widget.initialFilter;
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid ?? '';
     _userFuture = FirebaseFirestore.instance.collection('users').doc(userId).get();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ProductProvider>().loadCategories();
       }
     });
+  }
+
+  Future<void> _checkTutorial() async {
+    if (_hasCheckedTutorial) return;
+    _hasCheckedTutorial = true;
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_products_tutorial') ?? false;
+    
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ShowCaseWidget.of(context).startShowCase([
+          _liveKey,
+          _reviewKey,
+          _changesKey,
+          _draftKey,
+          _unavailableKey,
+        ]);
+      });
+      await prefs.setBool('has_seen_products_tutorial', true);
+    }
   }
 
   @override
@@ -196,28 +236,7 @@ class _ProductListContentState extends State<_ProductListContent> {
 
               final allProducts = snapshot.data ?? [];
 
-              if (allProducts.isEmpty) {
-                return CustomScrollView(
-                  slivers: [
-                    _buildSliverAppBar(),
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: _buildEmptyState(
-                            icon: Icons.fastfood_rounded,
-                            title: "Your food journey starts here 🚀",
-                            subtitle:
-                                "Add your first homemade product and start building your brand.",
-                            buttonText: "Add First Product",
-                            onAction: () => context.push('/add-product'),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }
+
 
               final allCount = allProducts.length;
               final liveCount = allProducts.where((p) => _isProductLive(p)).length;
@@ -274,6 +293,10 @@ class _ProductListContentState extends State<_ProductListContent> {
 
               final providerCategories = context.watch<ProductProvider>().categories;
 
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _checkTutorial();
+              });
+
               return CustomScrollView(
                 slivers: [
                   _buildSliverAppBar(),
@@ -286,11 +309,11 @@ class _ProductListContentState extends State<_ProductListContent> {
                         spacing: 8,
                         runSpacing: 10,
                         children: [
-                          _buildFilterChip("Live", liveCount),
-                          _buildFilterChip("Under Review", reviewCount),
-                          _buildFilterChip("Changes Required", changesCount),
-                          _buildFilterChip("Draft", draftCount),
-                          _buildFilterChip("Unavailable", unavailableCount),
+                          _buildFilterChip("Live", liveCount, key: _liveKey),
+                          _buildFilterChip("Under Review", reviewCount, key: _reviewKey),
+                          _buildFilterChip("Changes Required", changesCount, key: _changesKey),
+                          _buildFilterChip("Draft", draftCount, key: _draftKey),
+                          _buildFilterChip("Unavailable", unavailableCount, key: _unavailableKey),
                         ],
                       ),
                     ),
@@ -339,7 +362,7 @@ class _ProductListContentState extends State<_ProductListContent> {
                       hasScrollBody: false,
                       child: Padding(
                         padding: const EdgeInsets.all(24.0),
-                        child: _buildFilteredEmptyState(),
+                        child: _buildFilteredEmptyState(allProducts.isEmpty),
                       ),
                     )
                   else
@@ -364,7 +387,17 @@ class _ProductListContentState extends State<_ProductListContent> {
   }
 
 
-  Widget _buildFilteredEmptyState() {
+  Widget _buildFilteredEmptyState(bool isCompletelyEmpty) {
+    if (isCompletelyEmpty) {
+      return _buildEmptyState(
+        icon: Icons.fastfood_rounded,
+        title: "Your food journey starts here",
+        subtitle: "Add your first homemade product and start building your brand.",
+        buttonText: "Add First Product",
+        onAction: () => context.push('/add-product'),
+      );
+    }
+
     if (_searchQuery.isNotEmpty) {
       return _buildEmptyState(
         icon: Icons.search_off_rounded,
@@ -727,11 +760,11 @@ class _ProductListContentState extends State<_ProductListContent> {
     );
   }
 
-  Widget _buildFilterChip(String label, int count) {
+  Widget _buildFilterChip(String label, int count, {GlobalKey? key}) {
     final isSelected = _selectedFilter == label;
     final displayLabel = label == 'Changes Required' ? 'Changes Req.' : (label == 'Under Review' ? 'Review' : label);
 
-    return GestureDetector(
+    final chip = GestureDetector(
       onTap: () {
         setState(() {
           _selectedFilter = label;
@@ -778,6 +811,52 @@ class _ProductListContentState extends State<_ProductListContent> {
           ],
         ),
       ),
+    );
+
+    if (key == null) return chip;
+
+    String title = '';
+    String desc = '';
+    if (label == 'Live') {
+      title = '1 of 5: Live Products';
+      desc = 'Products that customers can currently see and order.';
+    } else if (label == 'Under Review') {
+      title = '2 of 5: Under Review';
+      desc = 'Products waiting for FreshGa admin approval.';
+    } else if (label == 'Changes Required') {
+      title = '3 of 5: Changes Required';
+      desc = 'Products that need edits before they can go live.';
+    } else if (label == 'Draft') {
+      title = '4 of 5: Draft';
+      desc = 'Products you are currently working on but haven\'t submitted yet.';
+    } else if (label == 'Unavailable') {
+      title = '5 of 5: Unavailable';
+      desc = 'Products that are out of stock, hidden, or disabled by admin.';
+    }
+
+    return Showcase(
+      key: key,
+      title: title,
+      description: desc,
+      tooltipBackgroundColor: AppColors.primary,
+      textColor: Colors.white,
+      targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+      overlayOpacity: 0.5,
+      tooltipActions: [
+        if (label != 'Unavailable')
+          TooltipActionButton(
+            type: TooltipDefaultActionType.skip,
+            name: 'Skip Tutorial',
+            textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+          ),
+        TooltipActionButton(
+          type: TooltipDefaultActionType.next,
+          name: label == 'Unavailable' ? 'Finish' : 'Next',
+          backgroundColor: Colors.white,
+          textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+        ),
+      ],
+      child: chip,
     );
   }
 

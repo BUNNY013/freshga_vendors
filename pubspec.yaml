@@ -60,6 +60,11 @@ dependencies:
   qr_flutter: ^4.1.0
   screenshot: ^3.0.0
   path_provider: ^2.1.6
+  flutter_map: ^8.3.2
+  latlong2: any
+  geolocator: ^14.0.3
+  geocoding: ^5.0.0
+  showcaseview: ^5.1.0
 
 dev_dependencies:
   flutter_test:

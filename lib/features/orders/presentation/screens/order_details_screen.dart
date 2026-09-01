@@ -237,6 +237,29 @@ class OrderDetailsScreen extends StatelessWidget {
           const Text('Delivery Address', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
           Text(order.deliveryAddress, style: const TextStyle(fontSize: 14, height: 1.4)),
+          if (order.deliveryLatitude != null && order.deliveryLongitude != null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final url = 'https://www.google.com/maps/search/?api=1&query=${order.deliveryLatitude},${order.deliveryLongitude}';
+                  await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                },
+                icon: const Icon(Icons.location_on, size: 18),
+                label: const Text('View on Map'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

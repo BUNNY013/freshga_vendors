@@ -27,6 +27,8 @@ class SupplierApplicationModel {
   final String adminRemarks;
   final String submittedAt;
   final String verifiedAt;
+  final double? latitude;
+  final double? longitude;
 
   SupplierApplicationModel({
     required this.applicationId,
@@ -55,6 +57,8 @@ class SupplierApplicationModel {
     required this.adminRemarks,
     required this.submittedAt,
     required this.verifiedAt,
+    this.latitude,
+    this.longitude,
   });
 
   factory SupplierApplicationModel.fromJson(Map<String, dynamic> json) {
@@ -93,6 +97,8 @@ class SupplierApplicationModel {
               ? (json['verifiedAt'] as Timestamp).toDate().toIso8601String()
               : json['verifiedAt'].toString())
           : '',
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
     );
   }
 
@@ -124,6 +130,8 @@ class SupplierApplicationModel {
       'adminRemarks': adminRemarks,
       'submittedAt': submittedAt,
       'verifiedAt': verifiedAt,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }

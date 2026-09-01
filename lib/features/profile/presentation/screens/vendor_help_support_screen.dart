@@ -230,14 +230,6 @@ class _VendorHelpSupportScreenState extends State<VendorHelpSupportScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 48),
-            Center(
-              child: TextButton.icon(
-                onPressed: () => _showDeleteAccountDialog(context),
-                icon: const Icon(Icons.person_remove_outlined, color: Colors.red, size: 18),
-                label: const Text('Delete Account', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              ),
-            ),
             const SizedBox(height: 32),
           ],
         ),
@@ -245,58 +237,6 @@ class _VendorHelpSupportScreenState extends State<VendorHelpSupportScreen> {
     );
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text("Delete Account"),
-          content: const Text(
-            "Are you sure you want to delete your account? This action cannot be undone. "
-            "Your store and products will be removed from the app.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (BuildContext ctx) {
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                );
-                
-                final success = await context.read<vendor_auth.AuthProvider>().deleteAccount();
-                
-                if (context.mounted) {
-                  Navigator.pop(context); // Dismiss loading
-                  if (success) {
-                    context.go('/login');
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          context.read<vendor_auth.AuthProvider>().errorMessage ?? 
-                          'Failed to delete account'
-                        ),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildFaqTile(String question, String answer) {
     return Container(

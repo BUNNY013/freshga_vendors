@@ -7,6 +7,7 @@ import '../../../auth/providers/auth_provider.dart' as vendor_auth;
 import '../../../../data/models/user_model.dart';
 import '../../../../data/models/store_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -52,7 +53,7 @@ class ProfileScreen extends StatelessWidget {
                           const SizedBox(height: 24),
                           _buildSectionTitle("Support"),
                           _buildSupportList(context),
-                          const SizedBox(height: 24),
+                          _buildSectionTitle("Account"),
                           _buildAccountActions(context),
                           const SizedBox(height: 32),
                           const Center(
@@ -195,8 +196,6 @@ class ProfileScreen extends StatelessWidget {
           _buildDivider(),
           _buildListTile(Icons.card_membership_rounded, "Subscriptions & Billing", () => context.push('/subscription')),
           _buildDivider(),
-          _buildListTile(Icons.notifications_rounded, "Notification Settings", () => context.push('/profile/notifications')),
-          _buildDivider(),
           _buildListTile(Icons.local_shipping_rounded, "Delivery Settings", () => context.push('/store/order-fulfillment')),
         ],
       ),
@@ -245,6 +244,20 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
+
+          ListTile(
+            leading: const Icon(Icons.manage_accounts_outlined, color: AppColors.textPrimary),
+            title: const Text(
+              "Accounts",
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            onTap: () => context.push('/profile/accounts'),
+          ),
+          const Divider(height: 1, indent: 56, color: AppColors.grey200),
           ListTile(
             leading: const Icon(Icons.logout_rounded, color: AppColors.error),
             title: const Text(
@@ -286,4 +299,5 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildDivider() {
     return const Divider(height: 1, indent: 56, color: AppColors.grey200);
   }
+
 }

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../orders/domain/models/order_model.dart';
+import 'payout_details_screen.dart';
 
 class EarningsPayoutsScreen extends StatefulWidget {
   const EarningsPayoutsScreen({super.key});
@@ -415,16 +416,23 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
                 );
               }
 
-              return ListView.separated(
+              return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: docs.length,
-                separatorBuilder: (context, index) => const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: AppColors.background)),
                 itemBuilder: (context, index) {
                   final data = docs[index].data() as Map<String, dynamic>;
                   final amount = data['amount'] ?? 0;
                   final date = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-                  return _buildPayoutRow(DateFormat('dd MMM yyyy').format(date), '₹${_format(amount.toDouble())}', 'Paid', Colors.green);
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => VendorPayoutDetailsScreen(payoutData: data)),
+                      );
+                    },
+                    child: _buildPayoutRow(DateFormat('dd MMM yyyy').format(date), '₹${_format(amount.toDouble())}', 'Paid', Colors.green),
+                  );
                 },
               );
             },
@@ -435,22 +443,52 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
   }
 
   Widget _buildPayoutRow(String date, String amount, String status, MaterialColor color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(date, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary)),
-        Row(
-          children: [
-            Text(amount, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-              child: Text(status, style: TextStyle(color: color.shade700, fontSize: 11, fontWeight: FontWeight.w800)),
-            )
-          ],
-        )
-      ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
+        ]
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(Icons.account_balance_wallet, color: color.shade700, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Payout to Bank', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  Text(date, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(amount, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                child: Text(status, style: TextStyle(color: color.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
+              )
+            ],
+          )
+        ],
+      ),
     );
   }
 

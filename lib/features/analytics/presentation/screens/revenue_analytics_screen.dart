@@ -162,22 +162,6 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
 
     final filteredOrders = allOrders.where((o) => o.createdAt.isAfter(startDate) && o.orderStatus.toLowerCase() == 'delivered').toList();
 
-    if (filteredOrders.isEmpty) {
-      return PremiumLineChartCard(
-        title: 'Revenue Trend',
-        primaryMetricLabel: '₹',
-        chartColor: Colors.orange.shade600,
-        selectedFilter: _chartFilter,
-        xLabels: const [],
-        dataSpots: const [],
-        onFilterChanged: (newFilter) {
-          setState(() {
-            _chartFilter = newFilter;
-          });
-        },
-      );
-    }
-
     // 2. Group by Date
     Map<String, double> groupedData = {};
     
@@ -202,18 +186,26 @@ class _RevenueAnalyticsScreenState extends State<RevenueAnalyticsScreen> {
       String key = _chartFilter == 'All' 
           ? DateFormat('MMM yyyy').format(order.createdAt)
           : DateFormat('MMM d').format(order.createdAt);
-      groupedData[key] = (groupedData[key] ?? 0.0) + order.totalAmount;
+      groupedData[key] = (groupedData[key] ?? 0) + order.totalAmount;
     }
 
     // 3. Convert to Chart format
     List<String> labels = groupedData.keys.toList();
-    List<FlSpot> spots = [];
     
-    for (int i = 0; i < labels.length; i++) {
-      spots.add(FlSpot(i.toDouble(), groupedData[labels[i]]!));
+    // Ensure at least 2 points for LineChart to draw a line
+    if (labels.length == 1) {
+      String prevDay = DateFormat('MMM d').format(now.subtract(const Duration(days: 1)));
+      labels.insert(0, prevDay);
+      groupedData[prevDay] = 0.0;
+    } else if (labels.isEmpty) {
+      labels = ['', ''];
+      groupedData[''] = 0.0;
     }
 
-    // Removed fake fallback
+    List<FlSpot> spots = [];
+    for (int i = 0; i < labels.length; i++) {
+      spots.add(FlSpot(i.toDouble(), (groupedData[labels[i]] ?? 0.0).toDouble()));
+    }
 
     return PremiumLineChartCard(
       title: 'Revenue Trend',

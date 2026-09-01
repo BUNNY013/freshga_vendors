@@ -84,12 +84,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
     _saveVariantsToFirestore();
   }
 
-  void _toggleVariantStock(int index, bool val) {
-    setState(() {
-      _variants[index] = _variants[index].copyWith(isAvailable: val);
-    });
-    _saveVariantsToFirestore();
-  }
+
 
   Future<void> _saveVariantsToFirestore() async {
     double inputOriginalPrice = double.tryParse(_baseOriginalPriceCtrl.text.trim()) ?? 0;
@@ -121,7 +116,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
         setState(() => _hasUnsavedChanges = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Updated in real-time!'),
+            content: Text('Changes updated successfully!'),
             duration: Duration(seconds: 1),
           ),
         );
@@ -451,41 +446,45 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: () => _toggleVariantStock(index, !variant.isAvailable),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: variant.isAvailable ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: variant.isAvailable ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: variant.isAvailable ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              Builder(
+                builder: (context) {
+                  final isOutOfStock = variant.manageStock && variant.stock <= 0;
+                  final isLowStock = variant.manageStock && variant.stock > 0 && variant.stock <= 5;
+                  final bgColor = isOutOfStock ? const Color(0xFFFEE2E2) : (isLowStock ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4));
+                  final borderColor = isOutOfStock ? const Color(0xFFFCA5A5) : (isLowStock ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0));
+                  final dotColor = isOutOfStock ? const Color(0xFFDC2626) : (isLowStock ? const Color(0xFFD97706) : const Color(0xFF16A34A));
+                  final statusText = isOutOfStock ? 'Sold Out' : (isLowStock ? 'Low Stock (${variant.stock})' : (variant.manageStock ? 'In Stock (${variant.stock})' : 'In Stock'));
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: dotColor,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        variant.isAvailable
-                            ? ((variant.manageStock || variant.stock > 0)
-                                ? 'In Stock (${variant.stock})'
-                                : 'In Stock')
-                            : 'Sold Out',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: variant.isAvailable ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        const SizedBox(width: 6),
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: dotColor,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -963,7 +962,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                                 label: '',
                                 controller: lengthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                hintText: "L",
+                                hintText: "Length",
                                 errorText: dimError,
                                 onChanged: (_) => setSheetState(() => dimError = null),
                               ),
@@ -974,7 +973,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                                 label: '',
                                 controller: widthCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                hintText: "W",
+                                hintText: "Breadth",
                                 errorText: dimError,
                               ),
                             ),
@@ -984,7 +983,7 @@ class _EditPricingScreenState extends State<EditPricingScreen> {
                                 label: '',
                                 controller: heightCtrl,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                hintText: "H",
+                                hintText: "Height",
                                 errorText: dimError,
                               ),
                             ),

@@ -7,10 +7,62 @@ import '../../../../core/widgets/states/app_state_widgets.dart';
 import '../../domain/models/order_model.dart';
 import '../widgets/order_card.dart';
 import '../../../../data/models/user_model.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'vendor_issues_screen.dart';
 
 class OrdersListScreen extends StatelessWidget {
-  const OrdersListScreen({super.key});
+  final int initialIndex;
+  const OrdersListScreen({super.key, this.initialIndex = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(
+      blurValue: 1,
+      enableAutoScroll: true,
+      builder: (context) => _OrdersListContent(initialIndex: initialIndex),
+    );
+  }
+}
+
+class _OrdersListContent extends StatefulWidget {
+  final int initialIndex;
+  const _OrdersListContent({this.initialIndex = 0});
+
+  @override
+  State<_OrdersListContent> createState() => _OrdersListContentState();
+}
+
+class _OrdersListContentState extends State<_OrdersListContent> {
+  final GlobalKey _newKey = GlobalKey();
+  final GlobalKey _prepKey = GlobalKey();
+  final GlobalKey _readyKey = GlobalKey();
+  final GlobalKey _shippedKey = GlobalKey();
+  final GlobalKey _deliveredKey = GlobalKey();
+  final GlobalKey _cancelledKey = GlobalKey();
+  final GlobalKey _issuesKey = GlobalKey();
+  bool _hasCheckedTutorial = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _checkOrdersTutorial() async {
+    if (_hasCheckedTutorial) return;
+    _hasCheckedTutorial = true;
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_orders_tutorial') ?? false;
+    
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ShowCaseWidget.of(context).startShowCase([_newKey, _prepKey, _readyKey, _shippedKey, _deliveredKey, _cancelledKey, _issuesKey]);
+        }
+      });
+      await prefs.setBool('has_seen_orders_tutorial', true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +122,13 @@ class OrdersListScreen extends StatelessWidget {
                 final issuesList = issuesSnap.data?.docs.map((d) => d.data() as Map<String, dynamic>).toList() ?? [];
                 final issuesCount = issuesList.where((i) => i['status'] != 'Refund Processed' && i['status'] != 'Rejected').length;
 
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _checkOrdersTutorial();
+                });
+
                 return DefaultTabController(
                   length: 6,
+                  initialIndex: widget.initialIndex,
                   child: Scaffold(
                     backgroundColor: AppColors.background,
                     appBar: AppBar(
@@ -84,29 +141,46 @@ class OrdersListScreen extends StatelessWidget {
                       elevation: 0,
                       surfaceTintColor: Colors.transparent,
                       actions: [
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorIssuesScreen()));
-                              },
+                        Showcase(
+                          key: _issuesKey,
+                          title: '7 of 7: Customer Issues',
+                          description: 'Manage and resolve customer complaints or refund requests.',
+                          tooltipBackgroundColor: AppColors.primary,
+                          textColor: Colors.white,
+                          targetPadding: const EdgeInsets.all(4),
+                          overlayOpacity: 0.5,
+                          tooltipActions: [
+                            TooltipActionButton(
+                              type: TooltipDefaultActionType.next,
+                              name: 'Finish',
+                              backgroundColor: Colors.white,
+                              textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                             ),
-                            if (issuesCount > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                  child: Text(
-                                    '$issuesCount',
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ],
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorIssuesScreen()));
+                                },
+                              ),
+                              if (issuesCount > 0)
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                    child: Text(
+                                      '$issuesCount',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -121,12 +195,156 @@ class OrdersListScreen extends StatelessWidget {
                         indicatorColor: AppColors.primary,
                         indicatorWeight: 3,
                         tabs: [
-                          Tab(text: newCount > 0 ? 'New ($newCount)' : 'New'),
-                          Tab(text: prepCount > 0 ? 'Preparing ($prepCount)' : 'Preparing'),
-                          Tab(text: readyCount > 0 ? 'Ready ($readyCount)' : 'Ready'),
-                          Tab(text: shippedCount > 0 ? 'Shipped ($shippedCount)' : 'Shipped'),
-                          const Tab(text: 'Delivered'),
-                          const Tab(text: 'Cancelled'),
+                          Tab(
+                            child: Showcase(
+                              key: _newKey,
+                              title: '1 of 7: New Orders',
+                              description: 'Incoming orders appear here. Accept them to start preparing.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: Text(newCount > 0 ? 'New ($newCount)' : 'New'),
+                            ),
+                          ),
+                          Tab(
+                            child: Showcase(
+                              key: _prepKey,
+                              title: '2 of 7: Preparing',
+                              description: 'Orders you are currently cooking or preparing.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: Text(prepCount > 0 ? 'Preparing ($prepCount)' : 'Preparing'),
+                            ),
+                          ),
+                          Tab(
+                            child: Showcase(
+                              key: _readyKey,
+                              title: '3 of 7: Ready',
+                              description: 'Orders packed and ready for delivery/pickup.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: Text(readyCount > 0 ? 'Ready ($readyCount)' : 'Ready'),
+                            ),
+                          ),
+                          Tab(
+                            child: Showcase(
+                              key: _shippedKey,
+                              title: '4 of 7: Shipped',
+                              description: 'Orders that are out for delivery.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: Text(shippedCount > 0 ? 'Shipped ($shippedCount)' : 'Shipped'),
+                            ),
+                          ),
+                          Tab(
+                            child: Showcase(
+                              key: _deliveredKey,
+                              title: '5 of 7: Delivered',
+                              description: 'Successfully completed orders.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: const Text('Delivered'),
+                            ),
+                          ),
+                          Tab(
+                            child: Showcase(
+                              key: _cancelledKey,
+                              title: '6 of 7: Cancelled',
+                              description: 'Orders that were rejected or cancelled.',
+                              tooltipBackgroundColor: AppColors.primary,
+                              textColor: Colors.white,
+                              targetPadding: const EdgeInsets.all(4),
+                              overlayOpacity: 0.5,
+                              tooltipActions: [
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.skip,
+                                  name: 'Skip Tutorial',
+                                  textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                                ),
+                                TooltipActionButton(
+                                  type: TooltipDefaultActionType.next,
+                                  name: 'Next',
+                                  backgroundColor: Colors.white,
+                                  textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                              child: const Text('Cancelled'),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -220,10 +438,62 @@ class _OrderListTab extends StatelessWidget {
             }
 
             try {
-              await FirebaseFirestore.instance
-                  .collection('orders')
-                  .doc(order.orderId)
-                  .update(updates);
+              final db = FirebaseFirestore.instance;
+              
+              if (newStatus == 'Cancelled' || newStatus == 'Rejected' || newStatus == 'Declined') {
+                await db.runTransaction((transaction) async {
+                  final orderRef = db.collection('orders').doc(order.orderId);
+                  
+                  Map<String, DocumentReference> productRefs = {};
+                  Map<String, DocumentSnapshot> productDocs = {};
+                  
+                  for (var item in order.items) {
+                    productRefs[item.productId] = db.collection('products').doc(item.productId);
+                  }
+                  
+                  for (var productId in productRefs.keys) {
+                    productDocs[productId] = await transaction.get(productRefs[productId]!);
+                  }
+                  
+                  for (var productId in productDocs.keys) {
+                    final doc = productDocs[productId]!;
+                    if (doc.exists) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      List<dynamic> variants = data['variants'] ?? [];
+                      bool updated = false;
+                      
+                      final productItems = order.items.where((i) => i.productId == productId);
+                      for (var item in productItems) {
+                        for (int i = 0; i < variants.length; i++) {
+                          if (variants[i]['label'] == item.variantLabel) {
+                            if (variants[i]['manageStock'] == true) {
+                              variants[i]['stock'] = (variants[i]['stock'] ?? 0) + item.quantity;
+                              if (variants[i]['stock'] > 0) {
+                                variants[i]['inStock'] = true;
+                              }
+                              updated = true;
+                            }
+                            break;
+                          }
+                        }
+                      }
+                      if (updated) {
+                        transaction.update(productRefs[productId]!, {'variants': variants});
+                      }
+                    }
+                  }
+                  transaction.update(orderRef, updates);
+                });
+              } else {
+                await db.collection('orders').doc(order.orderId).update(updates);
+                
+                if (newStatus == 'Delivered') {
+                  await db.collection('stores').doc(order.storeId).update({
+                    'totalOrders': FieldValue.increment(1),
+                  });
+                }
+              }
+
               return true;
             } catch (e) {
               debugPrint('Failed to update order ${order.orderId}: $e');

@@ -144,7 +144,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
                     _images.insert(0, img);
                   });
                   if (!_hasNewUploads) {
-                    _saveInstantPhotoChange('✓ Cover photo updated in real-time! ⚡');
+                    _saveInstantPhotoChange('✓ Cover photo updated successfully! ⚡');
                   }
                 },
               )
@@ -174,7 +174,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
                 }
                 setState(() => _images.removeAt(index));
                 if (!_hasNewUploads) {
-                  _saveInstantPhotoChange('✓ Photo removed in real-time! ⚡');
+                  _saveInstantPhotoChange('✓ Photo removed successfully! ⚡');
                 }
               },
             ),

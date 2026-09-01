@@ -130,33 +130,28 @@ class _EditProductScreenState extends State<EditProductScreen> {
     }
   }
 
-  Future<void> _toggleMasterStock(bool inStock) async {
-    setState(() {
-      final newVariants = _product.variants.map((v) => v.copyWith(isAvailable: inStock)).toList();
-      _product = _product.copyWith(variants: newVariants);
-    });
-    final provider = context.read<ProductProvider>();
-    await provider.updateOperationalFields(_product.productId, {
-      'variants': _product.variants.map((e) => e.toJson()).toList(),
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(inStock ? 'All pack sizes marked In Stock 🟢' : 'All pack sizes marked Sold Out 🔴'),
-          backgroundColor: inStock ? const Color(0xFF4CAF50) : const Color(0xFFC62828),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
 
   String _getPriceRange() {
     if (_product.variants.isEmpty) return '₹${_product.price.toStringAsFixed(0)}';
     final prices = _product.variants.map((v) => v.price).toList();
-    prices.sort();
-    if (prices.first == prices.last) return '₹${prices.first.toStringAsFixed(0)}';
-    return '₹${prices.first.toStringAsFixed(0)} - ₹${prices.last.toStringAsFixed(0)}';
+    if (prices.isEmpty) return '₹0';
+    double minPrice = prices.reduce((a, b) => a < b ? a : b);
+    double maxPrice = prices.reduce((a, b) => a > b ? a : b);
+    if (minPrice == maxPrice) return '₹${minPrice.toStringAsFixed(0)}';
+    return '₹${minPrice.toStringAsFixed(0)} - ₹${maxPrice.toStringAsFixed(0)}';
   }
+
+  bool get _isOutOfStock {
+    if (_product.variants.isEmpty) return false;
+    return _product.variants.any((v) => v.manageStock && v.stock <= 0);
+  }
+
+  bool get _isLowStock {
+    if (_product.variants.isEmpty) return false;
+    return _product.variants.any((v) => v.manageStock && v.stock > 0 && v.stock <= 5);
+  }
+
+  bool get _hasStockAlert => _isOutOfStock || _isLowStock;
 
   String _formatDate(String isoDate) {
     try {
@@ -550,9 +545,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Widget _buildQuickTogglesCard() {
     final isAvailable = !['Unavailable', 'Hidden', 'Disabled by Admin', 'Archived', 'Vendor Suspended'].contains(_product.status);
-    final isMasterInStock = _product.variants.any((v) => v.isAvailable);
-    final activeVariantsCount = _product.variants.where((v) => v.isAvailable).length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -639,61 +631,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     ),
                   ],
                 ),
-              ),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isMasterInStock ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              isMasterInStock ? Icons.inventory_2_outlined : Icons.remove_circle_outline,
-                              color: isMasterInStock ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('In Stock / Ready to Order', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A))),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isMasterInStock
-                                      ? '$activeVariantsCount of ${_product.variants.length} pack sizes available'
-                                      : 'All pack sizes marked Sold Out',
-                                  style: TextStyle(color: isMasterInStock ? const Color(0xFF64748B) : const Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Transform.scale(
-                      scale: 0.95,
-                      child: CupertinoSwitch(
-                        value: isMasterInStock,
-                        activeColor: const Color(0xFF16A34A),
-                        trackColor: Colors.red.shade200,
-                        onChanged: (val) {
-                          _toggleMasterStock(val);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+
               ),
             ],
           ),
@@ -730,6 +668,26 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 title: 'Variants & Pricing',
                 subtitle: '${_product.variants.length} pack sizes • Price: ${_getPriceRange()}',
                 onTap: () => context.push('/edit-pricing', extra: _product),
+                trailingBadge: _hasStockAlert
+                    ? Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _isOutOfStock ? const Color(0xFFFEE2E2) : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: _isOutOfStock ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A)),
+                        ),
+                        child: Text(
+                          _isOutOfStock ? 'OUT OF STOCK' : 'LOW STOCK',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            color: _isOutOfStock ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                          ),
+                        ),
+                      )
+                    : null,
               ),
               const Divider(height: 1, color: Color(0xFFE2E8F0), indent: 64),
               _buildModernSectionTile(
@@ -888,6 +846,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     required String subtitle,
     required VoidCallback onTap,
     bool requiresReview = false,
+    Widget? trailingBadge,
   }) {
     return InkWell(
       onTap: () => requiresReview ? _handleSectionTap(onTap) : onTap(),
@@ -909,7 +868,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Row(
+                    children: [
+                      Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      if (trailingBadge != null) trailingBadge,
+                    ],
+                  ),
                   const SizedBox(height: 3),
                   Text(subtitle, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],

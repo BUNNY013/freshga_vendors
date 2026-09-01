@@ -10,11 +10,44 @@ import '../../../../features/store/providers/subscription_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/notifications/providers/notification_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../data/models/product_model.dart';
 
 
-class HomeDashboardView extends StatelessWidget {
+class HomeDashboardView extends StatefulWidget {
   final Function(int)? onNavigateTab;
   const HomeDashboardView({super.key, this.onNavigateTab});
+
+  @override
+  State<HomeDashboardView> createState() => _HomeDashboardViewState();
+}
+
+class _HomeDashboardViewState extends State<HomeDashboardView> {
+  final GlobalKey _headerKey = GlobalKey();
+  final GlobalKey _payoutKey = GlobalKey();
+  bool _hasCheckedTutorial = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _checkDashboardTutorial() async {
+    if (_hasCheckedTutorial) return;
+    _hasCheckedTutorial = true;
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_home_tutorial') ?? false;
+    
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ShowCaseWidget.of(context).startShowCase([_headerKey, _payoutKey]);
+        }
+      });
+      await prefs.setBool('has_seen_home_tutorial', true);
+    }
+  }
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -74,6 +107,7 @@ class HomeDashboardView extends StatelessWidget {
             
             WidgetsBinding.instance.addPostFrameCallback((_) {
               context.read<DashboardProvider>().subscribeToStore(store.storeId);
+              _checkDashboardTutorial();
             });
 
             return Scaffold(
@@ -88,7 +122,30 @@ class HomeDashboardView extends StatelessWidget {
                         children: [
                           _buildSubscriptionBanner(context),
                           if (store.isSuspended) _buildSuspensionBanner(context),
-                          _buildGreetingHeader(context, store),
+                          Showcase(
+                            key: _headerKey,
+                            title: '1 of 2: Store Timings',
+                            description: 'Check if your store is currently Open or Closed here.',
+                            tooltipBackgroundColor: AppColors.primary,
+                            textColor: Colors.white,
+                            targetPadding: const EdgeInsets.all(8),
+                            targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            overlayOpacity: 0.5,
+                            tooltipActions: [
+                              TooltipActionButton(
+                                type: TooltipDefaultActionType.skip,
+                                name: 'Skip Tutorial',
+                                textStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                              ),
+                              TooltipActionButton(
+                                type: TooltipDefaultActionType.next,
+                                name: 'Next',
+                                backgroundColor: Colors.white,
+                                textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                            child: _buildGreetingHeader(context, store),
+                          ),
                           const SizedBox(height: 16),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -96,7 +153,25 @@ class HomeDashboardView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
 
-                                _buildPayoutMetricsCard(context, store),
+                                Showcase(
+                                  key: _payoutKey,
+                                  title: '2 of 2: Daily Payouts',
+                                  description: 'Track your daily earnings and next payout date here.',
+                                  tooltipBackgroundColor: AppColors.primary,
+                                  textColor: Colors.white,
+                                  targetPadding: const EdgeInsets.all(4),
+                                  targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  overlayOpacity: 0.5,
+                                  tooltipActions: [
+                                    TooltipActionButton(
+                                      type: TooltipDefaultActionType.next,
+                                      name: 'Finish',
+                                      backgroundColor: Colors.white,
+                                      textStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                  child: _buildPayoutMetricsCard(context, store),
+                                ),
                                 const SizedBox(height: 24),
                                 _buildTodaysOverview(context, store),
                                 const SizedBox(height: 28),
@@ -280,16 +355,55 @@ class HomeDashboardView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  store.storeName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        store.storeName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: store.isSuspended ? Colors.red.shade50 : (store.isActive ? Colors.green.shade50 : Colors.orange.shade50),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: store.isSuspended ? Colors.red.shade200 : (store.isActive ? Colors.green.shade200 : Colors.orange.shade200),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: store.isSuspended ? Colors.red.shade600 : (store.isActive ? Colors.green.shade600 : Colors.orange.shade600),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            store.isSuspended ? "Suspended" : (store.isActive ? "Live" : "Vacation"),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: store.isSuspended ? Colors.red.shade700 : (store.isActive ? Colors.green.shade700 : Colors.orange.shade800),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -555,7 +669,7 @@ class HomeDashboardView extends StatelessWidget {
                         _buildOverviewCard(context, "Pending Orders", "${dashboard.pendingOrdersCount}", Colors.orange, '/analytics/orders'),
                         _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, '/analytics/products', lowStockCount: dashboard.lowStockCount, outOfStockCount: dashboard.outOfStockCount),
                         _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, '/analytics/followers', showChevron: true),
-                        _buildOverviewCard(context, "Store Rating", store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
+                        _buildOverviewCard(context, "Store Rating", store.totalReviews == 0 ? "New" : store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
                       ],
                     );
                   }
@@ -681,16 +795,107 @@ class HomeDashboardView extends StatelessWidget {
       builder: (context, prodSnap) {
         final productCount = prodSnap.data?.docs.length ?? 0;
         
+        List<ProductModel> lowStockProducts = [];
+        List<ProductModel> outOfStockProducts = [];
+
+        if (prodSnap.hasData) {
+           for (var doc in prodSnap.data!.docs) {
+              try {
+                final data = doc.data() as Map<String, dynamic>;
+                data['productId'] = doc.id;
+                final product = ProductModel.fromJson(data);
+                
+                if (product.status.contains('Live')) {
+                  if (product.variants.isNotEmpty) {
+                    final isOutOfStock = product.variants.any((v) => v.manageStock && v.stock <= 0);
+                    final isLowStock = product.variants.any((v) => v.manageStock && v.stock > 0 && v.stock <= 5);
+
+                    if (isOutOfStock) {
+                      outOfStockProducts.add(product);
+                    } else if (isLowStock) {
+                      lowStockProducts.add(product);
+                    }
+                  }
+                }
+              } catch (e) {
+                // Ignore parse error
+              }
+           }
+        }
+
         return Consumer<DashboardProvider>(
           builder: (context, dashboard, child) {
             final pendingCount = dashboard.pendingOrdersCount;
-            final lowStockCount = dashboard.lowStockCount;
-            final outOfStockCount = dashboard.outOfStockCount;
             final expiringCount = dashboard.expiringOrdersCount;
+            final lowStockCount = lowStockProducts.length;
+            final outOfStockCount = outOfStockProducts.length;
 
-        // If everything is clear, we might want to show a success state or hide it entirely
             final allClear = pendingCount == 0 && lowStockCount == 0 && outOfStockCount == 0 && expiringCount == 0;
             final isNewStore = productCount == 0 && store.totalOrders == 0;
+
+            List<Widget> attentionWidgets = [];
+            
+            if (expiringCount > 0) {
+              attentionWidgets.add(_buildAttentionRow(
+                icon: Icons.timer_outlined,
+                iconColor: Colors.red.shade700,
+                title: "$expiringCount orders expiring soon!",
+                subtitle: "Accept immediately to avoid cancellation",
+                badgeText: "URGENT",
+                badgeColor: Colors.red.shade800,
+                onTap: () {
+                  if (widget.onNavigateTab != null) widget.onNavigateTab!(1);
+                  else context.go('/dashboard', extra: 1);
+                },
+              ));
+            }
+            
+            if (pendingCount > 0) {
+              attentionWidgets.add(_buildAttentionRow(
+                icon: Icons.assignment,
+                iconColor: Colors.orange.shade700,
+                title: "$pendingCount orders need processing",
+                subtitle: "Dispatch as soon as possible",
+                badgeText: "High Priority",
+                badgeColor: Colors.red.shade600,
+                onTap: () {
+                  if (widget.onNavigateTab != null) widget.onNavigateTab!(1);
+                  else context.go('/dashboard', extra: 1);
+                },
+              ));
+            }
+
+            for (var p in lowStockProducts) {
+              attentionWidgets.add(_buildProductAttentionRow(
+                product: p,
+                subtitle: "Running low on stock",
+                badgeText: "Restock",
+                badgeColor: Colors.orange.shade600,
+                onTap: () {
+                  context.push('/edit-pricing', extra: p);
+                },
+              ));
+            }
+
+            for (var p in outOfStockProducts) {
+              attentionWidgets.add(_buildProductAttentionRow(
+                product: p,
+                subtitle: "Out of stock",
+                badgeText: "Urgent",
+                badgeColor: Colors.red.shade600,
+                onTap: () {
+                  context.push('/edit-pricing', extra: p);
+                },
+              ));
+            }
+
+            List<Widget> finalWidgets = [];
+            for (int i = 0; i < attentionWidgets.length; i++) {
+              finalWidgets.add(attentionWidgets[i]);
+              if (i < attentionWidgets.length - 1) {
+                finalWidgets.add(Divider(height: 1, indent: 64, color: Colors.grey.shade100));
+              }
+            }
 
             return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -776,73 +981,7 @@ class HomeDashboardView extends StatelessWidget {
                   ],
                 ),
                 child: Column(
-                  children: [
-                    if (expiringCount > 0) ...[
-                      _buildAttentionRow(
-                        icon: Icons.timer_outlined,
-                        iconColor: Colors.red.shade700,
-                        title: "$expiringCount orders expiring soon!",
-                        subtitle: "Accept immediately to avoid cancellation",
-                        badgeText: "URGENT",
-                        badgeColor: Colors.red.shade800,
-                        onTap: () {
-                          if (onNavigateTab != null) onNavigateTab!(1);
-                          else context.go('/dashboard', extra: 1);
-                        },
-                      ),
-                    ],
-                    if (expiringCount > 0 && (pendingCount > 0 || lowStockCount > 0 || outOfStockCount > 0))
-                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
-                      
-                    if (pendingCount > 0) ...[
-                      _buildAttentionRow(
-                        icon: Icons.assignment,
-                        iconColor: Colors.orange.shade700,
-                        title: "$pendingCount orders need processing",
-                        subtitle: "Dispatch as soon as possible",
-                        badgeText: "High Priority",
-                        badgeColor: Colors.red.shade600,
-                        onTap: () {
-                          if (onNavigateTab != null) onNavigateTab!(1);
-                          else context.go('/dashboard', extra: 1);
-                        },
-                      ),
-                    ],
-                    if (pendingCount > 0 && (lowStockCount > 0 || outOfStockCount > 0))
-                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
-                    
-                    if (lowStockCount > 0) ...[
-                      _buildAttentionRow(
-                        icon: Icons.inventory_2,
-                        iconColor: Colors.orange.shade600,
-                        title: "$lowStockCount products running low",
-                        subtitle: "Restock to avoid missed sales",
-                        badgeText: "Medium",
-                        badgeColor: Colors.orange.shade600,
-                        onTap: () {
-                          if (onNavigateTab != null) onNavigateTab!(2);
-                          else context.go('/dashboard', extra: 2);
-                        },
-                      ),
-                    ],
-                    if (lowStockCount > 0 && outOfStockCount > 0)
-                      Divider(height: 1, indent: 64, color: Colors.grey.shade100),
-
-                    if (outOfStockCount > 0) ...[
-                      _buildAttentionRow(
-                        icon: Icons.warning_amber_rounded,
-                        iconColor: Colors.red.shade400,
-                        title: "$outOfStockCount products out of stock",
-                        subtitle: "Update availability to continue selling",
-                        badgeText: "Low", // Matching image text visually
-                        badgeColor: Colors.green.shade600, // Matching image color visually
-                        onTap: () {
-                          if (onNavigateTab != null) onNavigateTab!(2);
-                          else context.go('/dashboard', extra: 2);
-                        },
-                      ),
-                    ],
-                  ],
+                  children: finalWidgets,
                 ),
               ),
           ],
@@ -882,26 +1021,101 @@ class HomeDashboardView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: badgeColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: badgeColor.withOpacity(0.3)),
               ),
               child: Text(
                 badgeText,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: badgeColor),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor, letterSpacing: 0.3),
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: Colors.black54, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductAttentionRow({
+    required ProductModel product,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                image: product.images.isNotEmpty 
+                  ? DecorationImage(image: NetworkImage(product.images.first), fit: BoxFit.cover)
+                  : null,
+              ),
+              child: product.images.isEmpty ? const Icon(Icons.inventory_2, color: Colors.grey) : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: badgeColor.withOpacity(0.3)),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor, letterSpacing: 0.3),
+              ),
+            ),
           ],
         ),
       ),

@@ -541,13 +541,12 @@ class _StoreSetupContent extends StatelessWidget {
         const SizedBox(height: 16),
         
         PremiumTextField(
-          label: "WhatsApp Number (Optional)",
+          label: "WhatsApp Group (Optional)",
           initialValue: provider.whatsappNumber,
           onChanged: provider.setWhatsappNumber,
-          keyboardType: TextInputType.phone,
-          hintText: "Enter 10-digit number",
-          prefixIcon: const Icon(Icons.chat_bubble_outline, color: Colors.green),
-          prefixText: "+91 ",
+          keyboardType: TextInputType.url,
+          hintText: "Paste group invite link here",
+          prefixIcon: const Icon(Icons.group_outlined, color: Colors.green),
         ),
         const SizedBox(height: 32),
       ],

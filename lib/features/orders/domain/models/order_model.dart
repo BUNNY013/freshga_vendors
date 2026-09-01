@@ -14,6 +14,8 @@ class OrderModel {
   final double platformFee;
   final String paymentStatus;
   final String deliveryAddress;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
   final String customerPhone;
   final String orderStatus; // 'New', 'Accepted', 'Packed', 'Shipped', 'Delivered', 'Declined'
   final String paymentMethod; // 'Online', 'COD'
@@ -51,6 +53,8 @@ class OrderModel {
     this.platformFee = 0.0,
     required this.paymentStatus,
     required this.deliveryAddress,
+    this.deliveryLatitude,
+    this.deliveryLongitude,
     this.customerPhone = '',
     required this.orderStatus,
     this.paymentMethod = 'Online',
@@ -88,6 +92,8 @@ class OrderModel {
       platformFee: (json['platformFee'] ?? 0.0).toDouble(),
       paymentStatus: json['paymentStatus'] ?? 'Pending',
       deliveryAddress: json['deliveryAddress'] ?? '',
+      deliveryLatitude: json['deliveryLatitude'] != null ? (json['deliveryLatitude'] as num).toDouble() : null,
+      deliveryLongitude: json['deliveryLongitude'] != null ? (json['deliveryLongitude'] as num).toDouble() : null,
       customerPhone: json['customerPhone'] ?? '',
       orderStatus: json['orderStatus'] ?? 'New',
       paymentMethod: json['paymentMethod'] ?? 'Online',
@@ -125,6 +131,8 @@ class OrderModel {
       'platformFee': platformFee,
       'paymentStatus': paymentStatus,
       'deliveryAddress': deliveryAddress,
+      if (deliveryLatitude != null) 'deliveryLatitude': deliveryLatitude,
+      if (deliveryLongitude != null) 'deliveryLongitude': deliveryLongitude,
       'customerPhone': customerPhone,
       'orderStatus': orderStatus,
       'paymentMethod': paymentMethod,
@@ -159,6 +167,8 @@ class OrderModel {
     double? platformFee,
     String? paymentStatus,
     String? deliveryAddress,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
     String? customerPhone,
     String? orderStatus,
     String? paymentMethod,
@@ -187,6 +197,8 @@ class OrderModel {
       platformFee: platformFee ?? this.platformFee,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      deliveryLatitude: deliveryLatitude ?? this.deliveryLatitude,
+      deliveryLongitude: deliveryLongitude ?? this.deliveryLongitude,
       customerPhone: customerPhone ?? this.customerPhone,
       orderStatus: orderStatus ?? this.orderStatus,
       paymentMethod: paymentMethod ?? this.paymentMethod,

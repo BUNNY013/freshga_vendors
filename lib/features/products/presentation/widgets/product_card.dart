@@ -37,6 +37,18 @@ class ProductCard extends StatelessWidget {
   bool get _hasDraftChanges => product.draftVersion != null && product.draftVersion!.isNotEmpty;
   bool get _isUpdatePending => product.status == 'Update Under Review' || product.pendingReviewVersion != null || product.pendingUpdate != null;
 
+  bool get _isOutOfStock {
+    if (product.variants.isEmpty) return false;
+    return product.variants.any((v) => v.manageStock && v.stock <= 0);
+  }
+
+  bool get _isLowStock {
+    if (product.variants.isEmpty) return false;
+    return product.variants.any((v) => v.manageStock && v.stock > 0 && v.stock <= 5);
+  }
+
+  bool get _hasStockAlert => _isOutOfStock || _isLowStock;
+
   VoidCallback get _cardAction {
     if (isLiveSection) {
       return onTap;
@@ -225,6 +237,35 @@ class ProductCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (_hasStockAlert)
+                Container(
+                  height: 28,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _isOutOfStock ? const Color(0xFFFEE2E2) : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _isOutOfStock ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isOutOfStock ? Icons.error_outline : Icons.warning_amber_rounded,
+                        size: 14,
+                        color: _isOutOfStock ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isOutOfStock ? 'Out of Stock' : 'Low Stock',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _isOutOfStock ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 8),
