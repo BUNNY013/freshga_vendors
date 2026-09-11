@@ -22,13 +22,20 @@ import 'core/presentation/screens/maintenance_mode_screen.dart';
 import 'core/providers/update_provider.dart';
 import 'core/presentation/screens/force_update_screen.dart';
 import 'core/presentation/screens/soft_update_overlay.dart';
+import 'features/store/presentation/widgets/store_status_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -80,6 +87,8 @@ class _FreshGaVendorAppState extends State<FreshGaVendorApp> {
             AppRouter.router.go('/login');
           }
         });
+      } else {
+        context.read<StoreProvider>().fetchStore();
       }
     });
   }
@@ -100,7 +109,7 @@ class _FreshGaVendorAppState extends State<FreshGaVendorApp> {
       builder: (context, child) {
         return Stack(
           children: [
-            if (child != null) child,
+            if (child != null) StoreStatusWrapper(child: child),
             Consumer3<NetworkProvider, MaintenanceProvider, UpdateProvider>(
               builder: (context, network, maintenance, update, _) {
                 if (!network.isOnline) {

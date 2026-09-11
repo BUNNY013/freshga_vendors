@@ -19,6 +19,7 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
   String _chartFilter = '30D';
   late Future<DocumentSnapshot> _userFuture;
   late Future<QuerySnapshot> _bankFuture;
+  Stream<QuerySnapshot>? _ordersStream;
 
   @override
   void initState() {
@@ -46,12 +47,14 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
         final storeId = UserModel.fromJson(userData).storeId;
         if (storeId.isEmpty) return const Scaffold(body: Center(child: Text('Store not setup')));
 
+        _ordersStream ??= FirebaseFirestore.instance
+            .collection('orders')
+            .where('storeId', isEqualTo: storeId)
+            .orderBy('createdAt', descending: true)
+            .snapshots();
+
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('orders')
-              .where('storeId', isEqualTo: storeId)
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
+          stream: _ordersStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(backgroundColor: Colors.white, body: Center(child: CircularProgressIndicator()));
@@ -265,23 +268,20 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Total Earnings', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
-                  const SizedBox(height: 4),
-                  Text('₹${_format(totalEarnings)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SizedBox(
-                  height: 140,
-                  child: spots.isEmpty || spots.every((s) => s.y == 0)
-                      ? Center(child: Text("No earnings yet", style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w600)))
+              const Text('Total Earnings', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+              const SizedBox(height: 4),
+              Text('₹${_format(totalEarnings)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: spots.isEmpty || spots.every((s) => s.y == 0)
+                ? Center(child: Text("No earnings yet", style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w600)))
                       : LineChart(
                     LineChartData(
                       gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: totalEarnings > 0 ? (totalEarnings / 2).clamp(1, double.infinity) : 100, getDrawingHorizontalLine: (val) => FlLine(color: Colors.grey.shade100, strokeWidth: 1)),
@@ -335,9 +335,6 @@ class _EarningsPayoutsScreenState extends State<EarningsPayoutsScreen> {
                     ),
                   ),
                 ),
-              ),
-            ],
-          )
         ],
       ),
     );

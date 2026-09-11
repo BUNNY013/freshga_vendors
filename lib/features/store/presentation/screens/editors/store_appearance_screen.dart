@@ -19,8 +19,8 @@ class _StoreAppearanceScreenState extends State<StoreAppearanceScreen> {
   File? _logoImage;
   
   // Existing placeholder network images
-  final String _placeholderBanner = 'https://images.unsplash.com/photo-1505253758473-96b7015fcd40?auto=format&fit=crop&w=1600&q=80';
-  final String _placeholderLogo = 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=512&q=80';
+  final String _placeholderBanner = 'assets/images/default_banner.png';
+  final String _placeholderLogo = 'assets/images/default_logo.png';
 
   Future<void> _pickAndCropImage({required bool isBanner}) async {
     try {
@@ -129,7 +129,7 @@ class _StoreAppearanceScreenState extends State<StoreAppearanceScreen> {
               image: DecorationImage(
                 image: _bannerImage != null
                     ? FileImage(_bannerImage!) as ImageProvider
-                    : NetworkImage(_placeholderBanner),
+                    : AssetImage(_placeholderBanner),
                 fit: BoxFit.cover,
               ),
             ),
@@ -160,7 +160,7 @@ class _StoreAppearanceScreenState extends State<StoreAppearanceScreen> {
               image: DecorationImage(
                 image: _logoImage != null
                     ? FileImage(_logoImage!) as ImageProvider
-                    : NetworkImage(_placeholderLogo),
+                    : AssetImage(_placeholderLogo),
                 fit: BoxFit.cover,
               ),
             ),

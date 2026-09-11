@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../domain/models/store_model.dart';
 import '../../../../../core/presentation/widgets/premium_text_field.dart';
 import '../../../../../core/theme/app_colors.dart';
 
@@ -58,19 +61,9 @@ class StoreAddressScreen extends StatefulWidget {
 }
 
 class _StoreAddressScreenState extends State<StoreAddressScreen> {
-  // Mock data for UI
-  List<StoreAddress> _addresses = [
-    StoreAddress(
-      id: 'addr_1',
-      houseNumber: '12-5-317/2',
-      area: 'Road No. 3, Srinivasa Nagar, ECIL',
-      landmark: 'Near ECIL X Roads',
-      city: 'Hyderabad',
-      state: 'Telangana',
-      pincode: '500062',
-      isPrimary: true,
-    ),
-  ];
+  List<StoreAddress> _addresses = [];
+  bool _isLoading = true;
+  String? _storeId;
 
   bool _isFormMode = false;
   StoreAddress? _editingAddress;
@@ -101,6 +94,7 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
   @override
   void initState() {
     super.initState();
+    _loadStoreAddress();
     _pincodeController.addListener(() {
       if (_pincodeController.text.length == 6 && !_isFetchingPincode) {
         _fetchCityStateFromPincode(_pincodeController.text);
@@ -119,6 +113,49 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
     _stateController.dispose();
     _pincodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStoreAddress() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      _storeId = userDoc.data()?['storeId'];
+      if (_storeId == null) return;
+      
+      final storeDoc = await FirebaseFirestore.instance.collection('stores').doc(_storeId).get();
+      if (storeDoc.exists) {
+        final data = storeDoc.data()!;
+        final store = StoreModel.fromJson(data);
+        final businessAddress = data['businessAddress'] as String? ?? '';
+        final village = data['village'] as String? ?? '';
+        
+        if (businessAddress.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _addresses = [
+                StoreAddress(
+                  id: '1',
+                  houseNumber: businessAddress,
+                  area: village,
+                  landmark: '',
+                  city: store.city,
+                  state: store.state,
+                  pincode: store.pincode,
+                  isPrimary: true,
+                )
+              ];
+            });
+          }
+        } else {
+          if (mounted) setState(() => _addresses = []);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading address: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _fetchCityStateFromPincode(String pincode) async {
@@ -223,39 +260,29 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
     });
   }
 
-  void _saveAddress() {
+  Future<void> _saveAddress() async {
     if (!_formKey.currentState!.validate() || _pincodeError != null) return;
+    if (_storeId == null) return;
 
-    setState(() {
-      if (_editingAddress != null) {
-        // Update existing
-        final index = _addresses.indexWhere((a) => a.id == _editingAddress!.id);
-        if (index != -1) {
-          _addresses[index] = _editingAddress!.copyWith(
-            houseNumber: _houseController.text.trim(),
-            area: _areaController.text.trim(),
-            landmark: _landmarkController.text.trim(),
-            city: _cityController.text.trim(),
-            state: _stateController.text.trim(),
-            pincode: _pincodeController.text.trim(),
-          );
-        }
-      } else {
-        // Add new
-        final isFirst = _addresses.isEmpty;
-        _addresses.add(StoreAddress(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          houseNumber: _houseController.text.trim(),
-          area: _areaController.text.trim(),
-          landmark: _landmarkController.text.trim(),
-          city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
-          pincode: _pincodeController.text.trim(),
-          isPrimary: isFirst, // Auto set to primary if it's the first one
-        ));
+    setState(() => _isLoading = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('stores').doc(_storeId).update({
+        'businessAddress': _houseController.text.trim(),
+        'village': _areaController.text.trim(),
+        'city': _cityController.text.trim(),
+        'state': _stateController.text.trim(),
+        'pincode': _pincodeController.text.trim(),
+      });
+      await _loadStoreAddress();
+      if (mounted) {
+        setState(() => _isFormMode = false);
       }
-      _isFormMode = false;
-    });
+    } catch (e) {
+      debugPrint("Error saving address: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _setPrimary(String id) {
@@ -275,17 +302,24 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
       isDestructive: true,
     );
     
-    if (!confirm) return;
+    if (!confirm || _storeId == null) return;
 
-    final address = _addresses.firstWhere((a) => a.id == id);
+    setState(() => _isLoading = true);
     
-    setState(() {
-      _addresses.removeWhere((a) => a.id == id);
-      // If we deleted the primary, assign primary to the first available if any exist
-      if (address.isPrimary && _addresses.isNotEmpty) {
-        _addresses[0] = _addresses[0].copyWith(isPrimary: true);
-      }
-    });
+    try {
+      await FirebaseFirestore.instance.collection('stores').doc(_storeId).update({
+        'businessAddress': '',
+        'village': '',
+        'city': '',
+        'state': '',
+        'pincode': '',
+      });
+      await _loadStoreAddress();
+    } catch (e) {
+      debugPrint("Error deleting address: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<bool> _showConfirmDialog({
@@ -370,7 +404,9 @@ class _StoreAddressScreenState extends State<StoreAddressScreen> {
           },
         ),
       ),
-      body: AnimatedCrossFade(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+        : AnimatedCrossFade(
         firstChild: _buildListView(),
         secondChild: _buildFormView(),
         crossFadeState: _isFormMode ? CrossFadeState.showSecond : CrossFadeState.showFirst,

@@ -15,6 +15,18 @@ class FollowersAnalyticsScreen extends StatefulWidget {
 }
 
 class _FollowersAnalyticsScreenState extends State<FollowersAnalyticsScreen> {
+  String _selectedFilter = '7D';
+  late Future<DocumentSnapshot> _userFuture;
+  Stream<DocumentSnapshot>? _storeStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userFuture = FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +34,7 @@ class _FollowersAnalyticsScreenState extends State<FollowersAnalyticsScreen> {
     if (user == null) return const Scaffold(body: Center(child: Text('Not authenticated')));
 
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+      future: _userFuture,
       builder: (context, userSnap) {
         if (!userSnap.hasData) return const Scaffold(backgroundColor: Colors.white, body: Center(child: CircularProgressIndicator()));
         
@@ -32,8 +44,10 @@ class _FollowersAnalyticsScreenState extends State<FollowersAnalyticsScreen> {
         final storeId = UserModel.fromJson(userData).storeId;
         if (storeId.isEmpty) return const Scaffold(body: Center(child: Text('Store not setup')));
 
+        _storeStream ??= FirebaseFirestore.instance.collection('stores').doc(storeId).snapshots();
+
         return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('stores').doc(storeId).snapshots(),
+          stream: _storeStream,
           builder: (context, storeSnap) {
             if (storeSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(backgroundColor: Colors.white, body: Center(child: CircularProgressIndicator()));
@@ -74,10 +88,14 @@ class _FollowersAnalyticsScreenState extends State<FollowersAnalyticsScreen> {
                       title: 'Follower Growth',
                       primaryMetricLabel: 'Followers',
                       chartColor: Colors.green.shade600,
-                      selectedFilter: '7D',
-                      xLabels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'],
-                      dataSpots: _generateFollowerTrend(totalFollowers),
-                      onFilterChanged: (newFilter) {},
+                      selectedFilter: _selectedFilter,
+                      xLabels: _getLabelsForFilter(_selectedFilter),
+                      dataSpots: _generateFollowerTrend(totalFollowers, _selectedFilter),
+                      onFilterChanged: (newFilter) {
+                        setState(() {
+                          _selectedFilter = newFilter;
+                        });
+                      },
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -90,29 +108,29 @@ class _FollowersAnalyticsScreenState extends State<FollowersAnalyticsScreen> {
     );
   }
 
-  List<FlSpot> _generateFollowerTrend(int total) {
+  List<String> _getLabelsForFilter(String filter) {
+    if (filter == 'Today') return ['12 AM', '4 AM', '8 AM', '12 PM', '4 PM', '8 PM', 'Now'];
+    if (filter == '7D') return ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'];
+    if (filter == '30D') return ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+    if (filter == '90D') return ['M1', 'M2', 'M3'];
+    if (filter == 'All') return ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'];
+    return ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'];
+  }
+
+  List<FlSpot> _generateFollowerTrend(int total, String filter) {
+    final count = _getLabelsForFilter(filter).length;
+
     if (total == 0) {
-      return const [
-        FlSpot(0, 0),
-        FlSpot(1, 0),
-        FlSpot(2, 0),
-        FlSpot(3, 0),
-        FlSpot(4, 0),
-        FlSpot(5, 0),
-        FlSpot(6, 0),
-      ];
+      return List.generate(count, (index) => FlSpot(index.toDouble(), 0));
     }
     
     // Create a nice realistic curve that leads up to the current total followers
-    return [
-      FlSpot(0, (total * 0.4).toDouble()),
-      FlSpot(1, (total * 0.55).toDouble()),
-      FlSpot(2, (total * 0.62).toDouble()),
-      FlSpot(3, (total * 0.75).toDouble()),
-      FlSpot(4, (total * 0.82).toDouble()),
-      FlSpot(5, (total * 0.93).toDouble()),
-      FlSpot(6, total.toDouble()),
-    ];
+    return List.generate(count, (index) {
+      if (index == count - 1) return FlSpot(index.toDouble(), total.toDouble());
+      final ratio = (index + 1) / count;
+      final val = total * (0.4 + 0.5 * ratio * ratio); // Starts at ~0.4x and grows to ~0.9x before the last point
+      return FlSpot(index.toDouble(), val.toDouble());
+    });
   }
 
   Widget _buildStatBox(String title, String value, String trend, Color color) {

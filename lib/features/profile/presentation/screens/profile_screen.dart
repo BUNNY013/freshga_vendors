@@ -8,6 +8,7 @@ import '../../../../data/models/user_model.dart';
 import '../../../../data/models/store_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -56,10 +57,16 @@ class ProfileScreen extends StatelessWidget {
                           _buildSectionTitle("Account"),
                           _buildAccountActions(context),
                           const SizedBox(height: 32),
-                          const Center(
-                            child: Text(
-                              'Version 1.0.0',
-                              style: TextStyle(color: AppColors.grey400, fontSize: 13, fontWeight: FontWeight.w600),
+                          Center(
+                            child: FutureBuilder<PackageInfo>(
+                              future: PackageInfo.fromPlatform(),
+                              builder: (context, snapshot) {
+                                final version = snapshot.hasData ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})' : 'Loading...';
+                                return Text(
+                                  'Version $version',
+                                  style: const TextStyle(color: AppColors.grey400, fontSize: 13, fontWeight: FontWeight.w600),
+                                );
+                              },
                             ),
                           ),
                         ],

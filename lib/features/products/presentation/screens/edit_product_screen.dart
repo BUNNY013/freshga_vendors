@@ -8,6 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../widgets/product_preview_sheet.dart';
+import '../../../store/providers/store_provider.dart';
+import '../../../store/presentation/screens/preview/vendor_product_details_screen.dart';
+
+import 'edit_product_info_screen.dart';
 
 class EditProductScreen extends StatefulWidget {
   final ProductModel product;
@@ -266,7 +270,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: InkWell(
-                  onTap: () => ProductPreviewSheet.show(context, _product),
+                  onTap: () {
+                    final store = context.read<StoreProvider>().store;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => VendorProductDetailsScreen(
+                          product: _product,
+                          store: store,
+                        ),
+                      ),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(100),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -497,9 +512,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildMetricCard(Icons.visibility_outlined, const Color(0xFF3B82F6), const Color(0xFFEFF6FF), '${_product.likes * 8 + 42}', 'Views')),
-            const SizedBox(width: 12),
             Expanded(child: _buildMetricCard(Icons.star_border, const Color(0xFFF59E0B), const Color(0xFFFEF9C3), _product.rating > 0 ? _product.rating.toStringAsFixed(1) : 'New', 'Rating')),
+            const SizedBox(width: 12),
+            const Expanded(child: SizedBox()),
           ],
         ),
       ],

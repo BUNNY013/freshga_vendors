@@ -272,7 +272,7 @@ class _EditPhotosScreenState extends State<EditPhotosScreen> {
             width: double.infinity,
             height: double.infinity,
             memCacheWidth: 400, // optimize memory and load speed
-            placeholder: (context, url) => Container(color: Colors.grey.shade200),
+            placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
             errorWidget: (context, url, error) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)),
           ),
         ),

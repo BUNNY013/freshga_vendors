@@ -84,7 +84,12 @@ class DashboardProvider extends ChangeNotifier {
         final data = doc.data();
         if ((data['orderStatus'] ?? '').toString().toLowerCase() == 'new') {
           if (data['expiresAt'] != null) {
-            final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+            DateTime expiresAt;
+            if (data['expiresAt'] is String) {
+              expiresAt = DateTime.parse(data['expiresAt']);
+            } else {
+              expiresAt = (data['expiresAt'] as Timestamp).toDate();
+            }
             final hoursLeft = expiresAt.difference(now).inMinutes / 60.0;
             if (hoursLeft <= 1.0) {
               expiring++;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
@@ -55,7 +56,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
 
   void _onContinue() {
     setState(() => _localError = null);
-    final phone = _phoneController.text.trim();
+    // Strip everything except digits in case autofill pastes formatted string
+    final phone = _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
     
     // Validation
     if (phone.isEmpty) {
@@ -64,10 +66,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
     }
     if (phone.length < 10) {
       setState(() => _localError = 'Please enter a valid 10-digit phone number.');
-      return;
-    }
-    if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      setState(() => _localError = 'Only numbers are allowed.');
       return;
     }
 
@@ -183,41 +181,48 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> with SingleTickerPr
                                   const SizedBox(height: 32),
                                   
                                   // Phone Input Area
-                                  PremiumTextField(
-                                    label: 'Phone Number',
-                                    isRequired: true,
-                                    controller: _phoneController,
-                                    focusNode: _phoneFocus,
-                                    keyboardType: TextInputType.number,
-                                    maxLength: 10,
-                                    hintText: '00000 00000',
-                                    errorText: errorMessage,
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Image.network(
-                                            'https://flagcdn.com/w40/in.png',
-                                            width: 24,
-                                            errorBuilder: (context, error, stackTrace) => 
-                                                const Icon(Icons.flag, size: 24, color: AppColors.grey500),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            '+91',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.textPrimary,
+                                  AutofillGroup(
+                                    child: PremiumTextField(
+                                      label: 'Phone Number',
+                                      isRequired: true,
+                                      controller: _phoneController,
+                                      focusNode: _phoneFocus,
+                                      keyboardType: TextInputType.phone,
+                                      autofillHints: const [AutofillHints.telephoneNumber],
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(10),
+                                      ],
+                                      hintText: '00000 00000',
+                                      errorText: errorMessage,
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Image.network(
+                                              'https://flagcdn.com/w40/in.png',
+                                              width: 24,
+                                              errorBuilder: (context, error, stackTrace) => 
+                                                  const Icon(Icons.flag, size: 24, color: AppColors.grey500),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 8),
+                                            const Text(
+                                              '+91',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      onChanged: (val) {
+                                        if (_localError != null) setState(() => _localError = null);
+                                        context.read<AuthProvider>().clearError();
+                                      },
                                     ),
-                                    onChanged: (val) {
-                                      if (_localError != null) setState(() => _localError = null);
-                                    },
                                   ),
                                     
                                   const SizedBox(height: 32),

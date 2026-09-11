@@ -11,6 +11,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_actions_sheet.dart';
 import '../widgets/product_preview_sheet.dart';
+import '../../../store/providers/store_provider.dart';
+import '../../../store/presentation/screens/preview/vendor_product_details_screen.dart';
 
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -564,7 +566,18 @@ class _ProductListContentState extends State<_ProductListContent> {
       },
       onLongPress: () => _showActions(product),
       onEdit: () => _handleEditProduct(product),
-      onPreview: () => ProductPreviewSheet.show(context, product),
+      onPreview: () {
+        final store = context.read<StoreProvider>().store;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VendorProductDetailsScreen(
+              product: product,
+              store: store,
+            ),
+          ),
+        );
+      },
       onToggleVisibility: (val) async {
         final provider = context.read<ProductProvider>();
         await provider.updateProductStatus(product.productId, val ? 'Live' : 'Unavailable');
@@ -651,7 +664,18 @@ class _ProductListContentState extends State<_ProductListContent> {
       context,
       product: product,
       onEdit: () => _handleEditProduct(product),
-      onPreview: () => ProductPreviewSheet.show(context, product),
+      onPreview: () {
+        final store = context.read<StoreProvider>().store;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VendorProductDetailsScreen(
+              product: product,
+              store: store,
+            ),
+          ),
+        );
+      },
       onDuplicate: () async {
         final success = await provider.duplicateProduct(product);
         if (mounted) {

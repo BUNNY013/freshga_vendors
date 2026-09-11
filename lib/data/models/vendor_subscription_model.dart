@@ -5,12 +5,14 @@ class VendorSubscriptionModel {
   final String status; // 'trialing', 'active', 'grace_period', 'expired'
   final DateTime trialEndsAt;
   final DateTime? currentPeriodEnd;
+  final DateTime? customGracePeriodEnd;
 
   VendorSubscriptionModel({
     required this.storeId,
     required this.status,
     required this.trialEndsAt,
     this.currentPeriodEnd,
+    this.customGracePeriodEnd,
   });
 
   factory VendorSubscriptionModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,11 @@ class VendorSubscriptionModel {
               ? (json['currentPeriodEnd'] as Timestamp).toDate() 
               : DateTime.parse(json['currentPeriodEnd'].toString())) 
           : null,
+      customGracePeriodEnd: json['customGracePeriodEnd'] != null 
+          ? (json['customGracePeriodEnd'] is Timestamp 
+              ? (json['customGracePeriodEnd'] as Timestamp).toDate() 
+              : DateTime.parse(json['customGracePeriodEnd'].toString())) 
+          : null,
     );
   }
 
@@ -36,6 +43,7 @@ class VendorSubscriptionModel {
       'status': status,
       'trialEndsAt': trialEndsAt.toIso8601String(),
       'currentPeriodEnd': currentPeriodEnd?.toIso8601String(),
+      if (customGracePeriodEnd != null) 'customGracePeriodEnd': customGracePeriodEnd?.toIso8601String(),
     };
   }
 
@@ -46,10 +54,10 @@ class VendorSubscriptionModel {
   bool get isPaidActive => 
       status == 'active' && currentPeriodEnd != null && DateTime.now().isBefore(currentPeriodEnd!);
       
-  // Grace period logic: If the currentPeriodEnd has passed, they have 3 days before total lockout
+  // Grace period logic: If the customGracePeriodEnd is set, use it. Otherwise default to currentPeriodEnd + 3 days
   bool get isInGracePeriod {
     if (currentPeriodEnd == null) return false;
-    final graceEndsAt = currentPeriodEnd!.add(const Duration(days: 3));
+    final graceEndsAt = customGracePeriodEnd ?? currentPeriodEnd!.add(const Duration(days: 3));
     return DateTime.now().isAfter(currentPeriodEnd!) && DateTime.now().isBefore(graceEndsAt);
   }
 

@@ -529,6 +529,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                                 memCacheWidth: 250,
                                                 memCacheHeight: 250,
                                                 fit: BoxFit.contain,
+                                                fadeInDuration: Duration.zero,
+                                                fadeOutDuration: Duration.zero,
                                                 placeholder: (context, url) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
                                                 errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey),
                                               ),
@@ -729,6 +731,8 @@ class _AddProductWizardState extends State<_AddProductWizard> {
                                                 memCacheWidth: 250,
                                                 memCacheHeight: 250,
                                                 fit: BoxFit.contain,
+                                                fadeInDuration: Duration.zero,
+                                                fadeOutDuration: Duration.zero,
                                                 placeholder: (context, url) => const Center(
                                                   child: SizedBox(
                                                     width: 20,

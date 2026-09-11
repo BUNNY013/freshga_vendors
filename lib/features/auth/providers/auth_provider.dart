@@ -70,6 +70,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearError() {
+    if (_errorMessage != null) {
+      _errorMessage = null;
+      notifyListeners();
+    }
+  }
+
   Future<void> _fetchUserData(String uid, String phone) async {
     _state = AuthState.loading;
     notifyListeners();

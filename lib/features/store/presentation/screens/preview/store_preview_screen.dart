@@ -5,6 +5,9 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../data/models/store_model.dart';
 import '../../../../../data/models/product_model.dart';
 import '../../../../products/presentation/providers/product_provider.dart';
+import '../../widgets/vendor_about_store_section.dart';
+import '../../widgets/vendor_dynamic_category_chips.dart';
+import '../../widgets/vendor_store_product_list_item.dart';
 
 class StorePreviewScreen extends StatefulWidget {
   final StoreModel store;
@@ -17,6 +20,8 @@ class StorePreviewScreen extends StatefulWidget {
 
 class _StorePreviewScreenState extends State<StorePreviewScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Set<String> _collapsedSections = {};
+  String _selectedCategory = "All";
 
   @override
   void initState() {
@@ -193,10 +198,10 @@ class _StorePreviewScreenState extends State<StorePreviewScreen> with SingleTick
                     const SizedBox(height: 12),
                     Text(
                       store.storeName,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: Color(0xFF0F172A),
                         fontFamily: 'serif',
                       ),
                       maxLines: 1,
@@ -273,26 +278,6 @@ class _StorePreviewScreenState extends State<StorePreviewScreen> with SingleTick
                           ],
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    // Mock Follow Button
-                    Container(
-                      width: 140,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "Follow",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -324,94 +309,206 @@ class _StorePreviewScreenState extends State<StorePreviewScreen> with SingleTick
             StreamBuilder<List<ProductModel>>(
               stream: productProvider.streamProducts(store.storeId),
               builder: (context, snapshot) {
-                final products = snapshot.data ?? [];
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final allProducts = snapshot.data ?? [];
                 
+                final productCategories = allProducts
+                    .map((p) => p.categoryName)
+                    .where((c) => c.isNotEmpty)
+                    .toSet()
+                    .toList();
+                
+                // Group products
+                Map<String, List<ProductModel>> groupedProducts = {};
+                
+                // Virtual Categories
+                if (_selectedCategory == "All") {
+                  final bestSellers = allProducts.where((p) => p.tags.contains('Bestseller')).toList();
+                  if (bestSellers.isNotEmpty) {
+                    groupedProducts["Bestsellers"] = bestSellers.take(5).toList();
+                  }
+
+                  final offers = allProducts.where((p) => p.originalPrice > p.price).toList();
+                  if (offers.isNotEmpty) {
+                    groupedProducts["Discounts"] = offers.toList();
+                  }
+                }
+
+                // Filter by selected category and group by subcategory
+                for (var product in allProducts) {
+                  if (_selectedCategory != "All" && product.categoryName != _selectedCategory) {
+                    continue;
+                  }
+                  final subName = product.subCategoryIds.isNotEmpty ? product.subCategoryIds.first : "Other Delights";
+                  groupedProducts.putIfAbsent(subName, () => []).add(product);
+                }
+
+                // Sort sections
+                int getRank(String key) {
+                  if (key == "Bestsellers") return 0;
+                  if (key == "Discounts") return 1;
+                  if (key == "Other Delights") return 999;
+                  return 2;
+                }
+
+                final sortedKeys = groupedProducts.keys.toList()
+                  ..sort((a, b) {
+                    final rankA = getRank(a);
+                    final rankB = getRank(b);
+                    if (rankA != rankB) return rankA.compareTo(rankB);
+                    return a.compareTo(b);
+                  });
+
                 return CustomScrollView(
                   slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = products[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade200),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _StickyCategoryDelegate(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 16),
+                            VendorDynamicCategoryChips(
+                              categories: productCategories,
+                              selectedCategory: _selectedCategory,
+                              onCategorySelected: (cat) {
+                                setState(() {
+                                  _selectedCategory = cat;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (groupedProducts.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.dining_outlined,
+                                size: 64,
+                                color: Colors.grey.shade300,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "No items match your cravings.",
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
-                                child: CachedNetworkImage(
-                                  imageUrl: product.images.isNotEmpty ? product.images.first : '',
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Container(width: 120, height: 120, color: Colors.grey.shade200, child: const Icon(Icons.image)),
-                                ),
-                              ),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        product.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A)),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "₹${product.price.toStringAsFixed(0)}",
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
-                                      ),
-                                    ],
+                        ),
+                      )
+                    else
+                      ...sortedKeys.expand((sectionName) {
+                        final sectionProducts = groupedProducts[sectionName]!;
+                        final isCollapsed = _collapsedSections.contains(sectionName);
+
+                        return [
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 56.0,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isCollapsed) {
+                                        _collapsedSections.remove(sectionName);
+                                      } else {
+                                        _collapsedSections.add(sectionName);
+                                      }
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          "$sectionName (${sectionProducts.length})",
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0F172A),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        AnimatedRotation(
+                                          turns: isCollapsed ? 0.5 : 0.0,
+                                          duration: const Duration(milliseconds: 200),
+                                          child: const Icon(
+                                            Icons.keyboard_arrow_up,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        );
-                        },
-                        childCount: products.length,
+                          if (!isCollapsed)
+                            SliverFixedExtentList(
+                              itemExtent: 224.0,
+                              delegate: SliverChildBuilderDelegate((context, index) {
+                                return VendorStoreProductListItem(
+                                  product: sectionProducts[index],
+                                  store: store,
+                                );
+                              }, childCount: sectionProducts.length),
+                            ),
+                        ];
+                      }),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: 40,
+                          bottom: 120,
+                        ), 
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.volunteer_activism_outlined,
+                              color: Colors.grey.shade300,
+                              size: 36,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "HAPPY TO SERVE YOU",
+                              style: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "From our kitchen to your table 🍲",
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-          // About Tab
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "About Store",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    store.description.isNotEmpty ? store.description : "No description provided yet.",
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.6),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              },
             ),
+            // About Tab
+            VendorAboutStoreSection(store: store),
           ],
         ),
       ),
@@ -440,5 +537,48 @@ class _PreviewTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_PreviewTabBarDelegate oldDelegate) {
     return false;
+  }
+}
+
+class _StickyCategoryDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _StickyCategoryDelegate({required this.child});
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: Colors.white,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: shrinkOffset > 0 || overlapsContent
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => 140.0;
+
+  @override
+  double get minExtent => 140.0;
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    return true;
   }
 }

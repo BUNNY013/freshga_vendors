@@ -29,6 +29,7 @@ class PremiumTextField extends StatelessWidget {
   final String? initialValue;
   final String? errorText;
   final String? helperText;
+  final Iterable<String>? autofillHints;
 
   const PremiumTextField({
     super.key,
@@ -58,6 +59,7 @@ class PremiumTextField extends StatelessWidget {
     this.initialValue,
     this.errorText,
     this.helperText,
+    this.autofillHints,
   });
 
   @override
@@ -97,6 +99,7 @@ class PremiumTextField extends StatelessWidget {
           onTap: onTap,
           textCapitalization: textCapitalization,
           inputFormatters: inputFormatters,
+          autofillHints: autofillHints,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hintText,

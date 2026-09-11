@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,8 @@ class StoreProvider extends ChangeNotifier {
 
   String? _error;
   String? get error => _error;
+
+  StreamSubscription<DocumentSnapshot>? _storeSubscription;
 
   StoreProvider() {
     _init();
@@ -53,18 +56,45 @@ class StoreProvider extends ChangeNotifier {
         return;
       }
 
-      final storeDoc = await FirebaseFirestore.instance.collection('stores').doc(storeId).get();
-      if (storeDoc.exists) {
-        _store = StoreModel.fromJson(storeDoc.data()!);
-      } else {
-        _error = "Store document not found";
-      }
+      // Cancel any existing subscription
+      _storeSubscription?.cancel();
+
+      // Listen in real-time
+      _storeSubscription = FirebaseFirestore.instance
+          .collection('stores')
+          .doc(storeId)
+          .snapshots()
+          .listen(
+        (storeDoc) {
+          if (storeDoc.exists) {
+            _store = StoreModel.fromJson(storeDoc.data()!);
+            _error = null;
+          } else {
+            _error = "Store document not found";
+            _store = null;
+          }
+          if (_isLoading) {
+            _isLoading = false;
+          }
+          notifyListeners();
+        },
+        onError: (e) {
+          _error = e.toString();
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _error = e.toString();
-    } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _storeSubscription?.cancel();
+    super.dispose();
   }
 
   // --- Optimistic Updates for Shipping Settings ---
@@ -139,6 +169,39 @@ class StoreProvider extends ChangeNotifier {
       debugPrint("Failed to add delivery area: $e");
       _store = previousStore;
       _error = "Failed to add delivery area. Please try again.";
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateSocialLinks({
+    required String instagram,
+    required String facebook,
+    required String youtube,
+    required String whatsapp,
+  }) async {
+    if (_store == null) return;
+
+    final previousStore = _store;
+
+    _store = _store!.copyWith(
+      instagramLink: instagram,
+      facebookLink: facebook,
+      youtubeLink: youtube,
+      whatsappNumber: whatsapp,
+    );
+    notifyListeners();
+
+    try {
+      await FirebaseFirestore.instance.collection('stores').doc(_store!.storeId).update({
+        'instagramLink': instagram,
+        'facebookLink': facebook,
+        'youtubeLink': youtube,
+        'whatsappNumber': whatsapp,
+      });
+    } catch (e) {
+      debugPrint("Failed to update social links: $e");
+      _store = previousStore;
+      _error = "Failed to update social links.";
       notifyListeners();
     }
   }

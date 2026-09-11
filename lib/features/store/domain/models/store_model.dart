@@ -12,15 +12,18 @@ class StoreModel {
   final String instagramLink;
   final String facebookLink;
   final String youtubeLink;
+  final String whatsappNumber;
   final List<String> categories;
   final double rating;
   final int totalReviews;
   final int totalOrders;
   final int followers;
+  final int views;
   final bool verified;
   final bool isFeatured;
   final bool isActive;
   final String status; // 'Active', 'Pending', 'Suspended'
+  final String? suspensionReason;
   final bool canSellPanIndia;
 
   bool get isSuspended => status.toLowerCase() == 'suspended';
@@ -46,15 +49,18 @@ class StoreModel {
     required this.instagramLink,
     this.facebookLink = '',
     this.youtubeLink = '',
+    this.whatsappNumber = '',
     required this.categories,
     this.rating = 0.0,
     this.totalReviews = 0,
     this.totalOrders = 0,
     this.followers = 0,
+    this.views = 0,
     this.verified = false,
     this.isFeatured = false,
     this.isActive = true,
     this.status = 'Active',
+    this.suspensionReason,
     this.canSellPanIndia = false,
     required this.dispatchTime,
     this.city = '',
@@ -79,15 +85,18 @@ class StoreModel {
       instagramLink: json['instagramLink'] ?? '',
       facebookLink: json['facebookLink'] ?? '',
       youtubeLink: json['youtubeLink'] ?? '',
+      whatsappNumber: json['whatsappNumber'] ?? '',
       categories: List<String>.from(json['categories'] ?? []),
       rating: (json['rating'] ?? 0.0).toDouble(),
       totalReviews: json['totalReviews'] ?? 0,
       totalOrders: json['totalOrders'] ?? 0,
       followers: json['followers'] ?? 0,
+      views: json['views'] ?? 0,
       verified: json['verified'] ?? false,
       isFeatured: json['isFeatured'] ?? false,
       isActive: json['isActive'] ?? true,
       status: json['status'] ?? 'Active',
+      suspensionReason: json['suspensionReason'],
       canSellPanIndia: json['canSellPanIndia'] ?? false,
       dispatchTime: json['dispatchTime'] ?? '24 hours',
       city: json['city'] ?? '',
@@ -128,10 +137,12 @@ class StoreModel {
       'totalReviews': totalReviews,
       'totalOrders': totalOrders,
       'followers': followers,
+      'views': views,
       'verified': verified,
       'isFeatured': isFeatured,
       'isActive': isActive,
       'status': status,
+      if (suspensionReason != null) 'suspensionReason': suspensionReason,
       'canSellPanIndia': canSellPanIndia,
       'dispatchTime': dispatchTime,
       'city': city,
@@ -156,14 +167,18 @@ class StoreModel {
     String? instagramLink,
     String? facebookLink,
     String? youtubeLink,
+    String? whatsappNumber,
     List<String>? categories,
     double? rating,
     int? totalReviews,
     int? totalOrders,
     int? followers,
+    int? views,
     bool? verified,
     bool? isFeatured,
     bool? isActive,
+    String? status,
+    String? suspensionReason,
     bool? canSellPanIndia,
     String? dispatchTime,
     String? city,
@@ -186,14 +201,18 @@ class StoreModel {
       instagramLink: instagramLink ?? this.instagramLink,
       facebookLink: facebookLink ?? this.facebookLink,
       youtubeLink: youtubeLink ?? this.youtubeLink,
+      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       categories: categories ?? this.categories,
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,
       totalOrders: totalOrders ?? this.totalOrders,
       followers: followers ?? this.followers,
+      views: views ?? this.views,
       verified: verified ?? this.verified,
       isFeatured: isFeatured ?? this.isFeatured,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
       canSellPanIndia: canSellPanIndia ?? this.canSellPanIndia,
       dispatchTime: dispatchTime ?? this.dispatchTime,
       city: city ?? this.city,

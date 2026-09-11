@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/product_variant_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../data/models/user_model.dart';
+import '../../../store/domain/models/store_model.dart';
 
 class VendorProductPreview extends StatefulWidget {
   final String name;
@@ -41,13 +45,6 @@ class VendorProductPreview extends StatefulWidget {
 class _VendorProductPreviewState extends State<VendorProductPreview> {
   int _currentImageIndex = 0;
   int _selectedVariantIndex = 0;
-  
-  // Dummy store values
-  final String storeName = "FreshGa Homemade";
-  final double storeRating = 4.8;
-  final int storeReviews = 124;
-  final String storeLocation = "Hyderabad, Telangana";
-
   @override
   Widget build(BuildContext context) {
     final bgColor = const Color(0xFFFFF9F2);
@@ -477,73 +474,95 @@ class _VendorProductPreviewState extends State<VendorProductPreview> {
   }
 
   Widget _buildStoreProfileCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Text(
-                "F",
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
+      builder: (context, userSnap) {
+        if (!userSnap.hasData) return const SizedBox.shrink();
+        final userData = userSnap.data?.data() as Map<String, dynamic>?;
+        if (userData == null) return const SizedBox.shrink();
+        final storeId = UserModel.fromJson(userData).storeId;
+
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('stores').doc(storeId).get(),
+          builder: (context, storeSnap) {
+            if (!storeSnap.hasData) return const SizedBox.shrink();
+            final storeData = storeSnap.data?.data() as Map<String, dynamic>?;
+            if (storeData == null) return const SizedBox.shrink();
+            final store = StoreModel.fromJson(storeData);
+
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      storeName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                      child: const Icon(Icons.check, color: Colors.white, size: 10),
+                    child: Center(
+                      child: Text(
+                        store.storeName.isNotEmpty ? store.storeName[0].toUpperCase() : "F",
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text("$storeRating", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(width: 4),
-                    Text("($storeReviews)", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_outlined, color: AppColors.grey500, size: 14),
-                    const SizedBox(width: 4),
-                    Text(storeLocation, style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.grey400),
-        ],
-      ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              store.storeName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                              child: const Icon(Icons.check, color: Colors.white, size: 10),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text(store.totalReviews < 5 ? "New" : store.rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            if (store.totalReviews >= 5) ...[
+                              const SizedBox(width: 4),
+                              Text("(${store.totalReviews})", style: const TextStyle(color: AppColors.grey500, fontSize: 13)),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, color: AppColors.grey500, size: 14),
+                            const SizedBox(width: 4),
+                            Text("${store.city}, ${store.state}", style: const TextStyle(color: AppColors.grey500, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.grey400),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

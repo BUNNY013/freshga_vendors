@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
@@ -18,7 +17,7 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _otpController = TextEditingController();
   final FocusNode _otpFocusNode = FocusNode();
-  int _secondsRemaining = 30;
+  int _secondsRemaining = 60;
   Timer? _timer;
   String? _localError;
   bool _isVerifying = false;
@@ -46,18 +45,28 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _animController.forward();
+      context.read<AuthProvider>().addListener(_onAuthStateChanged);
     });
 
     _startTimer();
+
     // Auto focus OTP field
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _otpFocusNode.requestFocus();
     });
   }
 
+  void _onAuthStateChanged() {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.state == AuthState.authenticated) {
+      context.go('/splash');
+    }
+  }
+
   void _startTimer() {
     setState(() {
-      _secondsRemaining = 30;
+      _secondsRemaining = 60;
     });
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -76,6 +85,12 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _timer?.cancel();
+    // Clear any lingering errors so they don't show up when popping back to phone login
+    if (mounted) {
+      try {
+        context.read<AuthProvider>().clearError();
+      } catch (_) {}
+    }
     _otpController.dispose();
     _otpFocusNode.dispose();
     _animController.dispose();
@@ -248,28 +263,32 @@ class _OtpScreenState extends State<OtpScreen> with SingleTickerProviderStateMix
                                   Center(
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
-                                      child: Pinput(
-                                        length: 6,
-                                        controller: _otpController,
-                                        focusNode: _otpFocusNode,
-                                        defaultPinTheme: defaultPinTheme,
-                                        focusedPinTheme: defaultPinTheme.copyDecorationWith(
-                                          border: Border.all(color: AppColors.primary, width: 2),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.primary.withOpacity(0.15),
-                                              blurRadius: 12,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
+                                      child: AutofillGroup(
+                                        child: Pinput(
+                                          length: 6,
+                                          controller: _otpController,
+                                          focusNode: _otpFocusNode,
+                                          autofillHints: const [AutofillHints.oneTimeCode],
+                                          defaultPinTheme: defaultPinTheme,
+                                          focusedPinTheme: defaultPinTheme.copyDecorationWith(
+                                            border: Border.all(color: AppColors.primary, width: 2),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.primary.withOpacity(0.15),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          errorPinTheme: defaultPinTheme.copyDecorationWith(
+                                            border: Border.all(color: AppColors.error, width: 2),
+                                          ),
+                                          onCompleted: (pin) => _verifyOtp(),
+                                          onChanged: (pin) {
+                                            if (_localError != null) setState(() => _localError = null);
+                                            context.read<AuthProvider>().clearError();
+                                          },
                                         ),
-                                        errorPinTheme: defaultPinTheme.copyDecorationWith(
-                                          border: Border.all(color: AppColors.error, width: 2),
-                                        ),
-                                        onCompleted: (pin) => _verifyOtp(),
-                                        onChanged: (pin) {
-                                          if (_localError != null) setState(() => _localError = null);
-                                        },
                                       ),
                                     ),
                                   ),

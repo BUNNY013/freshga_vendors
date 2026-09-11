@@ -12,6 +12,7 @@ import '../../../orders/presentation/screens/orders_list_screen.dart';
 import '../../../store/presentation/screens/store_management_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../store/providers/subscription_provider.dart';
+import '../../../store/providers/store_provider.dart';
 import 'home_dashboard_view.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -111,13 +112,56 @@ class _DashboardScreenBodyState extends State<_DashboardScreenBody> {
   Widget build(BuildContext context) {
     final subProvider = context.watch<SubscriptionProvider>();
     final isExpired = subProvider.currentSubscription?.isCompletelyExpired ?? false;
+    final store = context.watch<StoreProvider>().store;
+    final isPending = store?.status == 'Pending';
 
     return Scaffold(
       backgroundColor: Colors.white,
       extendBody: true,
       body: SafeArea(
         bottom: false,
-        child: _views[_currentIndex]
+        child: Column(
+          children: [
+            if (isPending)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: const Color(0xFFFFF7ED), // Orange tint
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.pending_actions_rounded, color: Color(0xFFEA580C), size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Account Under Review",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF9A3412),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Your store is currently pending admin approval. You can manage your profile and products, but new orders will not be accepted until your account is fully verified.",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFFC2410C),
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(child: _views[_currentIndex]),
+          ],
+        ),
       ),
       bottomNavigationBar: FirebaseAuth.instance.currentUser != null ? FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).get(),

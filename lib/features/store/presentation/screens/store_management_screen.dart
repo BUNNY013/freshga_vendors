@@ -298,8 +298,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                 ),
                 Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
                 _buildMetricColumn(
-                  store.totalReviews == 0 ? 'New' : '${store.rating}', 
-                  store.totalReviews == 0 ? 'Rating' : '${store.totalReviews} Revs', 
+                  store.totalReviews < 5 ? 'New' : '${store.rating}', 
+                  store.totalReviews < 5 ? 'Rating' : '${store.totalReviews} Revs', 
                   isRating: store.totalReviews > 0,
                   onTap: () => context.push('/analytics/rating'),
                 ),
@@ -593,11 +593,13 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
             title: 'Social Links',
             subtitleWidget: Row(
               children: [
-                if (store.instagramLink.isNotEmpty) _buildSocialIcon(Icons.camera_alt_outlined, Colors.pink),
+                if (store.whatsappNumber.isNotEmpty) _buildSocialImageAsset('assets/images/whatsapp_icon.png'),
+                if (store.whatsappNumber.isNotEmpty) const SizedBox(width: 8),
+                if (store.instagramLink.isNotEmpty) _buildSocialImageAsset('assets/images/instagram_icon.png', scale: 1.35),
                 if (store.instagramLink.isNotEmpty) const SizedBox(width: 8),
-                if (store.facebookLink.isNotEmpty) _buildSocialIcon(Icons.facebook, Colors.blue),
+                if (store.facebookLink.isNotEmpty) _buildSocialImageAsset('assets/images/facebook_icon.png'),
                 if (store.facebookLink.isNotEmpty) const SizedBox(width: 8),
-                if (store.youtubeLink.isNotEmpty) _buildSocialIcon(Icons.play_circle_fill, Colors.red),
+                if (store.youtubeLink.isNotEmpty) _buildSocialImageAsset('assets/images/youtube_icon.png'),
               ],
             ),
             route: '/store/social-links',
@@ -889,6 +891,25 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
       ),
       alignment: Alignment.center,
       child: Icon(icon, size: 14, color: color),
+    );
+  }
+
+  Widget _buildSocialImageAsset(String assetPath, {double scale = 1.0}) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      alignment: Alignment.center,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Transform.scale(
+          scale: scale,
+          child: Image.asset(assetPath, width: 28, height: 28, fit: BoxFit.cover),
+        ),
+      ),
     );
   }
 }

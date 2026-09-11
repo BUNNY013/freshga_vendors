@@ -669,7 +669,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
                         _buildOverviewCard(context, "Pending Orders", "${dashboard.pendingOrdersCount}", Colors.orange, '/analytics/orders'),
                         _buildOverviewCard(context, "Products Live", "$productCount", Colors.purple, '/analytics/products', lowStockCount: dashboard.lowStockCount, outOfStockCount: dashboard.outOfStockCount),
                         _buildOverviewCard(context, "Followers", "${store.followers}", Colors.blue, '/analytics/followers', showChevron: true),
-                        _buildOverviewCard(context, "Store Rating", store.totalReviews == 0 ? "New" : store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
+                        _buildOverviewCard(context, "Store Rating", store.totalReviews < 5 ? "New" : store.rating.toStringAsFixed(1), Colors.orange, '/analytics/rating', showChevron: true),
                       ],
                     );
                   }
@@ -690,7 +690,7 @@ class _HomeDashboardViewState extends State<HomeDashboardView> {
     final IconData trendIcon = isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
     return GestureDetector(
-      onTap: () => context.push(route),
+      onTap: route.isEmpty ? null : () => context.push(route),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
